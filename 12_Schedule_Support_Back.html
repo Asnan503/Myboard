@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schedule Support Back</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --navy-deep:#0a1f4d;
+    --navy:#0e2a63;
+    --blue:#1d5fd6;
+    --blue-light:#2f7ae0;
+    --gold:#f0b429;
+    --green:#1f9d55;
+    --orange:#e8821a;
+    --red:#c0392b;
+    --slate:#54627a;
+    --bg:#eef2f8;
+    --card:#f5f8fc;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Arial Black','Arial',sans-serif;
+    background:#d7dee9;
+    color:#0a1f4d;
+    padding:24px 12px 60px;
+  }
+  .toolbar{
+    max-width:1200px;
+    margin:0 auto 14px;
+    background:#ffffff;
+    border-radius:14px;
+    padding:16px 20px;
+    box-shadow:0 4px 16px rgba(10,31,77,.12);
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:14px;
+    font-family:Arial,sans-serif;
+  }
+  .toolbar h2{
+    margin:0 0 4px;
+    font-size:16px;
+    color:var(--navy-deep);
+    flex:1 1 100%;
+  }
+  .toolbar label{
+    font-size:13px;
+    font-weight:bold;
+    color:var(--slate);
+    margin-right:6px;
+  }
+  .field-group{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:#f1f4f9;
+    padding:8px 12px;
+    border-radius:10px;
+  }
+  input[type="file"]{
+    font-size:13px;
+    max-width:200px;
+  }
+  input[type="date"], input[type="url"]{
+    border:1px solid #c7d0e0;
+    border-radius:8px;
+    padding:6px 10px;
+    font-size:14px;
+    font-family:Arial,sans-serif;
+    color:var(--navy-deep);
+  }
+  input[type="url"]{ width:260px; max-width:100%; }
+  button{
+    font-family:Arial,sans-serif;
+    font-weight:bold;
+    font-size:13px;
+    border:none;
+    border-radius:8px;
+    padding:9px 16px;
+    cursor:pointer;
+    transition:.15s ease;
+  }
+  #downloadBtn{ background:var(--navy-deep); color:#fff; }
+  #downloadBtn:hover{ background:#142e6e; }
+  #downloadBtn:disabled{ background:#9aa6bf; cursor:not-allowed; }
+  #gsheetBtn{ background:var(--blue); color:#fff; }
+  #gsheetBtn:hover{ background:#164fb3; }
+  .status{
+    font-size:12px;
+    color:var(--slate);
+    font-family:Arial,sans-serif;
+    flex:1 1 100%;
+  }
+  .status.ok{ color:var(--green); font-weight:bold; }
+  .status.err{ color:var(--red); font-weight:bold; }
+  .toolbar-row{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:14px;
+    width:100%;
+  }
+  .hint{
+    font-size:11px;
+    color:#8893a8;
+    font-family:Arial,sans-serif;
+    flex:1 1 100%;
+  }
+
+  /* ===== Poster ===== */
+  #poster{
+    width:900px;
+    max-width:100%;
+    margin:0 auto;
+    background:var(--card);
+    border-radius:20px;
+    overflow:hidden;
+    box-shadow:0 10px 40px rgba(10,31,77,.25);
+  }
+  .header{
+    position:relative;
+    background:linear-gradient(135deg,var(--navy-deep) 0%, var(--navy) 55%, #123a8a 100%);
+    padding:18px 24px 14px;
+    text-align:center;
+    overflow:hidden;
+  }
+  .header::before, .header::after{
+    content:"";
+    position:absolute;
+    width:140px;height:140px;
+    background:
+      radial-gradient(circle, rgba(255,255,255,.35) 1.6px, transparent 1.8px) 0 0/16px 16px;
+    opacity:.5;
+  }
+  .header::before{ top:10px; left:10px; }
+  .header::after{ top:10px; right:10px; background-position: right 0; }
+  .stripe{
+    position:absolute;
+    bottom:-10px;
+    width:220px;height:70px;
+    background:linear-gradient(135deg, var(--gold), #f5d061);
+    transform:rotate(-18deg);
+    opacity:.9;
+    z-index:1;
+  }
+  .stripe.left{ left:-60px; }
+  .stripe.right{ right:-60px; transform:rotate(18deg); }
+  .header-deco{
+    position:absolute;
+    bottom:0;
+    height:78%;
+    opacity:.16;
+    z-index:1;
+    pointer-events:none;
+  }
+  .header-deco.racking{ left:0; width:34%; }
+  .header-deco.desk{ right:0; width:30%; }
+  .header h1{
+    margin:0 0 10px;
+    font-size:24px;
+    letter-spacing:.5px;
+    color:#fff;
+    text-shadow:0 3px 0 rgba(0,0,0,.15);
+    position:relative;
+    z-index:2;
+  }
+  .date-pill{
+    position:relative;
+    z-index:2;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--blue);
+    color:#fff;
+    font-size:13px;
+    font-weight:bold;
+    letter-spacing:.5px;
+    padding:6px 16px;
+    border-radius:30px;
+    box-shadow:0 4px 12px rgba(0,0,0,.2);
+  }
+  .date-pill .icon{ font-size:18px; }
+
+  .body-grid{
+    display:grid;
+    grid-template-columns:1fr 2fr;
+    gap:18px;
+    padding:22px 22px 10px;
+    align-items:start;
+  }
+  @media (max-width:760px){
+    .body-grid{ grid-template-columns:1fr; }
+  }
+  .col-title{
+    text-align:center;
+    color:#fff;
+    background:var(--blue);
+    font-size:19px;
+    font-weight:bold;
+    letter-spacing:1px;
+    padding:11px 0;
+    border-radius:10px;
+    margin-bottom:14px;
+    box-shadow:0 2px 6px rgba(10,31,77,.15);
+  }
+  .section-block{
+    background:#fff;
+    border-radius:12px;
+    margin-bottom:16px;
+    box-shadow:0 2px 8px rgba(10,31,77,.08);
+    overflow:hidden;
+  }
+  .section-pair{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-bottom:0;
+  }
+  .section-pair .section-block{ margin-bottom:16px; }
+  .section-title{
+    background:var(--navy);
+    color:#fff;
+    text-align:center;
+    font-size:13px;
+    font-weight:bold;
+    letter-spacing:.5px;
+    padding:8px 6px;
+  }
+  .shift-row{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+  }
+  .shift-head{
+    text-align:center;
+    font-size:11px;
+    font-weight:bold;
+    color:#fff;
+    padding:6px 0;
+    letter-spacing:.5px;
+  }
+  .shift-head.pagi{ background:var(--green); }
+  .shift-head.midel{ background:var(--orange); }
+  .shift-head.siang{ background:var(--blue); }
+  .shift-body{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    align-items:start;
+  }
+  .shift-cell{
+    padding:10px 6px 12px;
+    text-align:center;
+    border-right:1px solid #edf0f5;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+  }
+  .shift-cell:last-child{ border-right:none; }
+  .dash{
+    color:#aab4c6;
+    font-size:18px;
+    font-weight:bold;
+    padding-top:14px;
+  }
+  .person{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+  }
+  .person .avatar{
+    width:46px;height:46px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    background:#dde4f0;
+    flex-shrink:0;
+  }
+  .person .avatar svg{ width:100%; height:100%; }
+  .person .name{
+    font-size:9.5px;
+    font-weight:bold;
+    color:var(--navy-deep);
+    line-height:1.15;
+    word-break:break-word;
+  }
+  /* bigger avatars for team-leader rows */
+  .section-block.leader .person .avatar{ width:64px; height:64px; }
+  .section-block.leader .person .name{ font-size:11px; }
+
+  /* compact mode: when a shift cell has many people, shrink avatars further */
+  .shift-cell.compact .person .avatar{ width:34px; height:34px; }
+  .shift-cell.compact .person .name{ font-size:8px; }
+  .shift-cell.compact{ gap:6px; }
+
+  .empty-state{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--slate);
+    font-family:Arial,sans-serif;
+    grid-column:1/-1;
+  }
+  .empty-state h3{ color:var(--navy-deep); margin-bottom:6px; }
+
+  /* ===== OFF / CUTI tabel (ditempatkan di kolom ADMIN, mengisi ruang kosong) ===== */
+  .status-block{
+    background:#fff;
+    border-radius:12px;
+    box-shadow:0 2px 8px rgba(10,31,77,.08);
+    overflow:hidden;
+    margin-top:4px;
+  }
+  table.status-table{
+    width:100%;
+    border-collapse:collapse;
+  }
+  table.status-table td{
+    padding:9px 10px;
+    font-size:11px;
+    vertical-align:top;
+    border-bottom:1px solid #edf0f5;
+  }
+  table.status-table tr:last-child td{ border-bottom:none; }
+  table.status-table td.status-label{
+    width:54px;
+    font-weight:bold;
+    color:#fff;
+    text-align:center;
+    border-radius:6px;
+    padding:6px 4px;
+  }
+  table.status-table td.status-label.off{ background:#8a4b00; }
+  table.status-table td.status-label.cuti{ background:var(--red); }
+  table.status-table td.status-value{
+    font-weight:bold;
+    color:var(--navy-deep);
+    line-height:1.7;
+  }
+  table.status-table td.status-value .empty-tag{
+    color:#aab4c6;
+    font-weight:normal;
+    font-style:italic;
+  }
+  table.status-table td.status-value .name-chip{
+    display:inline-block;
+    background:#eef2f8;
+    border-radius:6px;
+    padding:3px 8px;
+    margin:2px 4px 2px 0;
+    font-size:10px;
+  }
+  .poster-footer{
+    padding:6px 26px 22px;
+  }
+  .footer-note{
+    text-align:center;
+    font-family:Arial,sans-serif;
+    font-size:11px;
+    font-style:italic;
+    color:var(--slate);
+    background:#eef2f8;
+    border-radius:8px;
+    padding:8px 14px;
+    margin-bottom:14px;
+  }
+  .legend{
+    display:flex;
+    justify-content:center;
+    gap:22px;
+    font-family:Arial,sans-serif;
+    font-size:12px;
+    font-weight:bold;
+    color:var(--slate);
+    margin-bottom:14px;
+  }
+  .legend-item{ display:flex; align-items:center; gap:6px; }
+  .legend .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .legend .dot.pagi{ background:var(--green); }
+  .legend .dot.midel{ background:var(--orange); }
+  .legend .dot.siang{ background:var(--blue); }
+  .footer-stripe{
+    height:6px;
+    border-radius:6px;
+    background:linear-gradient(90deg, var(--navy-deep), var(--blue), var(--gold));
+  }
+
+  /* ===== Tabel Rekap Bulanan (dashboard only, tidak ikut PNG) ===== */
+  .monthly-wrap{
+    max-width:1200px;
+    margin:0 auto 18px;
+  }
+  .monthly-block{
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 4px 16px rgba(10,31,77,.1);
+    overflow:hidden;
+    margin-bottom:16px;
+  }
+  .monthly-header{
+    background:linear-gradient(135deg,var(--navy-deep), var(--navy));
+    color:#fff;
+    padding:14px 18px;
+    font-family:Arial,sans-serif;
+  }
+  .monthly-header .title-main{
+    font-size:16px;
+    font-weight:bold;
+    margin-bottom:2px;
+  }
+  .monthly-header .title-sub{
+    font-size:12px;
+    opacity:.85;
+  }
+  .monthly-scroll{
+    overflow-x:auto;
+  }
+  table.monthly-table{
+    border-collapse:collapse;
+    width:100%;
+    font-family:Arial,sans-serif;
+    font-size:11px;
+  }
+  table.monthly-table th, table.monthly-table td{
+    border:1px solid #e3e8f0;
+    padding:5px 7px;
+    text-align:center;
+    white-space:nowrap;
+  }
+  table.monthly-table thead th{
+    background:#eef2f8;
+    color:var(--navy-deep);
+    font-weight:bold;
+    position:sticky;
+    top:0;
+  }
+  table.monthly-table td.col-nama, table.monthly-table th.col-nama{
+    text-align:left;
+    position:sticky;
+    left:0;
+    background:#fff;
+    z-index:1;
+    min-width:120px;
+  }
+  table.monthly-table td.col-jabatan, table.monthly-table th.col-jabatan{
+    text-align:left;
+    position:sticky;
+    left:120px;
+    background:#fff;
+    z-index:1;
+    min-width:140px;
+  }
+  table.monthly-table thead th.col-nama, table.monthly-table thead th.col-jabatan{
+    background:#eef2f8;
+    z-index:2;
+  }
+  table.monthly-table tbody tr:nth-child(even) td:not(.col-nama):not(.col-jabatan){
+    background:#f8fafc;
+  }
+  table.monthly-table td.code-off{ color:#8a4b00; font-weight:bold; }
+  table.monthly-table td.code-cuti{ color:var(--red); font-weight:bold; }
+  table.monthly-table td.code-pagi{ color:var(--green); font-weight:bold; }
+  table.monthly-table td.code-siang{ color:var(--blue); font-weight:bold; }
+  table.monthly-table td.code-midel{ color:var(--orange); font-weight:bold; }
+  table.monthly-table td.code-empty{ color:#cfd6e4; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <h2>📋 Schedule Support Back — Generator</h2>
+  <div class="toolbar-row">
+    <div class="field-group">
+      <label for="fileInput">File Excel</label>
+      <input type="file" id="fileInput" accept=".xlsx,.xls">
+    </div>
+    <button id="gsheetBtn">🔄 Load dari Google Sheet</button>
+  </div>
+  <div class="toolbar-row">
+    <div class="field-group">
+      <label for="dateInput">Tanggal</label>
+      <input type="date" id="dateInput">
+    </div>
+    <button id="downloadBtn" disabled>⬇ Download PNG (1:1)</button>
+  </div>
+  <span class="status" id="statusMsg">Belum ada data dimuat.</span>
+  <span class="hint">Klik tombol di atas untuk memuat data terbaru dari Google Sheet.</span>
+</div>
+
+<div class="monthly-wrap" id="monthlyWrap"></div>
+
+<div id="poster">
+  <div class="header">
+    <svg class="header-deco racking" viewBox="0 0 200 220" preserveAspectRatio="xMinYMax meet" xmlns="http://www.w3.org/2000/svg">
+      <g fill="#ffffff">
+        <rect x="8" y="10" width="10" height="200"/>
+        <rect x="150" y="10" width="10" height="200"/>
+        <rect x="8" y="20" width="152" height="8"/>
+        <rect x="8" y="80" width="152" height="8"/>
+        <rect x="8" y="140" width="152" height="8"/>
+        <rect x="8" y="200" width="152" height="8"/>
+        <rect x="22" y="32" width="36" height="44"/>
+        <rect x="66" y="32" width="36" height="44"/>
+        <rect x="110" y="32" width="36" height="44"/>
+        <rect x="22" y="92" width="36" height="44"/>
+        <rect x="78" y="92" width="58" height="44"/>
+        <rect x="22" y="152" width="58" height="44"/>
+        <rect x="90" y="152" width="56" height="44"/>
+        <rect x="0" y="208" width="200" height="6"/>
+      </g>
+    </svg>
+    <svg class="header-deco desk" viewBox="0 0 220 200" preserveAspectRatio="xMaxYMax meet" xmlns="http://www.w3.org/2000/svg">
+      <g fill="#ffffff">
+        <rect x="40" y="120" width="140" height="10"/>
+        <rect x="50" y="130" width="10" height="50"/>
+        <rect x="160" y="130" width="10" height="50"/>
+        <rect x="70" y="60" width="80" height="54" rx="4"/>
+        <rect x="76" y="66" width="68" height="40" fill="#0a1f4d"/>
+        <rect x="104" y="114" width="12" height="14"/>
+        <rect x="90" y="128" width="40" height="6"/>
+        <rect x="95" y="135" width="60" height="8"/>
+        <circle cx="60" cy="160" r="14"/>
+        <rect x="52" y="172" width="16" height="8"/>
+      </g>
+    </svg>
+    <div class="stripe left"></div>
+    <div class="stripe right"></div>
+    <h1>SCHEDULE SUPPORT BACK TLC</h1>
+    <div class="date-pill"><span class="icon">📅</span><span id="dateLabel">— PILIH TANGGAL —</span></div>
+  </div>
+
+  <div class="body-grid" id="bodyGrid">
+    <div class="empty-state">
+      <h3>Belum ada data</h3>
+      <p>Upload file Excel atau muat dari Google Sheet, lalu pilih tanggal.</p>
+    </div>
+  </div>
+
+  <div class="poster-footer">
+    <div class="footer-note">Silahkan koordinasi dengan bagian masing-masing</div>
+    <div class="legend">
+      <span class="legend-item"><span class="dot pagi"></span>PAGI</span>
+      <span class="legend-item"><span class="dot midel"></span>MIDEL</span>
+      <span class="legend-item"><span class="dot siang"></span>SIANG</span>
+    </div>
+    <div class="footer-stripe"></div>
+  </div>
+</div>
+
+<script>
+/* ====== Konfigurasi struktur kategori ====== */
+// Setiap entri adalah satu "baris" tampilan: array berisi 1 section (full width) atau 2 section (berdampingan)
+// 'keys' adalah daftar jabatan (lowercase, sudah dinormalisasi) yang masuk ke section ini.
+const STRUCTURE = {
+  ADMIN: [
+    [{ keys: ["team leader"], label: "TEAM LEADER", leader: true }],
+    [{ keys: ["staff"], label: "STAFF", leader: false }]
+  ],
+  WAREHOUSE: [
+    [{ keys: ["team leader"], label: "TEAM LEADER", leader: true }],
+    [{ keys: ["picker amsen", "picker pengiriman"], label: "PICKER", leader: false }],
+    [
+      { keys: ["pengiriman"], label: "PENGIRIMAN", leader: false },
+      { keys: ["inbound"], label: "INBOUND", leader: false }
+    ],
+    [{ keys: ["wms / akurasi", "wms/akurasi", "wms"], label: "WMS / AKURASI", leader: false }]
+  ]
+};
+
+// Jabatan yang otomatis dikenali sebagai bagian WAREHOUSE jika kolom Departemen tidak ada
+const WAREHOUSE_KEYWORDS = ["picker", "pengiriman", "inbound", "wms", "akurasi"];
+
+// Kode pada sel tanggal -> shift. JK* dipetakan sesuai aturan: JKP/JKPP -> Pagi, JKS/JKPS/JKSS -> Siang.
+// OFF dan CUTI ditangani terpisah (bukan masuk shift manapun, melainkan ke daftar status).
+const SHIFT_MAP = {
+  P: "pagi", PAGI: "pagi",
+  M: "midel", MIDEL: "midel",
+  S: "siang", SIANG: "siang",
+  JKP: "pagi", JKPP: "pagi",
+  JKS: "siang", JKPS: "siang", JKSS: "siang"
+};
+const STATUS_CODES = { OFF: "off", CUTI: "cuti" };
+
+// Link Google Sheet ditanam langsung di sini (supaya otomatis sama di semua device)
+const DEFAULT_GSHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR328oCYE7Xglv-qecnY2-8Rgrh4bezRlbwOekXR07PYoIGACB30EJmcEqeZJVtYsORbp-OEC9W8jNb/pub?output=xlsx";
+
+let rawRows = [];        // [{nama, jabatan, dept, date, shift|null, statusTag|null, gender}]
+let availableDates = []; // sorted unique date strings (yyyy-mm-dd)
+
+const fileInput = document.getElementById('fileInput');
+const dateInput = document.getElementById('dateInput');
+const gsheetBtn = document.getElementById('gsheetBtn');
+const statusMsg = document.getElementById('statusMsg');
+const downloadBtn = document.getElementById('downloadBtn');
+const bodyGrid = document.getElementById('bodyGrid');
+const dateLabel = document.getElementById('dateLabel');
+const monthlyWrap = document.getElementById('monthlyWrap');
+
+fileInput.addEventListener('change', handleFile);
+dateInput.addEventListener('change', () => render(dateInput.value));
+downloadBtn.addEventListener('click', downloadPng);
+gsheetBtn.addEventListener('click', handleGoogleSheet);
+handleGoogleSheet(); // auto-load otomatis saat halaman dibuka
+
+function setStatus(msg, type){
+  statusMsg.textContent = msg;
+  statusMsg.className = "status" + (type ? " " + type : "");
+}
+
+function handleFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  setStatus("Membaca file...", "");
+
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try{
+      const data = new Uint8Array(evt.target.result);
+      const wb = XLSX.read(data, { type: "array", cellDates: true });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      parseRows(json);
+      finishLoad(`✔ ${rawRows.length} entri jadwal dimuat dari "${file.name}".`);
+    }catch(err){
+      console.error(err);
+      setStatus("✘ Gagal membaca file: " + err.message, "err");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function toXlsxExportUrl(url){
+  // Convert common Google Sheets share/publish links to an XLSX export URL
+  try{
+    const u = new URL(url);
+    if(!u.hostname.includes('docs.google.com')) return url;
+    const m = u.pathname.match(/\/spreadsheets\/d\/(?:e\/)?([a-zA-Z0-9-_]+)/);
+    if(!m) return url;
+    const id = m[1];
+    const gidMatch = url.match(/[?&#]gid=(\d+)/);
+    const gid = gidMatch ? gidMatch[1] : "0";
+    if(u.pathname.includes('/d/e/')){
+      // already a "publish to web" link
+      return url.includes('output=xlsx') ? url : url.replace(/\/pub.*$/, '/pub?output=xlsx');
+    }
+    return `https://docs.google.com/spreadsheets/d/${id}/export?format=xlsx&gid=${gid}`;
+  }catch(e){
+    return url;
+  }
+}
+
+function handleGoogleSheet(){
+  const url = DEFAULT_GSHEET_URL;
+  setStatus("Mengambil data dari Google Sheet...", "");
+  const xlsxUrl = toXlsxExportUrl(url);
+
+  fetch(xlsxUrl)
+    .then(res => {
+      if(!res.ok) throw new Error("Sheet tidak dapat diakses (status " + res.status + "). Pastikan sudah di-publish to web / link dibagikan publik.");
+      return res.arrayBuffer();
+    })
+    .then(buf => {
+      const data = new Uint8Array(buf);
+      const wb = XLSX.read(data, { type: "array", cellDates: true });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      parseRows(json);
+      finishLoad(`✔ ${rawRows.length} entri jadwal dimuat dari Google Sheet.`);
+    })
+    .catch(err => {
+      console.error(err);
+      setStatus("✘ " + err.message, "err");
+    });
+}
+
+function finishLoad(msg){
+  setStatus(msg, "ok");
+  if(availableDates.length){
+    dateInput.min = availableDates[0];
+    dateInput.max = availableDates[availableDates.length-1];
+    dateInput.value = availableDates[availableDates.length-1];
+    render(dateInput.value);
+    renderMonthlyTables();
+  } else {
+    setStatus(msg + " Namun tidak ditemukan kolom tanggal yang valid.", "err");
+  }
+}
+
+function excelDateToISO(val){
+  if(val instanceof Date && !isNaN(val)) return toISO(val);
+  if(typeof val === "number"){
+    const d = XLSX.SSF.parse_date_code(val);
+    if(d) return toISO(new Date(d.y, d.m-1, d.d));
+  }
+  if(typeof val === "string"){
+    const s = val.trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m) return toISO(new Date(+m[1], +m[2]-1, +m[3]));
+    m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if(m){
+      let [_, d, mo, y] = m;
+      if(y.length === 2) y = "20" + y;
+      return toISO(new Date(+y, +mo-1, +d));
+    }
+    const parsed = new Date(s);
+    if(!isNaN(parsed)) return toISO(parsed);
+  }
+  return null;
+}
+
+function toISO(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function normalizeJabatan(j){
+  return String(j || "").trim().toLowerCase();
+}
+
+function detectDept(jabatanNorm, deptRaw){
+  if(deptRaw){
+    const d = String(deptRaw).trim().toLowerCase();
+    if(d.startsWith("admin")) return "ADMIN";
+    if(d.startsWith("ware") || d.startsWith("gudang")) return "WAREHOUSE";
+  }
+  if(WAREHOUSE_KEYWORDS.some(k => jabatanNorm.includes(k))) return "WAREHOUSE";
+  if(jabatanNorm.includes("team leader")) return null;
+  if(jabatanNorm.includes("staff")) return "ADMIN";
+  return null;
+}
+
+function findHeaderKey(row, candidates){
+  const keys = Object.keys(row);
+  for(const cand of candidates){
+    const found = keys.find(k => k.trim().toLowerCase() === cand);
+    if(found) return found;
+  }
+  for(const cand of candidates){
+    const found = keys.find(k => k.trim().toLowerCase().includes(cand));
+    if(found) return found;
+  }
+  return null;
+}
+
+function parseRows(json){
+  rawRows = [];
+  if(!json.length){ availableDates = []; return; }
+
+  const sample = json[0];
+  const nameKey = findHeaderKey(sample, ["nama", "name"]);
+  const jobKey = findHeaderKey(sample, ["tugas/jabatan", "jabatan", "tugas", "role", "posisi"]);
+  const deptKey = findHeaderKey(sample, ["departemen", "department", "divisi", "dept"]);
+  const genderKey = findHeaderKey(sample, ["gender", "jenis kelamin", "jk", "sex"]);
+
+  const fixedKeys = [nameKey, jobKey, deptKey, genderKey].filter(Boolean);
+  const dateKeys = Object.keys(sample).filter(k => !fixedKeys.includes(k));
+
+  const dateSet = new Set();
+
+  json.forEach(row => {
+    const nama = row[nameKey];
+    const jabatanRaw = row[jobKey];
+    const deptRaw = deptKey ? row[deptKey] : null;
+    const genderRaw = genderKey ? String(row[genderKey] || "").trim().toUpperCase() : "";
+    const gender = genderRaw.startsWith("L") || genderRaw.startsWith("M") ? "L"
+                 : genderRaw.startsWith("P") || genderRaw.startsWith("F") || genderRaw.startsWith("W") ? "P"
+                 : null;
+    if(!nama || !jabatanRaw) return;
+
+    const jabatanNorm = normalizeJabatan(jabatanRaw);
+    let dept = detectDept(jabatanNorm, deptRaw);
+
+    dateKeys.forEach(dk => {
+      const cellVal = row[dk];
+      if(cellVal === "" || cellVal == null) return;
+      const codeRaw = String(cellVal).trim().toUpperCase();
+      if(!codeRaw) return;
+
+      const finalDate = excelDateToISO(dk);
+      if(!finalDate) return;
+
+      let rowDept = dept;
+      if(!rowDept){
+        rowDept = deptRaw ? (String(deptRaw).toLowerCase().startsWith('w') ? 'WAREHOUSE' : 'ADMIN') : 'ADMIN';
+      }
+
+      let shift = null, statusTag = null;
+      if(STATUS_CODES[codeRaw]){
+        statusTag = STATUS_CODES[codeRaw];
+      } else if(SHIFT_MAP[codeRaw]){
+        shift = SHIFT_MAP[codeRaw];
+      }
+      // catatan: kode tak dikenal tetap disimpan apa adanya di rawCode untuk tabel rekap,
+      // namun tidak masuk ke grid shift/status poster (shift & statusTag tetap null)
+
+      dateSet.add(finalDate);
+      rawRows.push({
+        nama: String(nama).trim(),
+        jabatan: jabatanNorm,
+        jabatanLabel: String(jabatanRaw).trim(),
+        dept: rowDept,
+        date: finalDate,
+        shift,
+        statusTag,
+        rawCode: codeRaw,
+        gender
+      });
+    });
+  });
+
+  availableDates = Array.from(dateSet).sort();
+}
+
+function render(isoDate){
+  if(!isoDate){
+    bodyGrid.innerHTML = `<div class="empty-state"><h3>Pilih tanggal</h3><p>Pilih tanggal untuk menampilkan jadwal.</p></div>`;
+    downloadBtn.disabled = true;
+    dateLabel.textContent = "— PILIH TANGGAL —";
+    return;
+  }
+
+  const dayRows = rawRows.filter(r => r.date === isoDate);
+  dateLabel.textContent = formatDateLabel(isoDate);
+
+  if(!dayRows.length){
+    bodyGrid.innerHTML = `<div class="empty-state"><h3>Tidak ada data</h3><p>Tidak ditemukan jadwal untuk tanggal ini.</p></div>`;
+    downloadBtn.disabled = true;
+    return;
+  }
+
+  bodyGrid.innerHTML = renderDept("ADMIN", dayRows) + renderDept("WAREHOUSE", dayRows);
+  downloadBtn.disabled = false;
+}
+
+function formatDateLabel(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  const bulan = ["JANUARI","FEBRUARI","MARET","APRIL","MEI","JUNI","JULI","AGUSTUS","SEPTEMBER","OKTOBER","NOVEMBER","DESEMBER"];
+  return `${d} ${bulan[m-1]} ${y}`;
+}
+
+const BULAN_NAMA = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+
+function codeClass(code){
+  if(STATUS_CODES[code] === 'off') return 'code-off';
+  if(STATUS_CODES[code] === 'cuti') return 'code-cuti';
+  const shift = SHIFT_MAP[code];
+  if(shift === 'pagi') return 'code-pagi';
+  if(shift === 'siang') return 'code-siang';
+  if(shift === 'midel') return 'code-midel';
+  return '';
+}
+
+function renderMonthlyTables(){
+  if(!rawRows.length){ monthlyWrap.innerHTML = ""; return; }
+
+  // group dates by year-month
+  const monthGroups = {}; // "2026-07" -> Set of day numbers present
+  rawRows.forEach(r => {
+    const ym = r.date.slice(0,7);
+    if(!monthGroups[ym]) monthGroups[ym] = new Set();
+    monthGroups[ym].add(Number(r.date.slice(8,10)));
+  });
+
+  const months = Object.keys(monthGroups).sort();
+  let html = "";
+
+  months.forEach(ym => {
+    const [y, m] = ym.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const monthLabel = `${BULAN_NAMA[m-1]} ${y}`;
+
+    ["ADMIN","WAREHOUSE"].forEach(dept => {
+      html += renderMonthlyDeptTable(dept, ym, daysInMonth, monthLabel);
+    });
+  });
+
+  monthlyWrap.innerHTML = html;
+}
+
+function renderMonthlyDeptTable(dept, ym, daysInMonth, monthLabel){
+  // build unique person list (nama+jabatan) for this dept appearing within this month
+  const monthRows = rawRows.filter(r => r.date.startsWith(ym) && r.dept === dept);
+  if(!monthRows.length) return "";
+
+  const peopleMap = new Map(); // key: nama|jabatanLabel -> { nama, jabatanLabel, codesByDay: {} }
+  monthRows.forEach(r => {
+    const key = r.nama + "|" + r.jabatanLabel;
+    if(!peopleMap.has(key)){
+      peopleMap.set(key, { nama: r.nama, jabatanLabel: r.jabatanLabel, codesByDay: {} });
+    }
+    const day = Number(r.date.slice(8,10));
+    peopleMap.get(key).codesByDay[day] = r.rawCode;
+  });
+
+  const people = Array.from(peopleMap.values()).sort((a,b) => a.nama.localeCompare(b.nama));
+
+  let thead = `<tr><th class="col-nama">Nama</th><th class="col-jabatan">Tugas/Jabatan</th>`;
+  for(let d=1; d<=daysInMonth; d++){ thead += `<th>${d}</th>`; }
+  thead += `</tr>`;
+
+  let tbody = "";
+  people.forEach(p => {
+    tbody += `<tr><td class="col-nama">${escapeHtml(p.nama.toUpperCase())}</td><td class="col-jabatan">${escapeHtml(p.jabatanLabel)}</td>`;
+    for(let d=1; d<=daysInMonth; d++){
+      const code = p.codesByDay[d];
+      if(code){
+        tbody += `<td class="${codeClass(code)}">${escapeHtml(code)}</td>`;
+      } else {
+        tbody += `<td class="code-empty">–</td>`;
+      }
+    }
+    tbody += `</tr>`;
+  });
+
+  return `
+    <div class="monthly-block">
+      <div class="monthly-header">
+        <div class="title-main">Schedule ${monthLabel}</div>
+        <div class="title-sub">Departemen: ${dept === 'ADMIN' ? 'Admin' : 'Warehouse'}</div>
+      </div>
+      <div class="monthly-scroll">
+        <table class="monthly-table">
+          <thead>${thead}</thead>
+          <tbody>${tbody}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function matchSection(jabatanNorm, keys){
+  return keys.some(k => jabatanNorm === k);
+}
+
+function renderDept(deptName, dayRows){
+  const rows = STRUCTURE[deptName];
+  const deptRows = dayRows.filter(r => r.dept === deptName && r.shift);
+
+  let html = `<div><div class="col-title">${deptName}</div>`;
+
+  rows.forEach(rowSections => {
+    const isPair = rowSections.length > 1;
+    html += `<div class="${isPair ? 'section-pair' : ''}">`;
+    rowSections.forEach(sec => {
+      const peopleInSection = deptRows.filter(r => matchSection(r.jabatan, sec.keys));
+      html += `<div class="section-block ${sec.leader ? 'leader' : ''}">`;
+      html += `<div class="section-title">${sec.label}</div>`;
+      html += `<div class="shift-row">
+        <div class="shift-head pagi">PAGI</div>
+        <div class="shift-head midel">MIDEL</div>
+        <div class="shift-head siang">SIANG</div>
+      </div>`;
+      html += `<div class="shift-body">`;
+      ["pagi","midel","siang"].forEach(shift => {
+        const people = peopleInSection.filter(p => p.shift === shift);
+        const compact = people.length > 1 ? "compact" : "";
+        html += `<div class="shift-cell ${compact}">`;
+        if(people.length){
+          people.forEach(p => { html += renderPerson(p.nama, p.gender); });
+        } else {
+          html += `<div class="dash">–</div>`;
+        }
+        html += `</div>`;
+      });
+      html += `</div></div>`;
+    });
+    html += `</div>`;
+  });
+
+  // Khusus kolom ADMIN: sisipkan tabel OFF/CUTI di ruang kosong bawah, lintas seluruh departemen
+  if(deptName === "ADMIN"){
+    html += renderStatusLists(dayRows);
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+function renderStatusLists(dayRows){
+  const offNames = dayRows.filter(r => r.statusTag === 'off').map(r => r.nama.toUpperCase());
+  const cutiNames = dayRows.filter(r => r.statusTag === 'cuti').map(r => r.nama.toUpperCase());
+
+  const renderChips = (names) => names.length
+    ? names.map(n => `<span class="name-chip">${escapeHtml(n)}</span>`).join('')
+    : `<span class="empty-tag">— Tidak ada —</span>`;
+
+  return `
+    <div class="status-block">
+      <table class="status-table">
+        <tr><td class="status-label off">OFF</td><td class="status-value">${renderChips(offNames)}</td></tr>
+        <tr><td class="status-label cuti">CUTI</td><td class="status-value">${renderChips(cutiNames)}</td></tr>
+      </table>
+    </div>
+  `;
+}
+
+function renderPerson(nama, gender){
+  const avatar = gender === 'L' ? AVATAR_MALE : gender === 'P' ? AVATAR_FEMALE : AVATAR_NEUTRAL;
+  return `<div class="person">
+    <div class="avatar">${avatar}</div>
+    <div class="name">${escapeHtml(nama.toUpperCase())}</div>
+  </div>`;
+}
+
+function escapeHtml(str){
+  return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+const AVATAR_MALE = `
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="50" cy="50" r="50" fill="#dde4f0"/>
+  <circle cx="50" cy="40" r="18" fill="#f3c5a0"/>
+  <path d="M32 38c0-12 8-20 18-20s18 8 18 20c0-2-2-4-4-4-2 4-6 2-8 0-2 4-8 4-10 0-2 2-6 4-8 0-2 0-6 2-6 4z" fill="#2b2b2b"/>
+  <path d="M22 95c2-18 14-28 28-28s26 10 28 28z" fill="#16356b"/>
+  <rect x="44" y="63" width="12" height="10" fill="#f3c5a0"/>
+  <path d="M40 70c4 3 16 3 20 0" stroke="#cdd8ea" stroke-width="2" fill="none"/>
+</svg>`;
+
+const AVATAR_FEMALE = `
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="50" cy="50" r="50" fill="#dde4f0"/>
+  <path d="M28 45c0-16 10-28 22-28s22 12 22 28c0 4-1 8-2 11-1-10-4-12-6-12-2 6-26 6-28 0-2 0-5 2-6 12-1-3-2-7-2-11z" fill="#3b2a22"/>
+  <circle cx="50" cy="42" r="16" fill="#f3c5a0"/>
+  <path d="M22 96c2-20 13-30 28-30s26 10 28 30z" fill="#16356b"/>
+  <path d="M22 70c-3 8-3 18-1 26M78 70c3 8 3 18 1 26" stroke="#3b2a22" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <rect x="44" y="55" width="12" height="10" fill="#f3c5a0"/>
+</svg>`;
+
+const AVATAR_NEUTRAL = `
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="50" cy="50" r="50" fill="#dde4f0"/>
+  <circle cx="50" cy="40" r="18" fill="#cfd6e4"/>
+  <path d="M22 96c2-20 13-30 28-30s26 10 28 30z" fill="#6c7a93"/>
+  <circle cx="44" cy="38" r="2.5" fill="#8e98ad"/>
+  <circle cx="56" cy="38" r="2.5" fill="#8e98ad"/>
+  <path d="M42 47c4 3 12 3 16 0" stroke="#8e98ad" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>`;
+
+function downloadPng(){
+  const poster = document.getElementById('poster');
+  setStatus("Menyiapkan gambar (1:1)...", "");
+
+  // Output persegi (1:1), 1600 x 1600 px
+  const OUT_SIZE = 1600;
+
+  html2canvas(poster, { scale: 2.2, backgroundColor: "#eef2f8", useCORS: true }).then(srcCanvas => {
+    const out = document.createElement('canvas');
+    out.width = OUT_SIZE;
+    out.height = OUT_SIZE;
+    const ctx = out.getContext('2d');
+    ctx.fillStyle = "#d7dee9";
+    ctx.fillRect(0, 0, OUT_SIZE, OUT_SIZE);
+
+    const margin = 28;
+    const maxW = OUT_SIZE - margin * 2;
+    const maxH = OUT_SIZE - margin * 2;
+    const scaleRatio = Math.min(maxW / srcCanvas.width, maxH / srcCanvas.height);
+    const drawW = srcCanvas.width * scaleRatio;
+    const drawH = srcCanvas.height * scaleRatio;
+    const x = (OUT_SIZE - drawW) / 2;
+    const y = (OUT_SIZE - drawH) / 2;
+    ctx.drawImage(srcCanvas, x, y, drawW, drawH);
+
+    const link = document.createElement('a');
+    link.download = `schedule-support-back-${dateInput.value || 'jadwal'}.png`;
+    link.href = out.toDataURL('image/png');
+    link.click();
+    setStatus("✔ PNG (1:1) berhasil diunduh.", "ok");
+  }).catch(err => {
+    console.error(err);
+    setStatus("✘ Gagal membuat PNG: " + err.message, "err");
+  });
+}
+</script>
+</body>
+</html>

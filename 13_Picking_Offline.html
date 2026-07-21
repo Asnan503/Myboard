@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Picking Offline · WMS</title>
+<style>
+  :root{
+    --navy-900:#0b1f4d;
+    --navy-800:#122a63;
+    --navy-700:#1a3a82;
+    --navy-600:#22499e;
+    --navy-500:#2b57b8;
+    --navy-100:#e6ebf7;
+    --navy-050:#f4f6fc;
+    --white:#ffffff;
+    --ink:#1a1c26;
+    --ink-soft:#5b5f72;
+    --line:#dfe3ee;
+    --error:#c62828;
+    --success:#1e7e34;
+    --radius:14px;
+    --shadow-1:0 1px 2px rgba(11,31,77,0.08), 0 1px 3px rgba(11,31,77,0.12);
+    --shadow-2:0 4px 10px rgba(11,31,77,0.12), 0 2px 4px rgba(11,31,77,0.10);
+    --shadow-3:0 10px 30px rgba(11,31,77,0.22);
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    background:var(--navy-050);
+    color:var(--ink);
+    font-family:"Segoe UI",Roboto,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+    -webkit-tap-highlight-color:transparent;
+    overscroll-behavior-y:none;
+  }
+  #app{
+    max-width:520px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--navy-050);
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    box-shadow:var(--shadow-2);
+  }
+
+  /* App bar */
+  .appbar{
+    background:linear-gradient(135deg,var(--navy-800),var(--navy-900));
+    color:var(--white);
+    padding:18px 18px 16px;
+    position:sticky;top:0;z-index:30;
+    box-shadow:var(--shadow-2);
+  }
+  .appbar-row{display:flex;align-items:center;gap:12px;}
+  .appbar-icon{
+    width:38px;height:38px;border-radius:10px;
+    background:rgba(255,255,255,0.14);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .appbar h1{
+    font-size:17px;font-weight:600;margin:0;letter-spacing:0.2px;
+  }
+  .appbar p{
+    margin:2px 0 0;font-size:12px;color:rgba(255,255,255,0.72);
+  }
+  .appbar-stat{
+    margin-left:auto;text-align:right;
+  }
+  .appbar-stat .num{font-size:20px;font-weight:700;line-height:1;}
+  .appbar-stat .lbl{font-size:10px;color:rgba(255,255,255,0.72);text-transform:uppercase;letter-spacing:0.6px;}
+  .appbar-icon-btn{
+    background:rgba(255,255,255,0.14);border:none;border-radius:9px;
+    width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+    color:#fff;cursor:pointer;flex-shrink:0;
+  }
+  .appbar-icon-btn:active{background:rgba(255,255,255,0.26);}
+
+  .sync-row{
+    display:flex;align-items:center;gap:8px;margin-top:12px;
+    background:rgba(255,255,255,0.10);border-radius:10px;padding:8px 10px;
+  }
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:#8bc34a;flex-shrink:0;}
+  .sync-dot.stale{background:#ffb300;}
+  .sync-dot.none{background:#9aa0b4;}
+  .sync-dot.syncing{background:#4fc3f7;animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+  .sync-text{font-size:11px;color:rgba(255,255,255,0.85);flex:1;line-height:1.35;}
+  .sync-text b{color:#fff;}
+  .sync-actions{display:flex;gap:6px;flex-shrink:0;}
+
+  .banner{
+    background:#fff3cd;border:1px solid #ffe08a;color:#7a5b00;
+    border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.5;
+    display:flex;gap:10px;align-items:flex-start;
+  }
+  .banner svg{flex-shrink:0;margin-top:1px;}
+  .banner b{display:block;margin-bottom:2px;font-size:12.5px;}
+  .banner-link{
+    display:inline-block;margin-top:6px;color:var(--navy-800);font-weight:700;
+    text-decoration:underline;cursor:pointer;background:none;border:none;font-size:12.5px;font-family:inherit;padding:0;
+  }
+
+  .settings-body{padding:4px 6px 10px;}
+  .settings-label{font-size:12px;font-weight:700;color:var(--navy-800);margin:14px 0 6px;}
+  .settings-label:first-child{margin-top:2px;}
+  .settings-input{
+    width:100%;border:1.5px solid var(--line);border-radius:10px;padding:12px 13px;
+    font-size:13px;font-family:inherit;outline:none;color:var(--ink);
+  }
+  .settings-input:focus{border-color:var(--navy-700);}
+  .settings-help{font-size:11.5px;color:var(--ink-soft);margin-top:6px;line-height:1.5;}
+  .settings-help ol{margin:6px 0 0;padding-left:18px;}
+  .settings-help li{margin-bottom:4px;}
+  .settings-status{
+    background:var(--navy-050);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--ink-soft);
+    margin-top:4px;line-height:1.6;
+  }
+  .settings-status b{color:var(--ink);}
+
+  /* Content */
+  .content{
+    flex:1;
+    padding:16px 16px 100px;
+    display:flex;flex-direction:column;gap:14px;
+  }
+
+  /* Search field */
+  .search-wrap{position:relative;}
+  .field{
+    background:var(--white);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow-1);
+    display:flex;align-items:center;
+    padding:0 14px;
+    height:54px;
+    border:1.5px solid transparent;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .field:focus-within{
+    border-color:var(--navy-600);
+    box-shadow:var(--shadow-2);
+  }
+  .field svg{flex-shrink:0;color:var(--navy-700);}
+  .field input{
+    border:none;outline:none;background:transparent;
+    flex:1;font-size:15px;padding:0 10px;color:var(--ink);
+    font-family:inherit;
+  }
+  .field input::placeholder{color:#9aa0b4;}
+  .clear-btn{
+    background:none;border:none;padding:6px;cursor:pointer;
+    color:#9aa0b4;display:flex;border-radius:50%;
+  }
+  .clear-btn:active{background:var(--navy-100);}
+
+  .suggest{
+    position:absolute;left:0;right:0;top:60px;
+    background:var(--white);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow-3);
+    max-height:340px;overflow-y:auto;
+    z-index:25;
+    border:1px solid var(--line);
+    display:none;
+  }
+  .suggest.show{display:block;}
+  .suggest-item{
+    padding:11px 14px;
+    border-bottom:1px solid var(--navy-050);
+    cursor:pointer;
+    display:flex;flex-direction:column;gap:2px;
+  }
+  .suggest-item:last-child{border-bottom:none;}
+  .suggest-item:active{background:var(--navy-100);}
+  .suggest-code{font-size:13px;font-weight:700;color:var(--navy-800);}
+  .suggest-desc{font-size:12.5px;color:var(--ink-soft);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .suggest-empty{padding:18px;text-align:center;color:var(--ink-soft);font-size:13px;}
+  .suggest-more{padding:8px 14px;font-size:11px;color:#9aa0b4;text-align:center;}
+
+  /* Card */
+  .card{
+    background:var(--white);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow-1);
+    padding:16px;
+    animation:rise .18s ease;
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;}
+  .item-code{
+    display:inline-block;background:var(--navy-100);color:var(--navy-800);
+    font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:7px;letter-spacing:.3px;
+  }
+  .item-desc{
+    font-size:15px;font-weight:600;color:var(--ink);margin:8px 0 2px;line-height:1.35;
+  }
+  .item-uom{font-size:12px;color:var(--ink-soft);}
+  .icon-btn{
+    background:var(--navy-050);border:none;border-radius:10px;
+    width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+    color:var(--navy-700);cursor:pointer;flex-shrink:0;
+  }
+  .icon-btn:active{background:var(--navy-100);}
+
+  .section-label{
+    font-size:11px;font-weight:700;color:var(--navy-700);text-transform:uppercase;
+    letter-spacing:.6px;margin:14px 0 8px;
+  }
+
+  .loc-list{display:flex;flex-direction:column;gap:8px;}
+  .loc-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:12px 13px;border-radius:11px;border:1.5px solid var(--line);
+    cursor:pointer;transition:all .12s;
+  }
+  .loc-row:active{background:var(--navy-050);}
+  .loc-row.selected{
+    border-color:var(--navy-700);
+    background:var(--navy-050);
+  }
+  .loc-left{display:flex;align-items:center;gap:10px;min-width:0;}
+  .loc-radio{
+    width:18px;height:18px;border-radius:50%;border:2px solid #b7bdd1;
+    flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  }
+  .loc-row.selected .loc-radio{border-color:var(--navy-700);}
+  .loc-radio::after{
+    content:'';width:9px;height:9px;border-radius:50%;background:var(--navy-700);
+    transform:scale(0);transition:transform .12s;
+  }
+  .loc-row.selected .loc-radio::after{transform:scale(1);}
+  .loc-id{font-size:13.5px;font-weight:600;color:var(--ink);}
+  .loc-qty{font-size:13px;color:var(--ink-soft);white-space:nowrap;}
+  .loc-qty b{color:var(--navy-800);}
+
+  .qty-section{margin-top:14px;}
+  .qty-field{
+    display:flex;align-items:center;gap:10px;
+    background:var(--navy-050);border-radius:12px;padding:6px;
+    border:1.5px solid var(--line);
+  }
+  .qty-field:focus-within{border-color:var(--navy-700);}
+  .qty-btn{
+    width:38px;height:38px;border-radius:9px;border:none;background:var(--white);
+    box-shadow:var(--shadow-1);color:var(--navy-800);font-size:19px;font-weight:600;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  }
+  .qty-btn:active{background:var(--navy-100);}
+  .qty-field input{
+    flex:1;text-align:center;border:none;background:transparent;outline:none;
+    font-size:19px;font-weight:700;color:var(--ink);width:0;font-family:inherit;
+  }
+  .qty-hint{font-size:11.5px;color:var(--ink-soft);margin-top:6px;}
+  .qty-hint.warn{color:var(--error);font-weight:600;}
+
+  .btn-row{display:flex;gap:10px;margin-top:16px;}
+  .btn{
+    flex:1;height:46px;border-radius:12px;border:none;font-size:14.5px;font-weight:700;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+    font-family:inherit;letter-spacing:.2px;transition:transform .08s, opacity .1s;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:var(--navy-800);color:var(--white);box-shadow:var(--shadow-2);}
+  .btn-primary:disabled{background:#b7bdd1;box-shadow:none;cursor:not-allowed;}
+  .btn-outline{background:var(--white);color:var(--navy-800);border:1.5px solid var(--line);}
+  .btn-outline:active{background:var(--navy-050);}
+
+  .empty-state{
+    text-align:center;padding:50px 20px;color:var(--ink-soft);
+  }
+  .empty-state svg{color:#c3c9dd;margin-bottom:14px;}
+  .empty-state h3{font-size:15px;color:var(--ink);margin:0 0 6px;font-weight:600;}
+  .empty-state p{font-size:12.5px;margin:0;line-height:1.5;}
+
+  /* Bottom bar */
+  .bottombar{
+    position:sticky;bottom:0;left:0;right:0;
+    background:var(--white);
+    border-top:1px solid var(--line);
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    display:flex;gap:10px;
+    box-shadow:0 -2px 12px rgba(11,31,77,0.08);
+    z-index:20;
+  }
+  .bb-btn{
+    flex:1;height:48px;border-radius:12px;border:1.5px solid var(--line);background:var(--navy-050);
+    color:var(--navy-800);font-weight:700;font-size:13px;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;position:relative;
+  }
+  .bb-btn:active{background:var(--navy-100);}
+  .bb-btn.primary{background:var(--navy-800);color:var(--white);border-color:var(--navy-800);}
+  .badge{
+    background:var(--error);color:var(--white);font-size:10px;font-weight:800;
+    min-width:17px;height:17px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    padding:0 4px;position:absolute;top:2px;right:14px;
+  }
+
+  /* Toast */
+  .toast{
+    position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);
+    background:var(--navy-900);color:var(--white);padding:12px 20px;border-radius:12px;
+    font-size:13.5px;font-weight:600;box-shadow:var(--shadow-3);
+    display:flex;align-items:center;gap:8px;opacity:0;pointer-events:none;
+    transition:all .25s ease;z-index:100;max-width:88%;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast.error{background:var(--error);}
+
+  /* Modal / bottom sheet */
+  .overlay{
+    position:fixed;inset:0;background:rgba(11,19,45,0.5);
+    z-index:40;opacity:0;pointer-events:none;transition:opacity .2s;
+  }
+  .overlay.show{opacity:1;pointer-events:auto;}
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;
+    max-width:520px;margin:0 auto;
+    background:var(--white);
+    border-radius:20px 20px 0 0;
+    max-height:86vh;display:flex;flex-direction:column;
+    transform:translateY(100%);transition:transform .25s cubic-bezier(.32,.72,0,1);
+    z-index:41;box-shadow:var(--shadow-3);
+  }
+  .sheet.show{transform:translateY(0);}
+  .sheet-handle{width:38px;height:4px;background:var(--line);border-radius:3px;margin:10px auto 0;}
+  .sheet-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 18px 14px;border-bottom:1px solid var(--line);
+  }
+  .sheet-head h2{font-size:16px;margin:0;font-weight:700;color:var(--ink);}
+  .sheet-head .sub{font-size:11.5px;color:var(--ink-soft);font-weight:500;margin-top:2px;}
+  .sheet-body{overflow-y:auto;padding:8px 12px 12px;flex:1;}
+
+  .pick-item{
+    display:flex;align-items:center;gap:10px;
+    padding:12px 8px;border-bottom:1px solid var(--navy-050);
+  }
+  .pick-item:last-child{border-bottom:none;}
+  .pick-num{
+    width:26px;height:26px;border-radius:50%;background:var(--navy-100);color:var(--navy-800);
+    font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .pick-info{flex:1;min-width:0;}
+  .pick-code{font-size:12.5px;font-weight:700;color:var(--navy-800);}
+  .pick-desc{font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pick-meta{font-size:11px;color:#8b90a3;margin-top:2px;}
+  .pick-qty{
+    font-size:14px;font-weight:800;color:var(--ink);white-space:nowrap;
+    background:var(--navy-050);padding:5px 10px;border-radius:8px;
+  }
+  .pick-del{
+    background:none;border:none;color:#c3c9dd;padding:6px;cursor:pointer;display:flex;flex-shrink:0;
+  }
+  .pick-del:active{color:var(--error);}
+
+  .sheet-empty{text-align:center;padding:50px 20px;color:var(--ink-soft);font-size:13px;}
+  .sheet-foot{
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);
+    display:flex;gap:10px;
+  }
+
+  ::-webkit-scrollbar{width:6px;}
+  ::-webkit-scrollbar-thumb{background:#c3c9dd;border-radius:3px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="appbar">
+    <div class="appbar-row">
+      <div class="appbar-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 7L12 3L4 7M20 7L12 11M20 7V17L12 21M12 11L4 7M12 11V21M4 7V17L12 21" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <h1>Picking Offline</h1>
+        <p id="storeLabel">WMS Stock Picking</p>
+      </div>
+      <div class="appbar-stat">
+        <div class="num" id="pickCountTop">0</div>
+        <div class="lbl">Item Dipick</div>
+      </div>
+      <button class="appbar-icon-btn" id="settingsBtn" title="Pengaturan Data">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 15A3 3 0 1 0 12 9A3 3 0 0 0 12 15Z" stroke="white" stroke-width="1.8"/><path d="M19.4 15A1.65 1.65 0 0 0 19.73 16.6L19.79 16.68A2 2 0 1 1 16.95 19.51L16.87 19.45A1.65 1.65 0 0 0 15.27 19.12A1.65 1.65 0 0 0 14.3 20.6V20.8A2 2 0 0 1 10.3 20.8V20.68A1.65 1.65 0 0 0 9.23 19.15A1.65 1.65 0 0 0 7.63 19.48L7.55 19.54A2 2 0 1 1 4.72 16.71L4.78 16.63A1.65 1.65 0 0 0 5.11 15.03A1.65 1.65 0 0 0 3.63 14.06H3.43A2 2 0 0 1 3.43 10.06H3.55A1.65 1.65 0 0 0 5.08 8.99A1.65 1.65 0 0 0 4.75 7.39L4.69 7.31A2 2 0 1 1 7.52 4.48L7.6 4.54A1.65 1.65 0 0 0 9.2 4.87A1.65 1.65 0 0 0 10.17 3.4V3.2A2 2 0 0 1 14.17 3.2V3.32A1.65 1.65 0 0 0 15.14 4.79A1.65 1.65 0 0 0 16.74 4.46L16.82 4.4A2 2 0 1 1 19.65 7.23L19.59 7.31A1.65 1.65 0 0 0 19.26 8.91V8.97A1.65 1.65 0 0 0 20.73 9.94H20.93A2 2 0 0 1 20.93 13.94H20.81A1.65 1.65 0 0 0 19.4 15Z" stroke="white" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="sync-row">
+      <span class="sync-dot none" id="syncDot"></span>
+      <span class="sync-text" id="syncText">Memuat data...</span>
+      <div class="sync-actions">
+        <button class="appbar-icon-btn" id="refreshBtn" title="Sync data terbaru">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" id="refreshIcon"><path d="M4 12A8 8 0 0 1 19 8.5M20 12A8 8 0 0 1 5 15.5" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M19 4V8.5H14.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20V15.5H9.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div id="bannerArea"></div>
+
+    <div class="search-wrap">
+      <div class="field">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="searchInput" type="text" inputmode="search" autocomplete="off" placeholder="Cari Item No / Nama Item...">
+        <button class="clear-btn" id="clearBtn" style="display:none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="suggest" id="suggestBox"></div>
+    </div>
+
+    <div id="detailArea"></div>
+
+    <div id="emptyArea"></div>
+
+  </div>
+
+  <div class="bottombar">
+    <button class="bb-btn" id="viewPickedBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V5C3 3.9 3.9 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Lihat Hasil Pick
+      <span class="badge" id="badgeCount" style="display:none;">0</span>
+    </button>
+    <button class="bb-btn primary" id="downloadBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3V15M12 15L7 10M12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17V19C4 20.1 4.9 21 6 21H18C19.1 21 20 20.1 20 19V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Download CSV
+    </button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="overlay"></div>
+<div class="sheet" id="pickedSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <div>
+      <h2>Hasil Picking</h2>
+      <div class="sub" id="sheetSub">0 item</div>
+    </div>
+    <button class="icon-btn" id="closeSheetBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div style="padding:10px 16px 0; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+    <button class="banner-link" id="importCsvBtn">⤴ Pulihkan dari CSV</button>
+    <button class="banner-link" id="clearAllBtn" style="color:var(--error);">🗑 Hapus Semua</button>
+    <input type="file" id="importCsvInput" accept=".csv,text/csv" style="display:none;">
+  </div>
+  <div class="sheet-body" id="sheetBody"></div>
+  <div class="sheet-foot">
+    <button class="btn btn-outline" id="sheetDownloadBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3V15M12 15L7 10M12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17V19C4 20.1 4.9 21 6 21H18C19.1 21 20 20.1 20 19V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      CSV
+    </button>
+    <button class="btn btn-primary" id="shareWaBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M17.6 6.3A9 9 0 1 0 5 19.4L3.5 21L6.6 20A9 9 0 0 0 17.6 6.3Z" stroke="white" stroke-width="1.7" stroke-linejoin="round"/><path d="M8.5 8.5C8.7 8.1 9.1 8 9.4 8H10C10.3 8 10.5 8.2 10.6 8.4L11.2 9.8C11.3 10 11.2 10.3 11.1 10.5L10.6 11.1C10.4 11.3 10.4 11.6 10.6 11.9C11 12.6 12 13.6 12.7 14C13 14.2 13.3 14.2 13.5 14L14.1 13.5C14.3 13.3 14.6 13.3 14.8 13.4L16.1 14.1C16.3 14.2 16.5 14.5 16.5 14.7V15.3C16.5 15.7 16.3 16 16 16.2C15.4 16.5 14.5 16.6 13.3 16.1C11.9 15.5 10.4 14.3 9.3 12.9C8.5 11.9 8 11 7.9 10.2C7.8 9.5 8 8.9 8.5 8.5Z" fill="white"/></svg>
+      Kirim ke WhatsApp
+    </button>
+  </div>
+</div>
+
+<div class="overlay" id="settingsOverlay"></div>
+<div class="sheet" id="settingsSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <div>
+      <h2>Pengaturan Data Pusat</h2>
+      <div class="sub">Sambungkan ke Google Sheets master stock</div>
+    </div>
+    <button class="icon-btn" id="closeSettingsBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body">
+    <div class="settings-body">
+      <div class="settings-status" id="settingsStatus"></div>
+
+      <div class="settings-label">Link CSV Google Sheets</div>
+      <input class="settings-input" id="sheetUrlInput" type="url" placeholder="https://docs.google.com/spreadsheets/d/e/..../pub?output=csv" autocomplete="off">
+      <div class="settings-help">
+        Cara mendapatkan link ini:
+        <ol>
+          <li>Upload / copy-paste file report WMS asli (Stock Warehouse By Location) ke Google Sheets — tidak perlu diedit atau diubah formatnya.</li>
+          <li>File &rarr; Share &rarr; Publish to web.</li>
+          <li>Pilih sheet yang benar, format <b>Comma-separated values (.csv)</b>, klik Publish.</li>
+          <li>Salin link yang muncul, tempel di kolom atas.</li>
+        </ol>
+        Aplikasi otomatis mendeteksi baris header dan kolom yang dibutuhkan (Item No, Item Description, Storage Location Id, Base UOM, Stock On Hand Qty), serta menjumlahkan qty antar lot secara otomatis.
+      </div>
+    </div>
+  </div>
+  <div class="sheet-foot">
+    <button class="btn btn-outline" id="useDefaultBtn">Hapus Data Tersimpan</button>
+    <button class="btn btn-primary" id="saveSettingsBtn">Simpan &amp; Sync</button>
+  </div>
+</div>
+
+<script id="itemData" type="application/json">{}</script>
+<script>
+(function(){
+  "use strict";
+
+  var raw = document.getElementById('itemData').textContent;
+  var DEFAULT_ITEMS = {};
+  try{ DEFAULT_ITEMS = JSON.parse(raw) || {}; }catch(e){ DEFAULT_ITEMS = {}; }
+  document.getElementById('itemData').textContent = '';
+
+  var ITEMS = DEFAULT_ITEMS;
+  var ITEM_CODES = Object.keys(ITEMS);
+  var searchIndex = [];
+  function rebuildSearchIndex(){
+    ITEM_CODES = Object.keys(ITEMS);
+    searchIndex = ITEM_CODES.map(function(code){
+      return { code: code, desc: ITEMS[code].d, hay: (code + ' ' + ITEMS[code].d).toUpperCase() };
+    });
+  }
+  rebuildSearchIndex();
+
+  var SHEET_URL_KEY = 'wms_sheet_url_v1';
+  var CACHE_KEY = 'wms_cached_items_v1';
+  var sheetUrl = '';
+  var dataMeta = { source: 'kosong', syncedAt: null, count: ITEM_CODES.length };
+
+  try{ sheetUrl = localStorage.getItem(SHEET_URL_KEY) || ''; }catch(e){}
+  try{
+    var cachedRaw = localStorage.getItem(CACHE_KEY);
+    if(cachedRaw){
+      var cached = JSON.parse(cachedRaw);
+      if(cached && cached.items && Object.keys(cached.items).length){
+        ITEMS = cached.items;
+        dataMeta = { source: cached.source || 'Google Sheets', syncedAt: cached.syncedAt || null, count: Object.keys(ITEMS).length };
+        rebuildSearchIndex();
+      }
+    }
+  }catch(e){}
+
+  var STORAGE_KEY = 'wms_picking_results_v1';
+  var picks = [];
+  try{
+    var saved = localStorage.getItem(STORAGE_KEY);
+    if(saved) picks = JSON.parse(saved);
+  }catch(e){ picks = []; }
+
+  var els = {
+    searchInput: document.getElementById('searchInput'),
+    clearBtn: document.getElementById('clearBtn'),
+    suggestBox: document.getElementById('suggestBox'),
+    detailArea: document.getElementById('detailArea'),
+    emptyArea: document.getElementById('emptyArea'),
+    bannerArea: document.getElementById('bannerArea'),
+    pickCountTop: document.getElementById('pickCountTop'),
+    badgeCount: document.getElementById('badgeCount'),
+    viewPickedBtn: document.getElementById('viewPickedBtn'),
+    downloadBtn: document.getElementById('downloadBtn'),
+    toast: document.getElementById('toast'),
+    overlay: document.getElementById('overlay'),
+    pickedSheet: document.getElementById('pickedSheet'),
+    sheetBody: document.getElementById('sheetBody'),
+    sheetSub: document.getElementById('sheetSub'),
+    closeSheetBtn: document.getElementById('closeSheetBtn'),
+    clearAllBtn: document.getElementById('clearAllBtn'),
+    sheetDownloadBtn: document.getElementById('sheetDownloadBtn'),
+    importCsvBtn: document.getElementById('importCsvBtn'),
+    importCsvInput: document.getElementById('importCsvInput'),
+    shareWaBtn: document.getElementById('shareWaBtn'),
+    settingsBtn: document.getElementById('settingsBtn'),
+    refreshBtn: document.getElementById('refreshBtn'),
+    refreshIcon: document.getElementById('refreshIcon'),
+    syncDot: document.getElementById('syncDot'),
+    syncText: document.getElementById('syncText'),
+    settingsOverlay: document.getElementById('settingsOverlay'),
+    settingsSheet: document.getElementById('settingsSheet'),
+    closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+    settingsStatus: document.getElementById('settingsStatus'),
+    sheetUrlInput: document.getElementById('sheetUrlInput'),
+    saveSettingsBtn: document.getElementById('saveSettingsBtn'),
+    useDefaultBtn: document.getElementById('useDefaultBtn')
+  };
+
+  var state = {
+    selectedItem: null,   // code
+    selectedLoc: null,    // {id, qty}
+    qty: ''
+  };
+
+  function savePicks(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(picks)); }catch(e){}
+    renderCounters();
+  }
+
+  function renderCounters(){
+    els.pickCountTop.textContent = picks.length;
+    if(picks.length > 0){
+      els.badgeCount.style.display = 'flex';
+      els.badgeCount.textContent = picks.length > 99 ? '99+' : picks.length;
+    } else {
+      els.badgeCount.style.display = 'none';
+    }
+  }
+
+  function showToast(msg, isError){
+    els.toast.textContent = msg;
+    els.toast.className = 'toast show' + (isError ? ' error' : '');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function(){
+      els.toast.className = 'toast';
+    }, 2200);
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function fmtQty(n){
+    n = Number(n);
+    if(Number.isInteger(n)) return n.toString();
+    return n.toFixed(2).replace(/\.?0+$/,'');
+  }
+
+  /* ---------- Search / autocomplete ---------- */
+  var searchTimer = null;
+  els.searchInput.addEventListener('input', function(){
+    var v = this.value;
+    els.clearBtn.style.display = v ? 'flex' : 'none';
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function(){ runSearch(v); }, 120);
+  });
+  els.searchInput.addEventListener('focus', function(){
+    if(this.value) runSearch(this.value);
+  });
+  els.clearBtn.addEventListener('click', function(){
+    els.searchInput.value = '';
+    els.clearBtn.style.display = 'none';
+    closeSuggest();
+    els.searchInput.focus();
+  });
+  document.addEventListener('click', function(e){
+    if(!els.suggestBox.contains(e.target) && e.target !== els.searchInput){
+      closeSuggest();
+    }
+  });
+
+  function closeSuggest(){
+    els.suggestBox.classList.remove('show');
+    els.suggestBox.innerHTML = '';
+  }
+
+  function runSearch(q){
+    q = (q || '').trim().toUpperCase();
+    if(q.length < 1){ closeSuggest(); return; }
+
+    if(ITEM_CODES.length === 0){
+      els.suggestBox.innerHTML = '<div class="suggest-empty">Belum ada data item. Sambungkan ke Google Sheets dulu di ⚙️ Pengaturan.</div>';
+      els.suggestBox.classList.add('show');
+      return;
+    }
+
+    var starts = [];
+    var contains = [];
+    for(var i=0; i<searchIndex.length; i++){
+      var it = searchIndex[i];
+      if(it.code.indexOf(q) === 0){
+        starts.push(it);
+      } else if(it.hay.indexOf(q) !== -1){
+        contains.push(it);
+      }
+      if(starts.length >= 30) break;
+    }
+    var results = starts.concat(contains).slice(0, 25);
+
+    if(results.length === 0){
+      els.suggestBox.innerHTML = '<div class="suggest-empty">Item tidak ditemukan untuk "' + escapeHtml(q) + '"</div>';
+      els.suggestBox.classList.add('show');
+      return;
+    }
+
+    var html = results.map(function(it){
+      return '<div class="suggest-item" data-code="' + it.code + '">' +
+        '<span class="suggest-code">' + escapeHtml(it.code) + '</span>' +
+        '<span class="suggest-desc">' + escapeHtml(it.desc) + '</span>' +
+        '</div>';
+    }).join('');
+
+    if(results.length === 25){
+      html += '<div class="suggest-more">Menampilkan 25 hasil teratas — perhalus pencarian untuk hasil lebih spesifik</div>';
+    }
+
+    els.suggestBox.innerHTML = html;
+    els.suggestBox.classList.add('show');
+
+    Array.prototype.forEach.call(els.suggestBox.querySelectorAll('.suggest-item'), function(node){
+      node.addEventListener('click', function(){
+        selectItem(node.getAttribute('data-code'));
+      });
+    });
+  }
+
+  /* ---------- Item detail / location selection ---------- */
+  function selectItem(code){
+    var item = ITEMS[code];
+    if(!item) return;
+    state.selectedItem = code;
+    state.selectedLoc = null;
+    state.qty = '';
+    els.searchInput.value = code;
+    els.clearBtn.style.display = 'flex';
+    closeSuggest();
+
+    if(item.l.length === 1){
+      state.selectedLoc = { id: item.l[0][0], qty: item.l[0][1] };
+    }
+    renderDetail();
+  }
+
+  function renderDetail(){
+    els.emptyArea.innerHTML = '';
+    var code = state.selectedItem;
+    if(!code){
+      els.detailArea.innerHTML = '';
+      renderEmptyState();
+      return;
+    }
+    var item = ITEMS[code];
+    var locsHtml = item.l.map(function(loc){
+      var isSel = state.selectedLoc && state.selectedLoc.id === loc[0];
+      return '<div class="loc-row' + (isSel ? ' selected' : '') + '" data-loc="' + escapeHtml(loc[0]) + '" data-qty="' + loc[1] + '">' +
+        '<div class="loc-left"><span class="loc-radio"></span><span class="loc-id">' + escapeHtml(loc[0]) + '</span></div>' +
+        '<div class="loc-qty">Stock: <b>' + fmtQty(loc[1]) + ' ' + escapeHtml(item.u) + '</b></div>' +
+        '</div>';
+    }).join('');
+
+    var qtySectionHtml = '';
+    if(state.selectedLoc){
+      var maxQty = state.selectedLoc.qty;
+      qtySectionHtml =
+        '<div class="qty-section">' +
+          '<div class="section-label">Qty Picking</div>' +
+          '<div class="qty-field">' +
+            '<button class="qty-btn" id="qtyMinus" type="button">&minus;</button>' +
+            '<input id="qtyInput" type="number" inputmode="decimal" min="0" step="any" placeholder="0" value="' + escapeHtml(state.qty) + '">' +
+            '<button class="qty-btn" id="qtyPlus" type="button">&plus;</button>' +
+          '</div>' +
+          '<div class="qty-hint" id="qtyHint">Maks tersedia: ' + fmtQty(maxQty) + ' ' + escapeHtml(item.u) + ' di ' + escapeHtml(state.selectedLoc.id) + '</div>' +
+          '<div class="btn-row">' +
+            '<button class="btn btn-outline" id="cancelBtn">Batal</button>' +
+            '<button class="btn btn-primary" id="saveBtn">Simpan</button>' +
+          '</div>' +
+        '</div>';
+    }
+
+    els.detailArea.innerHTML =
+      '<div class="card">' +
+        '<div class="card-top">' +
+          '<div>' +
+            '<span class="item-code">' + escapeHtml(code) + '</span>' +
+            '<div class="item-desc">' + escapeHtml(item.d) + '</div>' +
+            '<div class="item-uom">Satuan: ' + escapeHtml(item.u) + ' &middot; ' + item.l.length + ' lokasi</div>' +
+          '</div>' +
+          '<button class="icon-btn" id="closeDetailBtn" title="Tutup">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' +
+          '</button>' +
+        '</div>' +
+        '<div class="section-label">Storage Location & Stock On Hand</div>' +
+        '<div class="loc-list">' + locsHtml + '</div>' +
+        qtySectionHtml +
+      '</div>';
+
+    Array.prototype.forEach.call(els.detailArea.querySelectorAll('.loc-row'), function(node){
+      node.addEventListener('click', function(){
+        state.selectedLoc = { id: node.getAttribute('data-loc'), qty: parseFloat(node.getAttribute('data-qty')) };
+        state.qty = '';
+        renderDetail();
+        setTimeout(function(){
+          var qi = document.getElementById('qtyInput');
+          if(qi) qi.focus();
+        }, 50);
+      });
+    });
+
+    var closeBtn = document.getElementById('closeDetailBtn');
+    if(closeBtn) closeBtn.addEventListener('click', resetSelection);
+
+    var qtyInput = document.getElementById('qtyInput');
+    if(qtyInput){
+      qtyInput.addEventListener('input', function(){
+        state.qty = this.value;
+        updateQtyHint();
+      });
+      var minus = document.getElementById('qtyMinus');
+      var plus = document.getElementById('qtyPlus');
+      minus.addEventListener('click', function(){
+        var v = parseFloat(state.qty) || 0;
+        v = Math.max(0, v - 1);
+        state.qty = v ? String(v) : '';
+        qtyInput.value = state.qty;
+        updateQtyHint();
+      });
+      plus.addEventListener('click', function(){
+        var v = parseFloat(state.qty) || 0;
+        v = v + 1;
+        state.qty = String(v);
+        qtyInput.value = state.qty;
+        updateQtyHint();
+      });
+      document.getElementById('saveBtn').addEventListener('click', savePick);
+      document.getElementById('cancelBtn').addEventListener('click', resetSelection);
+    }
+  }
+
+  function updateQtyHint(){
+    var hint = document.getElementById('qtyHint');
+    if(!hint || !state.selectedLoc) return;
+    var v = parseFloat(state.qty);
+    var max = state.selectedLoc.qty;
+    var item = ITEMS[state.selectedItem];
+    if(!isNaN(v) && v > max){
+      hint.textContent = 'Qty melebihi stock tersedia (' + fmtQty(max) + ' ' + item.u + ')';
+      hint.classList.add('warn');
+    } else {
+      hint.textContent = 'Maks tersedia: ' + fmtQty(max) + ' ' + item.u + ' di ' + state.selectedLoc.id;
+      hint.classList.remove('warn');
+    }
+  }
+
+  function resetSelection(){
+    state.selectedItem = null;
+    state.selectedLoc = null;
+    state.qty = '';
+    els.searchInput.value = '';
+    els.clearBtn.style.display = 'none';
+    renderDetail();
+  }
+
+  function savePick(){
+    var v = parseFloat(state.qty);
+    if(!v || v <= 0 || isNaN(v)){
+      showToast('Masukkan qty picking yang valid', true);
+      return;
+    }
+    var item = ITEMS[state.selectedItem];
+    var loc = state.selectedLoc;
+    if(v > loc.qty){
+      showToast('Qty melebihi stock tersedia di lokasi ini', true);
+      return;
+    }
+    picks.push({
+      itemNo: state.selectedItem,
+      desc: item.d,
+      uom: item.u,
+      loc: loc.id,
+      qty: v,
+      stockAtPick: loc.qty,
+      ts: new Date().toISOString()
+    });
+    savePicks();
+    showToast('Tersimpan: ' + state.selectedItem + ' — ' + fmtQty(v) + ' ' + item.u);
+    resetSelection();
+  }
+
+  function renderEmptyState(){
+    if(ITEM_CODES.length === 0){
+      els.emptyArea.innerHTML =
+        '<div class="empty-state">' +
+          '<svg width="56" height="56" viewBox="0 0 24 24" fill="none"><path d="M4 7C4 5 7.5 3.5 12 3.5S20 5 20 7 16.5 10.5 12 10.5 4 9 4 7Z" stroke="currentColor" stroke-width="1.6"/><path d="M4 7V17C4 19 7.5 20.5 12 20.5S20 19 20 17V7" stroke="currentColor" stroke-width="1.6"/><path d="M4 12C4 14 7.5 15.5 12 15.5S20 14 20 12" stroke="currentColor" stroke-width="1.6"/></svg>' +
+          '<h3>Belum ada data item</h3>' +
+          '<p>Sambungkan aplikasi ke Google Sheets master stock dulu.<br>Tap ikon ⚙️ Pengaturan di pojok kanan atas.</p>' +
+        '</div>';
+      return;
+    }
+    els.emptyArea.innerHTML =
+      '<div class="empty-state">' +
+        '<svg width="56" height="56" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' +
+        '<h3>Cari item untuk mulai picking</h3>' +
+        '<p>Ketik Item No atau nama item pada kolom pencarian di atas,<br>lalu pilih dari daftar yang muncul.</p>' +
+      '</div>';
+  }
+
+  /* ---------- Picked results sheet ---------- */
+  function openSheet(){
+    renderSheet();
+    els.overlay.classList.add('show');
+    els.pickedSheet.classList.add('show');
+  }
+  function closeSheet(){
+    els.overlay.classList.remove('show');
+    els.pickedSheet.classList.remove('show');
+  }
+  els.overlay.addEventListener('click', closeSheet);
+  els.closeSheetBtn.addEventListener('click', closeSheet);
+  els.viewPickedBtn.addEventListener('click', openSheet);
+
+  function renderSheet(){
+    els.sheetSub.textContent = picks.length + ' item';
+    if(picks.length === 0){
+      els.sheetBody.innerHTML = '<div class="sheet-empty">Belum ada item yang dipick.</div>';
+      return;
+    }
+    var html = picks.map(function(p, idx){
+      return '<div class="pick-item">' +
+        '<div class="pick-num">' + (idx+1) + '</div>' +
+        '<div class="pick-info">' +
+          '<div class="pick-code">' + escapeHtml(p.itemNo) + '</div>' +
+          '<div class="pick-desc">' + escapeHtml(p.desc) + '</div>' +
+          '<div class="pick-meta">' + escapeHtml(p.loc) + '</div>' +
+        '</div>' +
+        '<div class="pick-qty">' + fmtQty(p.qty) + ' ' + escapeHtml(p.uom) + '</div>' +
+        '<button class="pick-del" data-idx="' + idx + '">' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 6H21M8 6V4C8 3.4 8.4 3 9 3H15C15.6 3 16 3.4 16 4V6M19 6L18.3 19C18.2 20.1 17.3 21 16.2 21H7.8C6.7 21 5.8 20.1 5.7 19L5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '</button>' +
+      '</div>';
+    }).join('');
+    els.sheetBody.innerHTML = html;
+    Array.prototype.forEach.call(els.sheetBody.querySelectorAll('.pick-del'), function(btn){
+      btn.addEventListener('click', function(){
+        var idx = parseInt(this.getAttribute('data-idx'), 10);
+        picks.splice(idx, 1);
+        savePicks();
+        renderSheet();
+      });
+    });
+  }
+
+  els.clearAllBtn.addEventListener('click', function(){
+    if(picks.length === 0) return;
+    if(confirm('Hapus semua hasil picking? Tindakan ini tidak dapat dibatalkan.')){
+      picks = [];
+      savePicks();
+      renderSheet();
+      showToast('Semua hasil picking dihapus');
+    }
+  });
+
+  /* ---------- Restore picks from a previously downloaded CSV backup ---------- */
+  els.importCsvBtn.addEventListener('click', function(){
+    els.importCsvInput.value = '';
+    els.importCsvInput.click();
+  });
+  els.importCsvInput.addEventListener('change', function(){
+    var file = this.files && this.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        var rows = parseCsv(String(e.target.result));
+        if(rows.length < 2) throw new Error('File CSV kosong');
+        var header = rows[0].map(normHeader);
+        function col(name){ return header.indexOf(name); }
+        var iCode = col('item no'), iDesc = col('item description'), iLoc = col('storage location id'),
+            iQty = col('qty picking'), iUom = col('uom'), iStock = col('stock saat pick'), iTs = col('waktu');
+        if(iCode === -1 || iQty === -1) throw new Error('Format CSV tidak sesuai (bukan hasil export aplikasi ini)');
+
+        var existingKeys = {};
+        picks.forEach(function(p){ existingKeys[p.itemNo+'|'+p.loc+'|'+p.qty+'|'+p.ts] = true; });
+
+        var added = 0;
+        for(var r=1; r<rows.length; r++){
+          var row = rows[r];
+          var code = (row[iCode] || '').trim();
+          if(!code) continue;
+          var qty = parseFloat(row[iQty]);
+          if(isNaN(qty)) continue;
+          var ts = iTs !== -1 ? (row[iTs] || new Date().toISOString()) : new Date().toISOString();
+          var loc = iLoc !== -1 ? (row[iLoc] || '') : '';
+          var key = code+'|'+loc+'|'+qty+'|'+ts;
+          if(existingKeys[key]) continue;
+          picks.push({
+            itemNo: code,
+            desc: iDesc !== -1 ? (row[iDesc] || '') : (ITEMS[code] ? ITEMS[code].d : ''),
+            uom: iUom !== -1 ? (row[iUom] || '') : (ITEMS[code] ? ITEMS[code].u : ''),
+            loc: loc,
+            qty: qty,
+            stockAtPick: iStock !== -1 ? parseFloat(row[iStock]) || 0 : 0,
+            ts: ts
+          });
+          existingKeys[key] = true;
+          added++;
+        }
+        savePicks();
+        renderSheet();
+        showToast(added > 0 ? ('Berhasil memulihkan ' + added + ' item dari backup') : 'Tidak ada item baru untuk dipulihkan (sudah ada semua)');
+      }catch(err){
+        showToast('Gagal memulihkan: ' + err.message, true);
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  });
+
+  /* ---------- CSV export ---------- */
+  function buildCsvExport(){
+    var header = ['Item No','Item Description','Storage Location Id','Qty Picking','UOM','Stock Saat Pick','Waktu'];
+    var rows = picks.map(function(p){
+      return [p.itemNo, p.desc, p.loc, fmtQty(p.qty), p.uom, fmtQty(p.stockAtPick), p.ts];
+    });
+    function csvEsc(v){
+      v = String(v);
+      if(/[",\n]/.test(v)) v = '"' + v.replace(/"/g,'""') + '"';
+      return v;
+    }
+    var csv = '\uFEFF' + [header].concat(rows).map(function(r){
+      return r.map(csvEsc).join(',');
+    }).join('\r\n');
+    var stamp = new Date().toISOString().replace(/[:T]/g,'-').slice(0,19);
+    var filename = 'picking_result_' + stamp + '.csv';
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    return { blob: blob, filename: filename };
+  }
+
+  function downloadCsv(){
+    if(picks.length === 0){
+      showToast('Belum ada item untuk diexport', true);
+      return;
+    }
+    var exp = buildCsvExport();
+    var url = URL.createObjectURL(exp.blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = exp.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    showToast('CSV berhasil didownload');
+  }
+
+  els.downloadBtn.addEventListener('click', downloadCsv);
+  els.sheetDownloadBtn.addEventListener('click', downloadCsv);
+
+  /* ---------- Share to WhatsApp ---------- */
+  function shareToWhatsApp(){
+    if(picks.length === 0){
+      showToast('Belum ada item untuk dikirim', true);
+      return;
+    }
+    var exp = buildCsvExport();
+    var message = 'Hasil Picking (' + picks.length + ' item) - ' + exp.filename;
+
+    var canFileShare = false;
+    try{
+      if(navigator.canShare){
+        var testFile = new File([exp.blob], exp.filename, { type: 'text/csv' });
+        canFileShare = navigator.canShare({ files: [testFile] });
+      }
+    }catch(e){ canFileShare = false; }
+
+    if(canFileShare && navigator.share){
+      var file = new File([exp.blob], exp.filename, { type: 'text/csv' });
+      navigator.share({ files: [file], title: 'Hasil Picking', text: message })
+        .then(function(){ showToast('Dibagikan — pilih grup WhatsApp tujuan lalu kirim'); })
+        .catch(function(err){
+          if(err && err.name === 'AbortError') return;
+          fallbackShare(exp, message);
+        });
+    } else {
+      fallbackShare(exp, message);
+    }
+  }
+
+  function fallbackShare(exp, message){
+    var url = URL.createObjectURL(exp.blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = exp.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+
+    var waUrl = 'https://wa.me/?text=' + encodeURIComponent(message + ' — file CSV sudah terdownload, silakan lampirkan manual ke chat.');
+    window.open(waUrl, '_blank');
+    showToast('CSV didownload. Lampirkan manual di WhatsApp yang baru terbuka.');
+  }
+
+  els.shareWaBtn.addEventListener('click', shareToWhatsApp);
+
+  /* ---------- CSV parsing (RFC4180-ish) ---------- */
+  function parseCsv(text){
+    var rows = [];
+    var row = [];
+    var field = '';
+    var inQuotes = false;
+    for(var i=0; i<text.length; i++){
+      var c = text[i];
+      if(inQuotes){
+        if(c === '"'){
+          if(text[i+1] === '"'){ field += '"'; i++; }
+          else { inQuotes = false; }
+        } else {
+          field += c;
+        }
+      } else {
+        if(c === '"'){ inQuotes = true; }
+        else if(c === ','){ row.push(field); field = ''; }
+        else if(c === '\r'){ /* skip */ }
+        else if(c === '\n'){ row.push(field); rows.push(row); row = []; field = ''; }
+        else { field += c; }
+      }
+    }
+    if(field.length || row.length){ row.push(field); rows.push(row); }
+    return rows.filter(function(r){ return r.length > 1 || (r.length === 1 && r[0] !== ''); });
+  }
+
+  function normHeader(h){ return String(h || '').trim().toLowerCase(); }
+
+  // Parses numbers that may come formatted as "100", "1,234", "1.234,56", or
+  // percent-formatted cells from Google Sheets ("100%" meaning underlying value 1).
+  function parseQtyValue(raw){
+    var s = String(raw == null ? '' : raw).trim();
+    if(s === '') return 0;
+    var isPercent = s.indexOf('%') !== -1;
+    s = s.replace(/%/g, '').replace(/\s/g, '');
+
+    var hasComma = s.indexOf(',') !== -1;
+    var hasDot = s.indexOf('.') !== -1;
+
+    if(hasComma && hasDot){
+      // Both present: whichever separator appears last is the decimal point.
+      if(s.lastIndexOf(',') > s.lastIndexOf('.')){
+        s = s.replace(/\./g, '').replace(',', '.'); // "1.700,50" -> "1700.50"
+      } else {
+        s = s.replace(/,/g, ''); // "1,700.50" -> "1700.50"
+      }
+    } else if(hasComma){
+      // Only comma present: this report uses comma as the decimal separator
+      // (e.g. "6,00" means 6), so convert it rather than stripping it.
+      s = s.replace(',', '.');
+    }
+
+    var n = parseFloat(s);
+    if(isNaN(n)) return 0;
+    if(isPercent) n = n / 100;
+    return n;
+  }
+
+  function findHeaderRowIndex(rows){
+    var maxScan = Math.min(rows.length, 10);
+    for(var r=0; r<maxScan; r++){
+      var norm = rows[r].map(normHeader);
+      var hasItemNo = norm.some(function(h){ return h.indexOf('item no') !== -1; });
+      var hasLoc = norm.some(function(h){ return h.indexOf('location') !== -1; });
+      if(hasItemNo && hasLoc) return r;
+    }
+    return 0;
+  }
+
+  function buildItemsFromRows(rows){
+    if(rows.length < 2) throw new Error('Data kosong atau format tidak sesuai');
+    var headerRowIdx = findHeaderRowIndex(rows);
+    if(rows.length <= headerRowIdx + 1) throw new Error('Tidak ada baris data setelah header');
+    var header = rows[headerRowIdx].map(normHeader);
+
+    function findCol(keywords){
+      for(var k=0; k<keywords.length; k++){
+        for(var i=0; i<header.length; i++){
+          if(header[i].indexOf(keywords[k]) !== -1) return i;
+        }
+      }
+      return -1;
+    }
+    var idxItem = findCol(['item no']);
+    var idxDesc = findCol(['item description', 'description']);
+    var idxLoc = findCol(['storage location', 'location id']);
+    var idxUom = findCol(['base uom', 'uom', 'satuan']);
+    var idxQty = findCol(['stock on hand', 'qty']);
+
+    if(idxItem === -1) idxItem = 0;
+    if(idxDesc === -1) idxDesc = 1;
+    if(idxLoc === -1) idxLoc = 2;
+    if(idxUom === -1) idxUom = 3;
+    if(idxQty === -1) idxQty = 4;
+
+    var items = {};
+    var locKey = {};
+    for(var r=headerRowIdx+1; r<rows.length; r++){
+      var row = rows[r];
+      var code = (row[idxItem] || '').trim();
+      if(!code) continue;
+      var desc = (row[idxDesc] || '').trim();
+      var loc = (row[idxLoc] || '').trim();
+      var uom = (row[idxUom] || '').trim();
+      var qty = parseQtyValue(row[idxQty]);
+      if(isNaN(qty)) qty = 0;
+
+      if(!items[code]) items[code] = { d: desc, u: uom, l: [] };
+      var key = code + '|' + loc;
+      if(locKey[key] !== undefined){
+        items[code].l[locKey[key]][1] += qty;
+      } else if(loc) {
+        locKey[key] = items[code].l.length;
+        items[code].l.push([loc, qty]);
+      }
+    }
+    return items;
+  }
+
+  function fmtDateTime(iso){
+    if(!iso) return '-';
+    var d = new Date(iso);
+    if(isNaN(d.getTime())) return '-';
+    var pad = function(n){ return n<10 ? '0'+n : n; };
+    return pad(d.getDate()) + '/' + pad(d.getMonth()+1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function renderSyncStatus(){
+    var count = ITEM_CODES.length;
+    if(dataMeta.source === 'kosong'){
+      els.syncDot.className = 'sync-dot none';
+      els.syncText.innerHTML = '<b>Belum ada data</b> · sambungkan ke Google Sheets di Pengaturan';
+    } else {
+      els.syncDot.className = 'sync-dot';
+      els.syncText.innerHTML = '<b>' + count.toLocaleString('id-ID') + ' item</b> · sync ' + fmtDateTime(dataMeta.syncedAt);
+    }
+    renderBanner();
+    renderSettingsStatus();
+  }
+
+  function renderBanner(){
+    if(sheetUrl && ITEM_CODES.length > 0){ els.bannerArea.innerHTML = ''; return; }
+    var msg = sheetUrl
+      ? 'Link Google Sheets sudah diisi tapi belum berhasil sync data. Coba tap tombol refresh, atau cek kembali link-nya.'
+      : 'Aplikasi ini belum memiliki data item apapun. Sambungkan ke Google Sheets master stock supaya bisa mulai picking.';
+    els.bannerArea.innerHTML =
+      '<div class="banner">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 9V13M12 17H12.01M10.29 3.86L1.82 18A2 2 0 0 0 3.54 21H20.46A2 2 0 0 0 22.18 18L13.71 3.86A2 2 0 0 0 10.29 3.86Z" stroke="#7a5b00" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '<div><b>Belum tersambung ke data pusat</b>' + msg +
+        '<button class="banner-link" id="bannerConnectBtn">' + (sheetUrl ? 'Buka Pengaturan' : 'Sambungkan sekarang') + '</button></div>' +
+      '</div>';
+    document.getElementById('bannerConnectBtn').addEventListener('click', openSettings);
+  }
+
+  function renderSettingsStatus(){
+    els.settingsStatus.innerHTML =
+      'Sumber data saat ini: <b>' + (dataMeta.source === 'kosong' ? 'Belum ada data' : dataMeta.source) + '</b><br>' +
+      'Jumlah item: <b>' + ITEM_CODES.length.toLocaleString('id-ID') + '</b><br>' +
+      'Sync terakhir: <b>' + (dataMeta.syncedAt ? fmtDateTime(dataMeta.syncedAt) : 'Belum pernah') + '</b>';
+  }
+
+  function setSyncing(on){
+    if(on){
+      els.syncDot.className = 'sync-dot syncing';
+      els.refreshIcon.style.animation = 'spin .8s linear infinite';
+    } else {
+      els.refreshIcon.style.animation = '';
+    }
+  }
+
+  function fetchAndSync(manual){
+    if(!sheetUrl){
+      if(manual){ showToast('Sambungkan ke Google Sheets dulu di Pengaturan', true); openSettings(); }
+      return;
+    }
+    setSyncing(true);
+    var bust = (sheetUrl.indexOf('?') === -1 ? '?' : '&') + '_t=' + Date.now();
+    fetch(sheetUrl + bust, { cache: 'no-store' })
+      .then(function(res){
+        if(!res.ok) throw new Error('HTTP ' + res.status);
+        return res.text();
+      })
+      .then(function(text){
+        var rows = parseCsv(text);
+        var newItems = buildItemsFromRows(rows);
+        var count = Object.keys(newItems).length;
+        if(count === 0) throw new Error('Tidak ada data valid di sheet');
+        ITEMS = newItems;
+        rebuildSearchIndex();
+        dataMeta = { source: 'Google Sheets', syncedAt: new Date().toISOString(), count: count };
+        try{
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ items: ITEMS, source: dataMeta.source, syncedAt: dataMeta.syncedAt }));
+        }catch(e){ showToast('Data tersync tapi gagal disimpan ke cache lokal (memori penuh)', true); }
+        renderSyncStatus();
+        if(state.selectedItem && !ITEMS[state.selectedItem]) resetSelection();
+        else if(!state.selectedItem) renderEmptyState();
+        showToast('Data diperbarui: ' + count.toLocaleString('id-ID') + ' item');
+      })
+      .catch(function(err){
+        showToast('Gagal sync data terbaru (' + err.message + '), pakai data tersimpan', true);
+      })
+      .finally(function(){
+        setSyncing(false);
+      });
+  }
+
+  els.refreshBtn.addEventListener('click', function(){ fetchAndSync(true); });
+
+  /* ---------- Settings modal ---------- */
+  function openSettings(){
+    els.sheetUrlInput.value = sheetUrl;
+    renderSettingsStatus();
+    els.settingsOverlay.classList.add('show');
+    els.settingsSheet.classList.add('show');
+  }
+  function closeSettings(){
+    els.settingsOverlay.classList.remove('show');
+    els.settingsSheet.classList.remove('show');
+  }
+  els.settingsBtn.addEventListener('click', openSettings);
+  els.closeSettingsBtn.addEventListener('click', closeSettings);
+  els.settingsOverlay.addEventListener('click', closeSettings);
+
+  els.saveSettingsBtn.addEventListener('click', function(){
+    var v = els.sheetUrlInput.value.trim();
+    if(!v){ showToast('Isi link Google Sheets CSV dulu', true); return; }
+    sheetUrl = v;
+    try{ localStorage.setItem(SHEET_URL_KEY, sheetUrl); }catch(e){}
+    closeSettings();
+    fetchAndSync(true);
+  });
+
+  els.useDefaultBtn.addEventListener('click', function(){
+    if(!confirm('Hapus link Google Sheets dan semua data item tersimpan di HP ini?')) return;
+    sheetUrl = '';
+    try{
+      localStorage.removeItem(SHEET_URL_KEY);
+      localStorage.removeItem(CACHE_KEY);
+    }catch(e){}
+    ITEMS = {};
+    rebuildSearchIndex();
+    dataMeta = { source: 'kosong', syncedAt: null, count: 0 };
+    els.sheetUrlInput.value = '';
+    resetSelection();
+    renderSyncStatus();
+    closeSettings();
+    showToast('Data item dihapus. Sambungkan ke Google Sheets untuk mulai lagi.');
+  });
+
+  /* ---------- Init ---------- */
+  renderCounters();
+  renderEmptyState();
+  renderSyncStatus();
+  if(sheetUrl){ fetchAndSync(false); }
+
+})();
+</script>
+
+</body>
+</html>

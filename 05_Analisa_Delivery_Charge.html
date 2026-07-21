@@ -1,0 +1,2854 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Delivery Charge & Receipt</title>
+<style>
+  :root{
+    --ink:#1c2230;
+    --paper:#f6f4ee;
+    --paper-2:#ffffff;
+    --line:#dcd6c8;
+    --brand:#c4622d;
+    --brand-dark:#9c4a1f;
+    --teal:#1f6f6b;
+    --teal-light:#e4f0ee;
+    --amber:#b8860b;
+    --amber-light:#fbf1da;
+    --slate:#5b6472;
+    --good:#2e7d4f;
+    --good-light:#e6f4ea;
+    --bad:#b3412c;
+    --bad-light:#fbeae5;
+    --shadow: 0 1px 2px rgba(28,34,48,.06), 0 8px 24px -8px rgba(28,34,48,.10);
+    --radius: 10px;
+    font-size: 16px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family: "Segoe UI", "Inter", -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.45;
+  }
+
+  .topbar{
+    background:var(--ink);
+    color:#fff;
+    padding:18px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .topbar .brandblock{display:flex; align-items:baseline; gap:12px;}
+  .topbar h1{
+    font-size:1.25rem;
+    margin:0;
+    font-weight:700;
+    letter-spacing:.2px;
+  }
+  .topbar .tagline{
+    font-size:.78rem;
+    color:#b9bfca;
+    font-weight:400;
+  }
+  .topbar .meta{
+    font-size:.78rem;
+    color:#b9bfca;
+    text-align:right;
+  }
+  .topbar .meta b{color:#fff;}
+
+  .container{
+    max-width:1320px;
+    margin:0 auto;
+    padding:24px 28px 64px;
+  }
+
+  /* ---------- Import panel ---------- */
+  .panel{
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:20px 22px;
+    margin-bottom:22px;
+  }
+  .panel-title{
+    font-size:.95rem;
+    font-weight:700;
+    margin:0 0 4px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .panel-sub{
+    font-size:.82rem;
+    color:var(--slate);
+    margin:0 0 16px;
+  }
+
+  .import-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:16px;
+  }
+  @media (max-width: 1100px){
+    .import-grid{grid-template-columns:1fr 1fr;}
+  }
+  @media (max-width: 820px){
+    .import-grid{grid-template-columns:1fr;}
+  }
+
+  .dropzone{
+    border:1.5px dashed var(--line);
+    border-radius:8px;
+    background:var(--paper);
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    transition:.15s border-color, .15s background;
+    position:relative;
+  }
+  .dropzone.has-file{border-color:var(--good); background:var(--good-light);}
+  .dropzone.drag-over{border-color:var(--brand); background:#fdf0e8;}
+  .dropzone .dz-label{
+    font-size:.82rem;
+    font-weight:700;
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .dropzone .dz-tag{
+    font-size:.68rem;
+    font-weight:600;
+    padding:1px 7px;
+    border-radius:20px;
+    background:var(--teal-light);
+    color:var(--teal);
+  }
+  .dropzone .dz-hint{font-size:.76rem; color:var(--slate);}
+  .dropzone .dz-filename{
+    font-size:.8rem;
+    font-weight:600;
+    color:var(--good);
+    word-break:break-all;
+  }
+  .dropzone .dz-status{font-size:.76rem; color:var(--slate);}
+  .dropzone input[type=file]{display:none;}
+  .dz-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .btn{
+    appearance:none;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:#fff;
+    font-size:.8rem;
+    font-weight:600;
+    padding:8px 14px;
+    border-radius:7px;
+    cursor:pointer;
+    transition:.12s transform, .12s opacity;
+  }
+  .btn:hover{opacity:.88;}
+  .btn:active{transform:scale(.97);}
+  .btn.secondary{
+    background:#fff;
+    color:var(--ink);
+    border:1px solid var(--line);
+  }
+  .btn.brand{background:var(--brand); border-color:var(--brand);}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+
+  .import-actions{
+    margin-top:16px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .status-line{
+    font-size:.8rem;
+    color:var(--slate);
+  }
+  .status-line.error{color:var(--bad); font-weight:600;}
+  .status-line.ok{color:var(--good); font-weight:600;}
+
+  /* ---------- KPI grid ---------- */
+  .kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:16px;
+    margin-bottom:22px;
+  }
+  @media (max-width: 980px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width: 560px){ .kpi-grid{grid-template-columns:1fr;} }
+
+  .kpi-card{
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:18px 18px 16px;
+    position:relative;
+    overflow:hidden;
+  }
+  .kpi-card .accent{
+    position:absolute; left:0; top:0; bottom:0; width:4px;
+  }
+  .kpi-card.c-brand .accent{background:var(--brand);}
+  .kpi-card.c-teal .accent{background:var(--teal);}
+  .kpi-card.c-amber .accent{background:var(--amber);}
+  .kpi-card.c-slate .accent{background:var(--slate);}
+
+  .kpi-label{
+    font-size:.72rem;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--slate);
+    font-weight:700;
+    margin:0 0 8px;
+  }
+  .kpi-value{
+    font-size:1.65rem;
+    font-weight:800;
+    color:var(--ink);
+    line-height:1.1;
+    margin:0 0 4px;
+    font-family: "Cambria","Georgia",serif;
+  }
+  .kpi-sub{font-size:.74rem; color:var(--slate);}
+  .kpi-sub b{color:var(--ink);}
+
+  /* ---------- charts row ---------- */
+  .charts-row{
+    display:grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap:16px;
+    margin-bottom:22px;
+  }
+  @media (max-width: 980px){ .charts-row{grid-template-columns:1fr;} }
+
+  .chart-panel{
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:18px 20px;
+  }
+  .chart-panel h3{
+    font-size:.85rem;
+    margin:0 0 14px;
+    font-weight:700;
+  }
+  .bars{display:flex; flex-direction:column; gap:10px;}
+  .bar-row{display:grid; grid-template-columns:108px 1fr 90px; align-items:center; gap:10px; font-size:.78rem;}
+  .bar-row .bar-label{color:var(--slate); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .bar-track{background:#eee8d9; border-radius:6px; height:14px; overflow:hidden;}
+  .bar-fill{height:100%; border-radius:6px;}
+  .bar-row .bar-val{text-align:right; font-weight:700; font-variant-numeric:tabular-nums;}
+
+  .donut-wrap{display:flex; align-items:center; gap:20px; flex-wrap:wrap; justify-content:center;}
+  .legend{display:flex; flex-direction:column; gap:8px; font-size:.78rem;}
+  .legend-item{display:flex; align-items:center; gap:8px;}
+  .legend-swatch{width:10px;height:10px;border-radius:3px;flex:none;}
+  .legend-item b{margin-left:auto; font-variant-numeric:tabular-nums;}
+
+  /* ---------- date filter panel ---------- */
+  .filter-row{
+    display:flex;
+    align-items:flex-end;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .filter-field{display:flex; flex-direction:column; gap:5px;}
+  .filter-field label{font-size:.72rem; font-weight:700; color:var(--slate); text-transform:uppercase; letter-spacing:.04em;}
+  .filter-field input[type=date]{
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:7px 9px;
+    font-size:.82rem;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:inherit;
+  }
+  .quick-presets{display:flex; gap:6px; flex-wrap:wrap;}
+  .chip{
+    appearance:none;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    font-size:.76rem;
+    font-weight:600;
+    padding:6px 12px;
+    border-radius:20px;
+    cursor:pointer;
+    transition:.12s background,.12s color,.12s border-color;
+  }
+  .chip:hover{border-color:var(--brand);}
+  .chip.active{background:var(--brand); border-color:var(--brand); color:#fff;}
+  .filter-summary{
+    font-size:.78rem;
+    color:var(--slate);
+    margin-left:auto;
+  }
+  .filter-summary b{color:var(--ink);}
+  @media (max-width: 760px){
+    .filter-row{align-items:flex-start;}
+    .filter-summary{margin-left:0; width:100%;}
+  }
+
+  /* ---------- table panel ---------- */
+  .table-panel{
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:18px 20px 8px;
+  }
+  .table-head-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .table-head-row h3{font-size:.95rem; margin:0; font-weight:700;}
+  .table-controls{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .table-controls input[type=search]{
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:7px 10px;
+    font-size:.8rem;
+    width:200px;
+    background:var(--paper);
+  }
+  .table-controls select{
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:7px 8px;
+    font-size:.8rem;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  .table-scroll{
+    overflow:auto;
+    max-height:560px;
+    border:1px solid var(--line);
+    border-radius:8px;
+  }
+  table.data-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:.79rem;
+    min-width:1080px;
+  }
+  table.data-table thead th{
+    position:sticky;
+    top:0;
+    background:var(--ink);
+    color:#fff;
+    text-align:left;
+    padding:9px 10px;
+    font-weight:600;
+    font-size:.72rem;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    white-space:nowrap;
+    cursor:pointer;
+    user-select:none;
+  }
+  table.data-table thead th .arrow{opacity:.55; font-size:.65rem; margin-left:4px;}
+  table.data-table tbody td{
+    padding:8px 10px;
+    border-bottom:1px solid #eee6d6;
+    white-space:nowrap;
+  }
+  table.data-table tbody tr:hover{background:#fbf8ef;}
+  table.data-table tbody tr:nth-child(even){background:#fdfcf8;}
+  table.data-table tbody tr:nth-child(even):hover{background:#fbf8ef;}
+
+  .tag{
+    display:inline-block;
+    font-size:.68rem;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:20px;
+  }
+  .tag.has{background:var(--good-light); color:var(--good);}
+  .tag.none{background:var(--bad-light); color:var(--bad);}
+  .tag.status-closed{background:var(--good-light); color:var(--good);}
+  .tag.status-confirmed{background:var(--amber-light); color:var(--amber);}
+  .tag.status-paid{background:var(--teal-light); color:var(--teal);}
+  .tag.status-mixed{background:#eee; color:var(--slate);}
+
+  .num{text-align:right; font-variant-numeric:tabular-nums;}
+
+  .table-footer{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 2px;
+    font-size:.78rem;
+    color:var(--slate);
+    flex-wrap:wrap;
+    gap:10px;
+  }
+
+  .empty-state{
+    text-align:center;
+    padding:50px 20px;
+    color:var(--slate);
+    font-size:.88rem;
+  }
+  .empty-state .big{font-size:2rem; margin-bottom:8px;}
+
+  .footnote{
+    font-size:.72rem;
+    color:var(--slate);
+    margin-top:18px;
+    line-height:1.6;
+  }
+
+  .hidden{display:none !important;}
+
+  ::selection{background:#f3d9c3;}
+
+  /* scrollbar styling (light touch) */
+  .table-scroll::-webkit-scrollbar{height:10px; width:10px;}
+  .table-scroll::-webkit-scrollbar-thumb{background:#d9d2c0; border-radius:6px;}
+  .table-scroll::-webkit-scrollbar-track{background:transparent;}
+
+  /* ---------- summary tables (per-hari & MTD) ---------- */
+  .summary-grid{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:16px;
+    margin-bottom:22px;
+    align-items:start;
+  }
+
+  table.summary-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:.79rem;
+  }
+  table.summary-table thead th{
+    background:var(--ink);
+    color:#fff;
+    text-align:left;
+    padding:9px 10px;
+    font-weight:600;
+    font-size:.72rem;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    white-space:nowrap;
+  }
+  table.summary-table tbody td{
+    padding:8px 10px;
+    border-bottom:1px solid #eee6d6;
+    white-space:nowrap;
+  }
+  table.summary-table tbody tr:nth-child(even){background:#fdfcf8;}
+  table.summary-table tfoot td{
+    padding:9px 10px;
+    font-weight:800;
+    border-top:2px solid var(--ink);
+    background:var(--amber-light);
+  }
+  table.summary-table .num{text-align:right; font-variant-numeric:tabular-nums;}
+  .summary-scroll{overflow:auto; max-height:420px; border:1px solid var(--line); border-radius:8px;}
+  table.summary-table thead th{position:sticky; top:0;}
+
+  table.summary-table .growth-pos{color:var(--good); font-weight:700;}
+  table.summary-table .growth-neg{color:var(--bad); font-weight:700;}
+
+  .mtd-card-row{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;}
+  @media (max-width:560px){ .mtd-card-row{grid-template-columns:1fr;} }
+  .mtd-mini{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:12px 14px;
+  }
+  .mtd-mini .lbl{font-size:.7rem; text-transform:uppercase; letter-spacing:.05em; color:var(--slate); font-weight:700; margin:0 0 4px;}
+  .mtd-mini .val{font-size:1.15rem; font-weight:800; font-family:"Cambria","Georgia",serif;}
+
+  /* ---------- print ---------- */
+  @media print{
+    body{background:#fff;}
+    .topbar, .panel, .kpi-grid, .charts-row, .filter-row, .table-controls, .footnote, .empty-state{display:none !important;}
+    .container{padding:0; max-width:100%;}
+    .print-only-title{display:block !important; font-size:1.1rem; font-weight:800; margin:0 0 10px;}
+    .table-panel, .chart-panel{box-shadow:none; border:none; padding:0; margin-bottom:18px;}
+    .table-scroll, .summary-scroll{max-height:none; overflow:visible; border:none;}
+    table.data-table thead th, table.summary-table thead th{position:static;}
+    .print-hide{display:none !important;}
+    .print-target-only .not-printing{display:none !important;}
+  }
+  .print-only-title{display:none;}
+
+  /* ---------- google drive bridge ---------- */
+  .btn-drive-dc.linked{ border-color:var(--teal); background:var(--teal-light); color:var(--teal); }
+
+  .drive-modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(28,34,48,.45);
+    z-index:10000; align-items:center; justify-content:center; padding:20px;
+  }
+  .drive-modal-overlay.show{display:flex;}
+  .drive-modal{
+    background:var(--paper-2); border-radius:var(--radius); max-width:460px; width:100%;
+    box-shadow:0 12px 40px rgba(0,0,0,.25); overflow:hidden;
+  }
+  .drive-modal-head{
+    background:linear-gradient(135deg,var(--ink),#2a3142); color:#fff;
+    padding:16px 20px; display:flex; align-items:center; gap:10px;
+  }
+  .drive-modal-head .icon{font-size:20px;}
+  .drive-modal-head h3{font-size:.95rem; font-weight:700; margin:0;}
+  .drive-modal-body{padding:20px;}
+  .drive-modal-body label{font-size:.78rem; font-weight:700; color:var(--slate); display:block; margin-bottom:6px;}
+  .drive-modal-body input[type=text]{
+    width:100%; border:1px solid var(--line); border-radius:7px;
+    padding:10px 12px; font-size:.85rem; font-family:inherit; color:var(--ink);
+  }
+  .drive-modal-body input[type=text]:focus{outline:none; border-color:var(--brand); box-shadow:0 0 0 2px rgba(196,98,45,.18);}
+  .drive-modal-hint{font-size:.74rem; color:var(--slate); margin-top:8px; line-height:1.5;}
+  .drive-modal-hint b{color:var(--ink);}
+  .drive-modal-actions{display:flex; gap:8px; margin-top:18px; justify-content:flex-end;}
+  .drive-modal-actions button{
+    border-radius:7px; padding:9px 18px; font-size:.82rem; font-weight:600;
+    cursor:pointer; font-family:inherit; border:none;
+  }
+  .drive-btn-cancel{background:#f0eee6; color:var(--slate);}
+  .drive-btn-cancel:hover{background:#e6e2d6;}
+  .drive-btn-remove{background:var(--bad-light); color:var(--bad); margin-right:auto;}
+  .drive-btn-remove:hover{background:#f7d9d0;}
+  .drive-btn-save{background:var(--brand); color:#fff;}
+  .drive-btn-save:hover{background:var(--brand-dark);}
+  .drive-status-row{
+    display:none; align-items:center; gap:8px; font-size:.78rem; color:var(--slate);
+    margin-top:10px; padding:8px 10px; background:var(--paper); border-radius:7px;
+  }
+  .drive-status-row.show{display:flex;}
+  .drive-status-row .dot{width:7px; height:7px; border-radius:50%; background:var(--good); flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brandblock">
+    <h1>Dashboard Delivery Charge &amp; Receipt</h1>
+    <span class="tagline">Analisa Nota Penjualan × Other Transaction Report</span>
+  </div>
+  <div class="meta" id="topbarMeta">Belum ada data dimuat</div>
+</div>
+
+<div class="container">
+
+  <!-- IMPORT PANEL -->
+  <div class="panel">
+    <p class="panel-title">📂 Import Data XLSX</p>
+    <p class="panel-sub">Upload file <b>Nota Penjualan</b> dan <b>Other Transaction Report</b> (wajib), serta <b>Other Transaction Report Tahun Lalu</b> (opsional, untuk tabel Growth). Semua proses berjalan di browser Anda — file tidak diunggah ke server manapun (100% offline).</p>
+
+    <div class="import-grid">
+      <div class="dropzone" id="dz-nota">
+        <div class="dz-row">
+          <span class="dz-label">📄 Nota Penjualan <span class="dz-tag">File 1</span></span>
+        </div>
+        <div class="dz-hint">Kolom dibutuhkan: Receipt No, NP No, Order Date, Salesperson Code, Status, Sell to Customer Name, Phone No</div>
+        <div class="dz-row">
+          <button class="btn secondary" type="button" onclick="document.getElementById('file-nota').click()">Pilih File…</button>
+          <button class="btn secondary" type="button" id="gsheetBtnNota" title="Load dari Google Sheet (klik kanan/tahan untuk ganti link)">🔄 Sheet</button>
+          <span class="dz-filename" id="filename-nota"></span>
+        </div>
+        <div class="dz-status" id="status-nota">Belum ada file dipilih. Anda juga bisa drag &amp; drop file di sini.</div>
+        <input type="file" id="file-nota" accept=".xlsx">
+      </div>
+
+      <div class="dropzone" id="dz-other">
+        <div class="dz-row">
+          <span class="dz-label">📄 Other Transaction Report <span class="dz-tag">File 2</span></span>
+        </div>
+        <div class="dz-hint">Kolom dibutuhkan: Receipt No, Description ("Delivery Charge"), Amount</div>
+        <div class="dz-row">
+          <button class="btn secondary" type="button" onclick="document.getElementById('file-other').click()">Pilih File…</button>
+          <button class="btn secondary" type="button" id="gsheetBtnOther" title="Load dari Google Sheet (klik kanan/tahan untuk ganti link)">🔄 Sheet</button>
+          <span class="dz-filename" id="filename-other"></span>
+        </div>
+        <div class="dz-status" id="status-other">Belum ada file dipilih. Anda juga bisa drag &amp; drop file di sini.</div>
+        <input type="file" id="file-other" accept=".xlsx">
+      </div>
+
+      <div class="dropzone" id="dz-other-ly">
+        <div class="dz-row">
+          <span class="dz-label">📄 Other Transaction Report Tahun Lalu <span class="dz-tag">Opsional</span></span>
+        </div>
+        <div class="dz-hint">Struktur sama dengan File 2 — Kolom dibutuhkan: Receipt No, Transaction Date (atau Order Date), Description ("Delivery Charge"), Amount. Dipakai untuk tabel Growth Delivery Charge per bulan.</div>
+        <div class="dz-row">
+          <button class="btn secondary" type="button" onclick="document.getElementById('file-other-ly').click()">Pilih File…</button>
+          <button class="btn secondary btn-drive-dc" type="button" id="driveBtnOtherLY" title="Load dari Google Drive (tahan untuk ubah link)">☁️ Drive</button>
+          <span class="dz-filename" id="filename-other-ly"></span>
+        </div>
+        <div class="dz-status" id="status-other-ly">Belum ada file dipilih. Anda juga bisa drag &amp; drop file di sini.</div>
+        <input type="file" id="file-other-ly" accept=".xlsx">
+      </div>
+    </div>
+
+    <div class="import-actions">
+      <button class="btn brand" id="btnProcess" disabled>⚙️ Proses &amp; Analisa</button>
+      <button class="btn secondary" id="btnReset">↺ Reset</button>
+      <span class="status-line" id="processStatus"></span>
+    </div>
+  </div>
+
+  <!-- GOOGLE DRIVE MODAL -->
+  <div class="drive-modal-overlay" id="driveModalOverlayDC">
+    <div class="drive-modal">
+      <div class="drive-modal-head">
+        <span class="icon">☁️</span>
+        <h3 style="flex:1">Load Other Transaction Report (LY) dari Google Drive</h3>
+      </div>
+      <div class="drive-modal-body">
+        <label for="driveLinkInputDC">Link share Google Drive (Anyone with the link)</label>
+        <input type="text" id="driveLinkInputDC" placeholder="https://drive.google.com/file/d/.../view?usp=sharing">
+        <div class="drive-modal-hint">
+          Di Google Drive: klik kanan file → <b>Share</b> → ubah ke <b>"Anyone with the link"</b> → Copy link, lalu tempel di sini.
+          Link disimpan terpusat di server — sekali setting di device manapun, otomatis kepakai di HP/komputer lain juga.
+        </div>
+        <div class="drive-status-row" id="driveStatusRowDC">
+          <span class="dot"></span>
+          <span id="driveStatusTextDC">Tersimpan</span>
+        </div>
+      </div>
+      <div style="padding:0 20px 20px;">
+        <div class="drive-modal-actions">
+          <button class="drive-btn-remove" id="driveBtnRemoveDC" onclick="removeDriveLinkDC()" style="display:none">Hapus Link</button>
+          <button class="drive-btn-cancel" onclick="closeDriveModalDC()">Batal</button>
+          <button class="drive-btn-save" onclick="saveDriveLinkDC()">Simpan &amp; Load</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS (hidden until processed) -->
+  <div id="results" class="hidden">
+
+    <!-- DATE FILTER PANEL -->
+    <div class="panel print-hide">
+      <p class="panel-title">📅 Filter Periode (Order Date)</p>
+      <p class="panel-sub">Pilih rentang tanggal untuk memfilter seluruh KPI, grafik, dan tabel di bawah. Gunakan preset cepat untuk Hari Ini atau Bulan Ini (MTD).</p>
+      <div class="filter-row">
+        <div class="filter-field">
+          <label for="filterDateFrom">Dari Tanggal</label>
+          <input type="date" id="filterDateFrom">
+        </div>
+        <div class="filter-field">
+          <label for="filterDateTo">Sampai Tanggal</label>
+          <input type="date" id="filterDateTo">
+        </div>
+        <div class="quick-presets">
+          <button class="chip" type="button" id="presetToday">Hari Ini</button>
+          <button class="chip" type="button" id="presetYesterday">Kemarin</button>
+          <button class="chip" type="button" id="presetMTD">Bulan Ini (MTD)</button>
+          <button class="chip" type="button" id="presetLastMonth">Bulan Lalu</button>
+          <button class="chip" type="button" id="presetAll">Semua Data</button>
+        </div>
+        <span class="filter-summary" id="filterDateSummary"></span>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card c-brand">
+        <div class="accent"></div>
+        <p class="kpi-label">Total Delivery Charge</p>
+        <p class="kpi-value" id="kpiTotalDelivery">Rp 0</p>
+        <p class="kpi-sub"><b id="kpiDeliveryCount">0</b> receipt dengan delivery charge</p>
+      </div>
+      <div class="kpi-card c-teal">
+        <div class="accent"></div>
+        <p class="kpi-label">Total Receipt (Nota Penjualan)</p>
+        <p class="kpi-value" id="kpiTotalReceipt">0</p>
+        <p class="kpi-sub">Receipt unik dari file Nota Penjualan</p>
+      </div>
+      <div class="kpi-card c-amber">
+        <div class="accent"></div>
+        <p class="kpi-label">Receipt Tanpa Delivery Charge</p>
+        <p class="kpi-value" id="kpiNoDelivery">0</p>
+        <p class="kpi-sub"><b id="kpiNoDeliveryPct">0%</b> dari total receipt</p>
+      </div>
+      <div class="kpi-card c-slate">
+        <div class="accent"></div>
+        <p class="kpi-label">Rata-rata Delivery Charge</p>
+        <p class="kpi-value" id="kpiAvgDelivery">Rp 0</p>
+        <p class="kpi-sub">per receipt yang memiliki delivery charge</p>
+      </div>
+    </div>
+
+    <div class="table-panel" id="panelGrowth">
+      <div class="table-head-row">
+        <h3 class="print-only-title">Tabel Growth Delivery Charge per Bulan</h3>
+        <h3 class="not-printing">Growth Delivery Charge per Bulan (LY vs TY)</h3>
+        <div class="table-controls print-hide">
+          <button class="btn secondary" id="btnExportCsvGrowth">⬇ CSV</button>
+          <button class="btn secondary" id="btnExportPdfGrowth">🖨 PDF</button>
+        </div>
+      </div>
+      <p class="panel-sub print-hide" style="margin:-6px 0 12px;">Ditampilkan hanya Januari s/d bulan berjalan. Bulan-bulan penuh dihitung dari summary sebulan penuh; bulan berjalan dipotong di tanggal hari ini untuk LY maupun TY (perbandingan yang adil). Tidak terpengaruh filter periode dashboard di atas. Upload <b>Other Transaction Report Tahun Lalu</b> untuk mengisi kolom LY.</p>
+      <div class="summary-scroll">
+        <table class="summary-table" id="tableGrowth">
+          <thead>
+            <tr>
+              <th>Bulan</th>
+              <th class="num">Delivery Charge (LY)</th>
+              <th class="num">Delivery Charge (TY)</th>
+              <th class="num">Selisih</th>
+              <th class="num">% Growth</th>
+            </tr>
+          </thead>
+          <tbody id="tableGrowthBody"></tbody>
+          <tfoot id="tableGrowthFoot"></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-panel">
+        <h3>Komposisi Receipt</h3>
+        <div class="donut-wrap">
+          <svg id="donutSvg" width="160" height="160" viewBox="0 0 160 160"></svg>
+          <div class="legend" id="donutLegend"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="table-panel" id="panelPerDay">
+        <div class="table-head-row">
+          <h3 class="print-only-title">Tabel Summary Per Hari — Receipt &amp; Delivery Charge</h3>
+          <h3 class="not-printing">Tabel Summary Per Hari</h3>
+          <div class="table-controls print-hide">
+            <button class="btn secondary" id="btnExportCsvPerDay">⬇ CSV</button>
+            <button class="btn secondary" id="btnExportPdfPerDay">🖨 PDF</button>
+          </div>
+        </div>
+        <div class="summary-scroll">
+          <table class="summary-table" id="tablePerDay">
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th class="num">Total Receipt</th>
+                <th class="num">Receipt Ada Delivery</th>
+                <th class="num">Receipt Tanpa Delivery</th>
+                <th class="num">Total Delivery Charge</th>
+              </tr>
+            </thead>
+            <tbody id="tablePerDayBody"></tbody>
+            <tfoot id="tablePerDayFoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-panel">
+      <div class="table-head-row">
+        <h3 class="print-only-title">Tabel Informasi Receipt (Detail)</h3>
+        <h3 class="not-printing">Tabel Informasi Receipt</h3>
+        <div class="table-controls">
+          <select id="filterKet" class="print-hide">
+            <option value="">Semua KET</option>
+            <option value="has">Ada Delivery Charge</option>
+            <option value="none">Tanpa Delivery Charge</option>
+          </select>
+          <select id="filterStatus" class="print-hide">
+            <option value="">Semua Status</option>
+          </select>
+          <input type="search" id="searchBox" class="print-hide" placeholder="Cari Receipt No / Nama / No HP…">
+          <button class="btn secondary print-hide" id="btnExportCsv">⬇ Export CSV</button>
+          <button class="btn secondary print-hide" id="btnExportPdf">🖨 Export PDF</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="data-table" id="dataTable">
+          <thead>
+            <tr>
+              <th data-key="receiptNo">Receipt No <span class="arrow"></span></th>
+              <th data-key="npNo">NP No <span class="arrow"></span></th>
+              <th data-key="orderDate">Order Date <span class="arrow"></span></th>
+              <th data-key="salesperson">Salesperson Code <span class="arrow"></span></th>
+              <th data-key="status">Status <span class="arrow"></span></th>
+              <th data-key="customer">Sell to Customer Name <span class="arrow"></span></th>
+              <th data-key="phone">Phone No <span class="arrow"></span></th>
+              <th data-key="deliveryCharge" class="num">Delivery Charge <span class="arrow"></span></th>
+              <th data-key="ket">KET <span class="arrow"></span></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span id="rowCountInfo">0 baris</span>
+        <span id="tableTotals"></span>
+      </div>
+    </div>
+
+    <p class="footnote">
+      Catatan: "Delivery Charge" diambil dari file Other Transaction Report pada kolom Description (mencocokkan teks "Delivery Charge", tidak peka huruf besar/kecil) dan dijumlahkan per Receipt No dari kolom Amount — jika satu Receipt No memiliki beberapa baris Delivery Charge, semuanya dijumlahkan. Penghubung antar kedua file adalah kolom Receipt No. Jika satu Receipt No memiliki beberapa NP No (multi item), maka NP No digabung dipisahkan koma dan kolom lain (Order Date, Salesperson, Status, Customer, Phone) mengikuti baris pertama dari Receipt No tersebut. Jika Status berbeda-beda dalam satu Receipt No, akan ditampilkan sebagai "Campuran".<br><br>
+      Secara default, KPI/grafik/tabel detail &amp; tabel per hari hanya menampilkan data <b>bulan berjalan (bulan ini)</b> — gunakan panel Filter Periode di atas untuk mengubahnya. Tabel <b>Growth Delivery Charge per Bulan</b> menampilkan bulan Januari s/d bulan berjalan (bulan setelahnya tidak ditampilkan). Bulan-bulan penuh (sebelum bulan berjalan) menggunakan summary sebulan penuh untuk LY maupun TY. Bulan berjalan dipotong di tanggal hari ini untuk keduanya (LY dan TY), sehingga perbandingan adil (misal LY Juni 1–25 vs TY Juni 1–25). Kolom LY diambil dari file Other Transaction Report Tahun Lalu; % Growth dihitung sebagai Selisih ÷ TY.
+    </p>
+
+  </div>
+
+  <div class="empty-state" id="emptyState">
+    <div class="big">📊</div>
+    Upload kedua file XLSX di atas lalu klik <b>Proses &amp; Analisa</b> untuk melihat dashboard.
+  </div>
+
+</div>
+
+<script>
+// Minimal pure-JS DEFLATE (raw, no zlib/gzip header) inflate implementation.
+// Uses straightforward canonical-Huffman bit-by-bit decoding (easy to verify correct,
+// trades a bit of speed for clarity/correctness - fine for the file sizes involved here).
+
+function tinfInflate(input, expectedLength) {
+  var src = input;
+  var srcPos = 0;
+  var bitBuf = 0, bitCnt = 0;
+
+  var out = new Uint8Array(Math.max(expectedLength || 0, input.length * 3, 64));
+  var outPos = 0;
+
+  function ensure(n) {
+    if (outPos + n > out.length) {
+      var newLen = Math.max(out.length * 2, outPos + n);
+      var bigger = new Uint8Array(newLen);
+      bigger.set(out.subarray(0, outPos));
+      out = bigger;
+    }
+  }
+
+  function needBits(n) {
+    while (bitCnt < n) {
+      bitBuf |= (srcPos < src.length ? src[srcPos++] : 0) << bitCnt;
+      bitCnt += 8;
+    }
+  }
+
+  function getBits(n) {
+    if (n === 0) return 0;
+    needBits(n);
+    var val = bitBuf & ((1 << n) - 1);
+    bitBuf >>>= n;
+    bitCnt -= n;
+    return val;
+  }
+
+  function alignByte() {
+    bitBuf = 0;
+    bitCnt = 0;
+  }
+
+  // Build a canonical Huffman decode structure from an array of code lengths (index = symbol).
+  function buildHuffman(lengths) {
+    var maxLen = 0;
+    var i;
+    for (i = 0; i < lengths.length; i++) if (lengths[i] > maxLen) maxLen = lengths[i];
+    var blCount = new Array(maxLen + 1).fill(0);
+    for (i = 0; i < lengths.length; i++) if (lengths[i] > 0) blCount[lengths[i]]++;
+    var nextCode = new Array(maxLen + 1).fill(0);
+    var code = 0;
+    for (var bits = 1; bits <= maxLen; bits++) {
+      code = (code + (blCount[bits - 1] || 0)) << 1;
+      nextCode[bits] = code;
+    }
+    var map = {};
+    for (i = 0; i < lengths.length; i++) {
+      var len = lengths[i];
+      if (len > 0) {
+        var c = nextCode[len]++;
+        map[len + ':' + c] = i;
+      }
+    }
+    return { map: map, maxLen: maxLen };
+  }
+
+  function decodeSymbol(huff) {
+    var code = 0;
+    for (var len = 1; len <= huff.maxLen; len++) {
+      code = (code << 1) | getBits(1);
+      var key = len + ':' + code;
+      if (huff.map.hasOwnProperty(key)) {
+        return huff.map[key];
+      }
+    }
+    throw new Error('inflate: bad Huffman code');
+  }
+
+  function fixedLitLenHuffman() {
+    var lengths = new Array(288);
+    var i;
+    for (i = 0; i <= 143; i++) lengths[i] = 8;
+    for (i = 144; i <= 255; i++) lengths[i] = 9;
+    for (i = 256; i <= 279; i++) lengths[i] = 7;
+    for (i = 280; i <= 287; i++) lengths[i] = 8;
+    return buildHuffman(lengths);
+  }
+
+  function fixedDistHuffman() {
+    var lengths = new Array(30);
+    for (var i = 0; i < 30; i++) lengths[i] = 5;
+    return buildHuffman(lengths);
+  }
+
+  var lengthBase = [3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258];
+  var lengthExtraBits = [0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0];
+  var distBase = [1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577];
+  var distExtraBits = [0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
+  var clcOrder = [16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15];
+
+  function readDynamicHuffmanTrees() {
+    var hlit = getBits(5) + 257;
+    var hdist = getBits(5) + 1;
+    var hclen = getBits(4) + 4;
+
+    var clLengths = new Array(19).fill(0);
+    for (var i = 0; i < hclen; i++) {
+      clLengths[clcOrder[i]] = getBits(3);
+    }
+    var clHuff = buildHuffman(clLengths);
+
+    var total = hlit + hdist;
+    var allLengths = new Array(total).fill(0);
+    var n = 0;
+    while (n < total) {
+      var sym = decodeSymbol(clHuff);
+      if (sym <= 15) {
+        allLengths[n++] = sym;
+      } else if (sym === 16) {
+        var rep = getBits(2) + 3;
+        var prevLen = n > 0 ? allLengths[n - 1] : 0;
+        for (; rep > 0; rep--) allLengths[n++] = prevLen;
+      } else if (sym === 17) {
+        var rep2 = getBits(3) + 3;
+        for (; rep2 > 0; rep2--) allLengths[n++] = 0;
+      } else if (sym === 18) {
+        var rep3 = getBits(7) + 11;
+        for (; rep3 > 0; rep3--) allLengths[n++] = 0;
+      }
+    }
+    var litLengths = allLengths.slice(0, hlit);
+    var distLengths = allLengths.slice(hlit, hlit + hdist);
+    return { lit: buildHuffman(litLengths), dist: buildHuffman(distLengths) };
+  }
+
+  function inflateBlock(litHuff, distHuff) {
+    while (true) {
+      var sym = decodeSymbol(litHuff);
+      if (sym === 256) return;
+      if (sym < 256) {
+        ensure(1);
+        out[outPos++] = sym;
+      } else {
+        var idx = sym - 257;
+        var length = lengthBase[idx] + getBits(lengthExtraBits[idx]);
+        var distSym = decodeSymbol(distHuff);
+        var dist = distBase[distSym] + getBits(distExtraBits[distSym]);
+        ensure(length);
+        var from = outPos - dist;
+        for (var k = 0; k < length; k++) {
+          out[outPos++] = out[from + k];
+        }
+      }
+    }
+  }
+
+  function inflateStoredBlock() {
+    alignByte();
+    var len = src[srcPos] | (src[srcPos + 1] << 8);
+    srcPos += 4;
+    ensure(len);
+    for (var i = 0; i < len; i++) out[outPos++] = src[srcPos++];
+  }
+
+  var bfinal;
+  do {
+    bfinal = getBits(1);
+    var btype = getBits(2);
+    if (btype === 0) {
+      inflateStoredBlock();
+    } else if (btype === 1) {
+      inflateBlock(fixedLitLenHuffman(), fixedDistHuffman());
+    } else if (btype === 2) {
+      var trees = readDynamicHuffmanTrees();
+      inflateBlock(trees.lit, trees.dist);
+    } else {
+      throw new Error('inflate: invalid block type');
+    }
+  } while (!bfinal);
+
+  return out.subarray(0, outPos);
+}
+
+
+// Minimal ZIP (PK) reader supporting stored(0) and deflate(8) methods, for reading .xlsx files
+// Depends on tinfInflate from inflate.js
+
+function readZipEntries(buf) {
+  // buf: Uint8Array of the whole .xlsx (zip) file
+  var dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  var len = buf.length;
+  // Find End Of Central Directory record (EOCD) signature 0x06054b50, scanning from end
+  var eocdSig = 0x06054b50;
+  var i = len - 22;
+  var eocdPos = -1;
+  var minScan = Math.max(0, len - 22 - 65557);
+  for (; i >= minScan; i--) {
+    if (dv.getUint32(i, true) === eocdSig) { eocdPos = i; break; }
+  }
+  if (eocdPos === -1) throw new Error('ZIP EOCD not found - file may be corrupt or not a valid xlsx');
+
+  var totalEntries = dv.getUint16(eocdPos + 10, true);
+  var cdOffset = dv.getUint32(eocdPos + 16, true);
+
+  var entries = {};
+  var pos = cdOffset;
+  for (var e = 0; e < totalEntries; e++) {
+    var sig = dv.getUint32(pos, true);
+    if (sig !== 0x02014b50) break; // central dir file header sig
+    var method = dv.getUint16(pos + 10, true);
+    var compSize = dv.getUint32(pos + 20, true);
+    var uncompSize = dv.getUint32(pos + 24, true);
+    var nameLen = dv.getUint16(pos + 28, true);
+    var extraLen = dv.getUint16(pos + 30, true);
+    var commentLen = dv.getUint16(pos + 32, true);
+    var localHeaderOffset = dv.getUint32(pos + 42, true);
+    var nameBytes = buf.subarray(pos + 46, pos + 46 + nameLen);
+    var name = new TextDecoder('utf-8').decode(nameBytes);
+
+    entries[name] = {
+      method: method,
+      compSize: compSize,
+      uncompSize: uncompSize,
+      localHeaderOffset: localHeaderOffset
+    };
+    pos += 46 + nameLen + extraLen + commentLen;
+  }
+
+  function getFile(name) {
+    var meta = entries[name];
+    if (!meta) return null;
+    var lp = meta.localHeaderOffset;
+    var lsig = dv.getUint32(lp, true);
+    if (lsig !== 0x04034b50) throw new Error('Bad local file header for ' + name);
+    var lNameLen = dv.getUint16(lp + 26, true);
+    var lExtraLen = dv.getUint16(lp + 28, true);
+    var dataStart = lp + 30 + lNameLen + lExtraLen;
+    var compData = buf.subarray(dataStart, dataStart + meta.compSize);
+    var outBytes;
+    if (meta.method === 0) {
+      outBytes = compData;
+    } else if (meta.method === 8) {
+      outBytes = tinfInflate(compData, meta.uncompSize);
+    } else {
+      throw new Error('Unsupported zip compression method ' + meta.method + ' for ' + name);
+    }
+    return outBytes;
+  }
+
+  function listNames() { return Object.keys(entries); }
+
+  return { getFile: getFile, listNames: listNames };
+}
+
+function getFileText(zip, name) {
+  var bytes = zip.getFile(name);
+  if (!bytes) return null;
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+
+// Minimal XLSX parser: reads first sheet (or named sheet) into array-of-arrays.
+// Depends on readZipEntries/getFileText from zipreader.js
+
+function colLettersToIndex(letters) {
+  var col = 0;
+  for (var i = 0; i < letters.length; i++) {
+    col = col * 26 + (letters.charCodeAt(i) - 64);
+  }
+  return col - 1; // 0-based
+}
+
+function parseCellRef(ref) {
+  var m = /^([A-Z]+)(\d+)$/.exec(ref);
+  if (!m) return null;
+  return { col: colLettersToIndex(m[1]), row: parseInt(m[2], 10) - 1 };
+}
+
+// Excel serial date (1900 system) -> JS Date
+function excelSerialToDate(serial) {
+  // Excel's epoch: Dec 30 1899 (to account for the 1900 leap year bug)
+  var utcDays = Math.floor(serial - 25569);
+  var utcValue = utcDays * 86400;
+  var date = new Date(utcValue * 1000);
+  var fractional = serial - Math.floor(serial);
+  if (fractional > 0) {
+    var ms = Math.round(fractional * 86400 * 1000);
+    date = new Date(date.getTime() + ms);
+  }
+  return date;
+}
+
+function parseXlsxSharedStrings(xml) {
+  if (!xml) return [];
+  var strings = [];
+  // Each <si>...</si> is one shared string entry; concatenate all <t> within it (handles rich text runs)
+  var siRegex = /<si\b[^>]*>([\s\S]*?)<\/si>/g;
+  var tRegex = /<t\b[^>]*>([\s\S]*?)<\/t>/g;
+  var siMatch;
+  while ((siMatch = siRegex.exec(xml)) !== null) {
+    var inner = siMatch[1];
+    var parts = [];
+    var tMatch;
+    tRegex.lastIndex = 0;
+    while ((tMatch = tRegex.exec(inner)) !== null) {
+      parts.push(decodeXmlEntities(tMatch[1]));
+    }
+    strings.push(parts.join(''));
+  }
+  return strings;
+}
+
+function decodeXmlEntities(s) {
+  return s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, function (_, n) { return String.fromCharCode(parseInt(n, 10)); })
+    .replace(/&#x([0-9a-fA-F]+);/g, function (_, n) { return String.fromCharCode(parseInt(n, 16)); });
+}
+
+// Parse styles.xml to determine which style indexes are date-formatted
+function parseDateStyleIndexes(stylesXml) {
+  var dateStyleIdx = {};
+  if (!stylesXml) return dateStyleIdx;
+
+  // Build map of numFmtId -> formatCode for custom formats
+  var customFmts = {};
+  var numFmtTagRegex = /<numFmt\b[^>]*\/?>/g;
+  var nfm;
+  while ((nfm = numFmtTagRegex.exec(stylesXml)) !== null) {
+    var nfId = extractAttr(nfm[0], 'numFmtId');
+    var nfCode = extractAttr(nfm[0], 'formatCode');
+    if (nfId !== null && nfCode !== null) customFmts[nfId] = decodeXmlEntities(nfCode);
+  }
+
+  // Built-in date format IDs per ECMA-376 (commonly used subset)
+  var builtinDateIds = {
+    14: true, 15: true, 16: true, 17: true, 18: true, 19: true, 20: true, 21: true,
+    22: true, 27: true, 28: true, 29: true, 30: true, 31: true, 32: true, 33: true,
+    34: true, 35: true, 36: true, 45: true, 46: true, 47: true, 50: true, 57: true
+  };
+
+  function isDateFormatCode(code) {
+    if (!code) return false;
+    var stripped = code.replace(/\[[^\]]*\]/g, '');
+    if (/[hHsS]/.test(stripped) && /[ymdYMD]/.test(stripped)) return true;
+    return /[ymdYMD]/.test(stripped) && !/[0#]/.test(stripped.replace(/[ymdYMD\/\-\.\s:hHsS"]/g, ''));
+  }
+
+  // cellXfs defines the style index -> numFmtId mapping (in order, index = style id used by cells)
+  var cellXfsMatch = /<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/.exec(stylesXml);
+  if (!cellXfsMatch) return dateStyleIdx;
+  var xfBlock = cellXfsMatch[1];
+  var xfRegex = /<xf\b[^>]*\/?>/g;
+  var xfs = xfBlock.match(xfRegex) || [];
+  for (var i = 0; i < xfs.length; i++) {
+    var xf = xfs[i];
+    var fmtIdStr = extractAttr(xf, 'numFmtId');
+    if (fmtIdStr === null) continue;
+    var fmtId = parseInt(fmtIdStr, 10);
+    var isDate = false;
+    if (builtinDateIds[fmtId]) isDate = true;
+    else if (customFmts[fmtId] && isDateFormatCode(customFmts[fmtId])) isDate = true;
+    if (isDate) dateStyleIdx[i] = true;
+  }
+  return dateStyleIdx;
+}
+
+// Parse a worksheet XML into an array-of-arrays (rows x cols), 0-indexed.
+// sharedStrings: array from parseXlsxSharedStrings
+// dateStyles: map from parseDateStyleIndexes - cells with style 's' in this map are treated as dates
+function parseSheetXml(xml, sharedStrings, dateStyles) {
+  var rows = [];
+  var rowRegex = /<row\b[^>]*r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
+  var cellRegex = /<c\b([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g;
+  var rMatch;
+  while ((rMatch = rowRegex.exec(xml)) !== null) {
+    var rowIdx = parseInt(rMatch[1], 10) - 1;
+    var rowXml = rMatch[2];
+    var rowArr = rows[rowIdx] || (rows[rowIdx] = []);
+    cellRegex.lastIndex = 0;
+    var cMatch;
+    while ((cMatch = cellRegex.exec(rowXml)) !== null) {
+      var attrs = cMatch[1];
+      var innerXml = cMatch[2] || '';
+      var refStr = extractAttr(attrs, 'r');
+      if (!refStr) continue;
+      var refInfo = parseCellRef(refStr);
+      var colIdx = refInfo.col;
+      var type = extractAttr(attrs, 't') || 'n';
+      var styleStr = extractAttr(attrs, 's');
+      var styleIdx = styleStr !== null ? parseInt(styleStr, 10) : 0;
+
+      var value = null;
+
+      if (type === 'inlineStr') {
+        var tMatch = /<t[^>]*>([\s\S]*?)<\/t>/.exec(innerXml);
+        value = tMatch ? decodeXmlEntities(tMatch[1]) : '';
+      } else if (type === 's') {
+        var vMatch = /<v>([\s\S]*?)<\/v>/.exec(innerXml);
+        var idx = vMatch ? parseInt(vMatch[1], 10) : -1;
+        value = sharedStrings[idx] !== undefined ? sharedStrings[idx] : '';
+      } else if (type === 'str') {
+        var vMatch2 = /<v>([\s\S]*?)<\/v>/.exec(innerXml);
+        value = vMatch2 ? decodeXmlEntities(vMatch2[1]) : '';
+      } else if (type === 'b') {
+        var vMatch3 = /<v>([\s\S]*?)<\/v>/.exec(innerXml);
+        value = vMatch3 ? (vMatch3[1] === '1') : false;
+      } else {
+        // numeric (default) - may represent a date if styled as such
+        var vMatch4 = /<v>([\s\S]*?)<\/v>/.exec(innerXml);
+        if (vMatch4 && vMatch4[1] !== '') {
+          var num = parseFloat(vMatch4[1]);
+          if (dateStyles && dateStyles[styleIdx]) {
+            value = excelSerialToDate(num);
+          } else {
+            value = num;
+          }
+        } else {
+          value = null;
+        }
+      }
+      rowArr[colIdx] = value;
+    }
+  }
+  // normalize sparse rows array to dense (fill gaps with [] -> undefined cells become null)
+  var maxRow = rows.length;
+  var result = [];
+  for (var r = 0; r < maxRow; r++) {
+    result.push(rows[r] || []);
+  }
+  return result;
+}
+
+function extractAttr(tagXml, attrName) {
+  var re = new RegExp(attrName + '="([^"]*)"');
+  var m = re.exec(tagXml);
+  return m ? m[1] : null;
+}
+
+function findSheetTarget(workbookXml, relsXml, sheetNameWanted) {
+  // returns the rels Target path for the requested sheet name (or first sheet if not specified)
+  var sheets = [];
+  var sheetTagRegex = /<sheet\b[^>]*\/?>/g;
+  var m;
+  while ((m = sheetTagRegex.exec(workbookXml)) !== null) {
+    var tag = m[0];
+    var name = extractAttr(tag, 'name');
+    var rid = extractAttr(tag, 'r:id');
+    if (name !== null && rid !== null) {
+      sheets.push({ name: decodeXmlEntities(name), rid: rid });
+    }
+  }
+  var target = sheets[0];
+  if (sheetNameWanted) {
+    var found = sheets.filter(function (s) { return s.name === sheetNameWanted; })[0];
+    if (found) target = found;
+  }
+  if (!target) return null;
+
+  var relMap = {};
+  var relTagRegex = /<Relationship\b[^>]*\/?>/g;
+  var rm;
+  while ((rm = relTagRegex.exec(relsXml)) !== null) {
+    var rtag = rm[0];
+    var rid2 = extractAttr(rtag, 'Id');
+    var rtarget = extractAttr(rtag, 'Target');
+    if (rid2 !== null && rtarget !== null) relMap[rid2] = rtarget;
+  }
+  var relPath = relMap[target.rid];
+  if (!relPath) return null;
+  if (relPath.indexOf('/') === 0) return relPath.substring(1);
+  return 'xl/' + relPath.replace(/^\.?\//, '');
+}
+
+// Main entry: parses an ArrayBuffer/Uint8Array of an .xlsx file into { sheetNames, sheets: {name: rows[][]} }
+function parseXlsxBuffer(buf) {
+  if (buf instanceof ArrayBuffer) buf = new Uint8Array(buf);
+  var zip = readZipEntries(buf);
+  var names = zip.listNames();
+
+  var workbookXml = getFileText(zip, 'xl/workbook.xml');
+  var relsXml = getFileText(zip, 'xl/_rels/workbook.xml.rels');
+  var sstXml = getFileText(zip, 'xl/sharedStrings.xml');
+  var stylesXml = getFileText(zip, 'xl/styles.xml');
+
+  var sharedStrings = parseXlsxSharedStrings(sstXml);
+  var dateStyles = parseDateStyleIndexes(stylesXml);
+
+  var sheetNameRegex = /<sheet\b[^>]*name="([^"]*)"/g;
+  var sheetNames = [];
+  var sm;
+  while ((sm = sheetNameRegex.exec(workbookXml)) !== null) {
+    sheetNames.push(decodeXmlEntities(sm[1]));
+  }
+
+  var sheets = {};
+  for (var i = 0; i < sheetNames.length; i++) {
+    var sname = sheetNames[i];
+    var path = findSheetTarget(workbookXml, relsXml, sname);
+    if (!path) continue;
+    var sheetXml = getFileText(zip, path);
+    if (!sheetXml) continue;
+    sheets[sname] = parseSheetXml(sheetXml, sharedStrings, dateStyles);
+  }
+
+  return { sheetNames: sheetNames, sheets: sheets };
+}
+
+</script>
+<script>
+/* ============================================================
+   APP STATE
+   ============================================================ */
+var state = {
+  notaWorkbook: null,
+  otherWorkbook: null,
+  otherLyWorkbook: null,
+  notaFileName: '',
+  otherFileName: '',
+  otherLyFileName: '',
+  rows: [],          // final aggregated rows for the table
+  sortKey: 'receiptNo',
+  sortDir: 1,
+  filterKet: '',
+  filterStatus: '',
+  searchText: '',
+  dateFrom: null,    // 'YYYY-MM-DD' string or null (no lower bound)
+  dateTo: null,      // 'YYYY-MM-DD' string or null (no upper bound)
+  monthlyTY: {},     // 'YYYY-MM' -> total delivery charge (this year, from rows joined w/ Nota Penjualan)
+  monthlyLY: {}      // 'YYYY-MM' -> total delivery charge (last year, from Other Transaction Report LY file)
+};
+
+/* ============================================================
+   HELPERS: header detection & column lookup
+   ============================================================ */
+
+// Normalize a header cell value to a comparable key: trim, collapse spaces, lowercase
+function normHeader(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+// Find the row index (0-based) most likely to be the header row: the first row
+// containing a cell that normalizes to "receipt no"
+function findHeaderRowIndex(rows, mustContain) {
+  for (var r = 0; r < rows.length; r++) {
+    var row = rows[r];
+    if (!row) continue;
+    for (var c = 0; c < row.length; c++) {
+      if (normHeader(row[c]) === mustContain) {
+        return r;
+      }
+    }
+  }
+  return -1;
+}
+
+// Build a map of normalizedHeaderName -> columnIndex for a given header row
+function buildColumnMap(headerRow) {
+  var map = {};
+  for (var c = 0; c < headerRow.length; c++) {
+    var key = normHeader(headerRow[c]);
+    if (key) map[key] = c;
+  }
+  return map;
+}
+
+function getCol(row, colMap, name) {
+  var idx = colMap[name];
+  if (idx === undefined) return undefined;
+  return row[idx];
+}
+
+function toStr(v) {
+  if (v === null || v === undefined) return '';
+  if (v instanceof Date) return formatDate(v);
+  return String(v).trim();
+}
+
+function toNumber(v) {
+  if (v === null || v === undefined || v === '') return 0;
+  if (typeof v === 'number') return v;
+  var n = parseFloat(String(v).replace(/[^0-9.\-]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+function formatDate(d) {
+  if (!(d instanceof Date) || isNaN(d.getTime())) return '';
+  var dd = String(d.getDate()).padStart(2, '0');
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  var yy = d.getFullYear();
+  return dd + '/' + mm + '/' + yy;
+}
+
+function parseLooseDate(v) {
+  if (v instanceof Date) return v;
+  if (!v) return null;
+  var d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function formatRupiah(n) {
+  var sign = n < 0 ? '-' : '';
+  n = Math.abs(Math.round(n));
+  var s = n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return sign + 'Rp ' + s;
+}
+
+function formatNumber(n) {
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Local YYYY-MM-DD key (no timezone shift), used for both grouping and <input type=date> comparison
+function dateKeyLocal(d) {
+  if (!(d instanceof Date) || isNaN(d.getTime())) return null;
+  var yy = d.getFullYear();
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  var dd = String(d.getDate()).padStart(2, '0');
+  return yy + '-' + mm + '-' + dd;
+}
+
+function dateKeyToDisplay(key) {
+  // 'YYYY-MM-DD' -> 'DD/MM/YYYY'
+  var parts = key.split('-');
+  return parts[2] + '/' + parts[1] + '/' + parts[0];
+}
+
+var MONTH_NAMES_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+// 'YYYY-MM' key for monthly grouping (year-agnostic comparison across LY/TY uses the
+// month part only — see getGrowthSummary)
+function monthKeyLocal(d) {
+  if (!(d instanceof Date) || isNaN(d.getTime())) return null;
+  var yy = d.getFullYear();
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  return yy + '-' + mm;
+}
+
+function monthOfKey(key) {
+  // 'YYYY-MM' -> 0-based month index
+  return parseInt(key.split('-')[1], 10) - 1;
+}
+
+function monthNameId(monthIndex0based) {
+  return MONTH_NAMES_ID[monthIndex0based] || '';
+}
+
+// Rows in state.rows, filtered ONLY by the global date-range filter (used as the base
+// for KPIs, charts, the per-day summary table and the MTD table). Rows with no parseable
+// order date are EXCLUDED whenever a date filter is active (since they can't be placed
+// within a period), but are included when no date filter is set at all.
+function getDateFilteredRows() {
+  var rows = state.rows;
+  var from = state.dateFrom; // 'YYYY-MM-DD' or null
+  var to = state.dateTo;     // 'YYYY-MM-DD' or null
+  if (!from && !to) return rows.slice();
+
+  return rows.filter(function (r) {
+    var key = dateKeyLocal(r.orderDate);
+    if (!key) return false;
+    if (from && key < from) return false;
+    if (to && key > to) return false;
+    return true;
+  });
+}
+
+function updateFilterDateSummary() {
+  var el = document.getElementById('filterDateSummary');
+  if (!el) return;
+  var from = state.dateFrom, to = state.dateTo;
+  var rows = getDateFilteredRows();
+  var periodTxt;
+  if (!from && !to) periodTxt = 'Semua periode';
+  else if (from && to && from === to) periodTxt = dateKeyToDisplay(from);
+  else periodTxt = (from ? dateKeyToDisplay(from) : 'awal') + ' – ' + (to ? dateKeyToDisplay(to) : 'akhir');
+  el.innerHTML = '<b>' + periodTxt + '</b> &nbsp;•&nbsp; ' + formatNumber(rows.length) + ' receipt cocok dari total ' + formatNumber(state.rows.length);
+
+  // sync active preset chip styling
+  document.querySelectorAll('.quick-presets .chip').forEach(function (c) { c.classList.remove('active'); });
+}
+
+/* ============================================================
+   FILE INPUT WIRING (click + drag&drop)
+   ============================================================ */
+
+function wireDropzone(dzId, inputId, fileNameId, statusId, onFile) {
+  var dz = document.getElementById(dzId);
+  var input = document.getElementById(inputId);
+  var fnameEl = document.getElementById(fileNameId);
+  var statusEl = document.getElementById(statusId);
+
+  input.addEventListener('change', function () {
+    if (input.files && input.files[0]) {
+      handleFile(input.files[0]);
+    }
+  });
+
+  dz.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    dz.classList.add('drag-over');
+  });
+  dz.addEventListener('dragleave', function () {
+    dz.classList.remove('drag-over');
+  });
+  dz.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  function handleFile(file) {
+    if (!/\.xlsx$/i.test(file.name)) {
+      statusEl.textContent = 'File harus berformat .xlsx';
+      statusEl.classList.add('error-text');
+      return;
+    }
+    fnameEl.textContent = file.name;
+    statusEl.textContent = 'Membaca file…';
+    dz.classList.remove('has-file');
+
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        var buf = new Uint8Array(e.target.result);
+        var wb = parseXlsxBuffer(buf);
+        dz.classList.add('has-file');
+        statusEl.textContent = 'Berhasil dibaca — ' + wb.sheetNames.length + ' sheet ditemukan (' + wb.sheetNames.join(', ') + ')';
+        onFile(wb, file.name);
+      } catch (err) {
+        dz.classList.remove('has-file');
+        statusEl.textContent = 'Gagal membaca file: ' + err.message;
+        console.error(err);
+      }
+      checkReady();
+    };
+    reader.onerror = function () {
+      statusEl.textContent = 'Gagal membaca file dari disk.';
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function checkReady() {
+  var btn = document.getElementById('btnProcess');
+  btn.disabled = !(state.notaWorkbook && state.otherWorkbook);
+}
+
+wireDropzone('dz-nota', 'file-nota', 'filename-nota', 'status-nota', function (wb, name) {
+  state.notaWorkbook = wb;
+  state.notaFileName = name;
+});
+
+wireDropzone('dz-other', 'file-other', 'filename-other', 'status-other', function (wb, name) {
+  state.otherWorkbook = wb;
+  state.otherFileName = name;
+});
+
+wireDropzone('dz-other-ly', 'file-other-ly', 'filename-other-ly', 'status-other-ly', function (wb, name) {
+  state.otherLyWorkbook = wb;
+  state.otherLyFileName = name;
+});
+
+/* ============================================================
+   LOAD DARI GOOGLE SHEET — Nota Penjualan & Other Transaction Report
+   (link "Publish to web" atau share link Google Sheets, dikonversi
+   ke export XLSX lalu diparse dengan parseXlsxBuffer yang sama
+   dipakai untuk file upload manual)
+   ============================================================ */
+
+function toXlsxExportUrlDC(url) {
+  try {
+    var u = new URL(url);
+    if (u.hostname.indexOf('docs.google.com') === -1) return url;
+    var m = u.pathname.match(/\/spreadsheets\/d\/(?:e\/)?([a-zA-Z0-9-_]+)/);
+    if (!m) return url;
+    var id = m[1];
+    var gidMatch = url.match(/[?&#]gid=(\d+)/);
+    var gid = gidMatch ? gidMatch[1] : '0';
+    if (u.pathname.indexOf('/d/e/') !== -1) {
+      return url.indexOf('output=xlsx') !== -1 ? url : url.replace(/\/pub.*$/, '/pub?output=xlsx');
+    }
+    return 'https://docs.google.com/spreadsheets/d/' + id + '/export?format=xlsx&gid=' + gid;
+  } catch (e) {
+    return url;
+  }
+}
+
+function getGSheetUrlDC(storageKey, label, forcePrompt) {
+  var url = forcePrompt ? null : localStorage.getItem(storageKey);
+  if (!url) {
+    var current = localStorage.getItem(storageKey) || '';
+    url = prompt('Tempel link Google Sheet (Publish to web atau share link) untuk ' + label + ':', current);
+    if (url) localStorage.setItem(storageKey, url.trim());
+    else return null;
+  }
+  return url.trim();
+}
+
+function loadFromGSheetDC(storageKey, label, forcePrompt, dzId, inputId, fileNameId, statusId, onFile) {
+  var url = getGSheetUrlDC(storageKey, label, forcePrompt);
+  if (!url) return;
+  var dz = document.getElementById(dzId);
+  var fnameEl = document.getElementById(fileNameId);
+  var statusEl = document.getElementById(statusId);
+  statusEl.textContent = 'Mengambil dari Google Sheet…';
+  statusEl.classList.remove('error-text');
+
+  var xlsxUrl = toXlsxExportUrlDC(url);
+  fetch(xlsxUrl)
+    .then(function (res) {
+      if (!res.ok) throw new Error('Sheet tidak dapat diakses (status ' + res.status + '). Pastikan sudah di-publish to web / link dibagikan publik.');
+      return res.arrayBuffer();
+    })
+    .then(function (buf) {
+      var bytes = new Uint8Array(buf);
+      var wb = parseXlsxBuffer(bytes);
+      dz.classList.add('has-file');
+      fnameEl.textContent = label + ' (Google Sheet)';
+      statusEl.textContent = 'Berhasil dibaca dari Google Sheet — ' + wb.sheetNames.length + ' sheet ditemukan (' + wb.sheetNames.join(', ') + ')';
+      onFile(wb, label + '_GoogleSheet.xlsx');
+      checkReady();
+    })
+    .catch(function (err) {
+      dz.classList.remove('has-file');
+      statusEl.textContent = 'Gagal memuat dari Google Sheet: ' + err.message;
+      statusEl.classList.add('error-text');
+    });
+}
+
+document.getElementById('gsheetBtnNota').addEventListener('click', function () {
+  loadFromGSheetDC('dc_gsheet_url_nota', 'Nota Penjualan', false, 'dz-nota', 'file-nota', 'filename-nota', 'status-nota', function (wb, name) {
+    state.notaWorkbook = wb;
+    state.notaFileName = name;
+  });
+});
+document.getElementById('gsheetBtnNota').addEventListener('contextmenu', function (e) {
+  e.preventDefault();
+  loadFromGSheetDC('dc_gsheet_url_nota', 'Nota Penjualan', true, 'dz-nota', 'file-nota', 'filename-nota', 'status-nota', function (wb, name) {
+    state.notaWorkbook = wb;
+    state.notaFileName = name;
+  });
+});
+
+document.getElementById('gsheetBtnOther').addEventListener('click', function () {
+  loadFromGSheetDC('dc_gsheet_url_other', 'Other Transaction Report', false, 'dz-other', 'file-other', 'filename-other', 'status-other', function (wb, name) {
+    state.otherWorkbook = wb;
+    state.otherFileName = name;
+  });
+});
+document.getElementById('gsheetBtnOther').addEventListener('contextmenu', function (e) {
+  e.preventDefault();
+  loadFromGSheetDC('dc_gsheet_url_other', 'Other Transaction Report', true, 'dz-other', 'file-other', 'filename-other', 'status-other', function (wb, name) {
+    state.otherWorkbook = wb;
+    state.otherFileName = name;
+  });
+});
+
+/* ============================================================
+   CORE PROCESSING: build aggregated rows from both workbooks
+   ============================================================ */
+
+function pickSheetRows(workbook, preferredNameSubstr) {
+  // Prefer a sheet whose name contains the given substring (case-insensitive),
+  // else fall back to the first sheet.
+  var names = workbook.sheetNames;
+  var match = names.filter(function (n) {
+    return n.toLowerCase().indexOf(preferredNameSubstr.toLowerCase()) !== -1;
+  })[0];
+  var sheetName = match || names[0];
+  return workbook.sheets[sheetName];
+}
+
+function processData() {
+  var processStatus = document.getElementById('processStatus');
+  processStatus.textContent = '';
+  processStatus.className = 'status-line';
+
+  try {
+    var notaRows = pickSheetRows(state.notaWorkbook, 'nota');
+    var otherRows = pickSheetRows(state.otherWorkbook, 'other');
+
+    var notaHeaderIdx = findHeaderRowIndex(notaRows, 'receipt no');
+    if (notaHeaderIdx === -1) throw new Error('Kolom "Receipt No" tidak ditemukan di file Nota Penjualan. Periksa apakah file sesuai format.');
+    var otherHeaderIdx = findHeaderRowIndex(otherRows, 'receipt no');
+    if (otherHeaderIdx === -1) throw new Error('Kolom "Receipt No" tidak ditemukan di file Other Transaction Report. Periksa apakah file sesuai format.');
+
+    var notaColMap = buildColumnMap(notaRows[notaHeaderIdx]);
+    var otherColMap = buildColumnMap(otherRows[otherHeaderIdx]);
+
+    var requiredNota = ['receipt no', 'np no', 'order date', 'salesperson code', 'status', 'sell to customer name', 'phone no'];
+    var missingNota = requiredNota.filter(function (k) { return notaColMap[k] === undefined; });
+    if (missingNota.length) {
+      throw new Error('Kolom berikut tidak ditemukan di Nota Penjualan: ' + missingNota.join(', '));
+    }
+    var requiredOther = ['receipt no', 'description', 'amount'];
+    var missingOther = requiredOther.filter(function (k) { return otherColMap[k] === undefined; });
+    if (missingOther.length) {
+      throw new Error('Kolom berikut tidak ditemukan di Other Transaction Report: ' + missingOther.join(', '));
+    }
+
+    /* ---- Step 1: sum Delivery Charge per Receipt No from Other Transaction Report ---- */
+    var deliveryByReceipt = {}; // receiptNo -> total amount
+    for (var i = otherHeaderIdx + 1; i < otherRows.length; i++) {
+      var orow = otherRows[i];
+      if (!orow || orow.length === 0) continue;
+      var desc = toStr(getCol(orow, otherColMap, 'description'));
+      if (!desc) continue;
+      if (desc.toLowerCase().indexOf('delivery charge') === -1) continue;
+      var rcpt = toStr(getCol(orow, otherColMap, 'receipt no'));
+      if (!rcpt) continue;
+      var amt = toNumber(getCol(orow, otherColMap, 'amount'));
+      deliveryByReceipt[rcpt] = (deliveryByReceipt[rcpt] || 0) + amt;
+    }
+
+    /* ---- Step 2: group Nota Penjualan rows by Receipt No ---- */
+    var groups = {};   // receiptNo -> { npNos:Set, orderDate, salesperson, statusSet:Set, customer, phone }
+    var order = [];     // preserve first-seen order of receiptNo
+
+    for (var j = notaHeaderIdx + 1; j < notaRows.length; j++) {
+      var nrow = notaRows[j];
+      if (!nrow || nrow.length === 0) continue;
+      var receiptNo = toStr(getCol(nrow, notaColMap, 'receipt no'));
+      if (!receiptNo) continue;
+
+      if (!groups[receiptNo]) {
+        groups[receiptNo] = {
+          receiptNo: receiptNo,
+          npNos: [],
+          npNoSet: {},
+          orderDate: getCol(nrow, notaColMap, 'order date'),
+          salesperson: toStr(getCol(nrow, notaColMap, 'salesperson code')),
+          statusSet: {},
+          statusList: [],
+          customer: toStr(getCol(nrow, notaColMap, 'sell to customer name')),
+          phone: toStr(getCol(nrow, notaColMap, 'phone no'))
+        };
+        order.push(receiptNo);
+      }
+      var g = groups[receiptNo];
+
+      var npNo = toStr(getCol(nrow, notaColMap, 'np no'));
+      if (npNo && !g.npNoSet[npNo]) {
+        g.npNoSet[npNo] = true;
+        g.npNos.push(npNo);
+      }
+      var statusVal = toStr(getCol(nrow, notaColMap, 'status'));
+      if (statusVal && !g.statusSet[statusVal]) {
+        g.statusSet[statusVal] = true;
+        g.statusList.push(statusVal);
+      }
+    }
+
+    /* ---- Step 3: build final rows, joining delivery charge ---- */
+    var finalRows = [];
+    var totalDelivery = 0;
+    var receiptsWithDelivery = 0;
+
+    for (var k = 0; k < order.length; k++) {
+      var rno = order[k];
+      var g2 = groups[rno];
+      var delivery = deliveryByReceipt.hasOwnProperty(rno) ? deliveryByReceipt[rno] : 0;
+      var hasDelivery = deliveryByReceipt.hasOwnProperty(rno) && delivery !== 0;
+
+      if (hasDelivery) {
+        totalDelivery += delivery;
+        receiptsWithDelivery++;
+      }
+
+      var statusDisplay = g2.statusList.length <= 1 ? (g2.statusList[0] || '') : 'Campuran (' + g2.statusList.join(', ') + ')';
+
+      finalRows.push({
+        receiptNo: rno,
+        npNo: g2.npNos.join(', '),
+        orderDate: parseLooseDate(g2.orderDate),
+        orderDateRaw: g2.orderDate,
+        salesperson: g2.salesperson,
+        status: statusDisplay,
+        statusRaw: g2.statusList.length === 1 ? g2.statusList[0] : 'Campuran',
+        customer: g2.customer,
+        phone: g2.phone,
+        deliveryCharge: delivery,
+        ket: hasDelivery ? 'Ada Delivery Charge' : 'Tanpa Delivery Charge',
+        hasDelivery: hasDelivery
+      });
+    }
+
+    // Also detect receipts that appear ONLY in Other Transaction Report with Delivery Charge
+    // but are missing from Nota Penjualan (orphan receipts) - report as a console warning + note
+    var notaReceiptSet = {};
+    order.forEach(function (r) { notaReceiptSet[r] = true; });
+    var orphanReceipts = Object.keys(deliveryByReceipt).filter(function (r) { return !notaReceiptSet[r]; });
+
+    state.rows = finalRows;
+    state.totalDelivery = totalDelivery;
+    state.receiptsWithDelivery = receiptsWithDelivery;
+    state.totalReceipt = order.length;
+    state.orphanReceipts = orphanReceipts;
+    state.orphanDeliveryTotal = orphanReceipts.reduce(function (s, r) { return s + deliveryByReceipt[r]; }, 0);
+
+    /* ---- Step 4: monthly summary for the Growth table ---- */
+    // TY: dibangun langsung dari file Other Transaction Report TY (state.otherWorkbook),
+    // menggunakan kolom Transaction Date / Order Date miliknya sendiri — sama persis pola
+    // dengan LY. Ini lebih reliable daripada lewat finalRows (yang bisa kehilangan tanggal
+    // jika join ke Nota Penjualan gagal).
+    var monthlyTY = {};
+    var dailyTY = {};
+    (function () {
+      var tyDateCol = otherColMap.hasOwnProperty('transaction date') ? 'transaction date' :
+        (otherColMap.hasOwnProperty('order date') ? 'order date' : null);
+      for (var ti = otherHeaderIdx + 1; ti < otherRows.length; ti++) {
+        var trow = otherRows[ti];
+        if (!trow || trow.length === 0) continue;
+        var tdesc = toStr(getCol(trow, otherColMap, 'description'));
+        if (!tdesc || tdesc.toLowerCase().indexOf('delivery charge') === -1) continue;
+        var tamt = toNumber(getCol(trow, otherColMap, 'amount'));
+        if (tyDateCol) {
+          var tdate = parseLooseDate(getCol(trow, otherColMap, tyDateCol));
+          var tmkey = monthKeyLocal(tdate);
+          if (tmkey) {
+            monthlyTY[tmkey] = (monthlyTY[tmkey] || 0) + tamt;
+            var tdkey = dateKeyLocal(tdate);
+            if (tdkey) dailyTY[tdkey] = (dailyTY[tdkey] || 0) + tamt;
+          }
+        }
+      }
+    })();
+    state.monthlyTY = monthlyTY;
+    state.dailyTY = dailyTY;
+
+    // LY (tahun lalu): from the separate "Other Transaction Report Tahun Lalu" file, if
+    // provided. This file has no matching Nota Penjualan to join against, so the date
+    // is taken directly from its own date column (Transaction Date / Order Date).
+    // Also keep a per-day accumulator (dailyLY) so we can apply a fair cutoff for the
+    // current running month (LY bulan berjalan dipotong di tanggal yang sama dengan hari ini).
+    var monthlyLY = {};
+    var dailyLY = {};
+    if (state.otherLyWorkbook) {
+      var lyRows = pickSheetRows(state.otherLyWorkbook, 'other');
+      var lyHeaderIdx = findHeaderRowIndex(lyRows, 'receipt no');
+      if (lyHeaderIdx === -1) {
+        throw new Error('Kolom "Receipt No" tidak ditemukan di file Other Transaction Report Tahun Lalu.');
+      }
+      var lyColMap = buildColumnMap(lyRows[lyHeaderIdx]);
+      var lyDateCol = lyColMap.hasOwnProperty('transaction date') ? 'transaction date' :
+        (lyColMap.hasOwnProperty('order date') ? 'order date' : null);
+      if (!lyDateCol) {
+        throw new Error('Kolom tanggal ("Transaction Date" atau "Order Date") tidak ditemukan di file Other Transaction Report Tahun Lalu.');
+      }
+      if (lyColMap['description'] === undefined || lyColMap['amount'] === undefined) {
+        throw new Error('Kolom "Description" atau "Amount" tidak ditemukan di file Other Transaction Report Tahun Lalu.');
+      }
+      for (var li = lyHeaderIdx + 1; li < lyRows.length; li++) {
+        var lrow = lyRows[li];
+        if (!lrow || lrow.length === 0) continue;
+        var ldesc = toStr(getCol(lrow, lyColMap, 'description'));
+        if (!ldesc || ldesc.toLowerCase().indexOf('delivery charge') === -1) continue;
+        var ldate = parseLooseDate(getCol(lrow, lyColMap, lyDateCol));
+        var lmkey = monthKeyLocal(ldate);
+        if (!lmkey) continue;
+        var lamt = toNumber(getCol(lrow, lyColMap, 'amount'));
+        monthlyLY[lmkey] = (monthlyLY[lmkey] || 0) + lamt;
+        var ldkey = dateKeyLocal(ldate);
+        if (ldkey) dailyLY[ldkey] = (dailyLY[ldkey] || 0) + lamt;
+      }
+    }
+    state.monthlyLY = monthlyLY;
+    state.dailyLY = dailyLY;
+
+    // Default the dashboard's date-range filter to the current running month (bulan
+    // berjalan) every time data is (re)processed, per requirement: main dashboard only
+    // shows current month data, while the Growth table always uses the full monthly summary.
+    var now = new Date();
+    var firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    state.dateFrom = dateKeyLocal(firstOfMonth);
+    state.dateTo = dateKeyLocal(now);
+    document.getElementById('filterDateFrom').value = state.dateFrom;
+    document.getElementById('filterDateTo').value = state.dateTo;
+
+    renderAll();
+
+    processStatus.textContent = '✓ Berhasil memproses ' + order.length + ' receipt.' + (orphanReceipts.length ? ' (' + orphanReceipts.length + ' receipt dengan delivery charge tidak ditemukan di Nota Penjualan, lihat catatan di bawah tabel)' : '');
+    processStatus.classList.add('ok');
+
+  } catch (err) {
+    processStatus.textContent = '✗ ' + err.message;
+    processStatus.classList.add('error');
+    console.error(err);
+  }
+}
+
+/* ============================================================
+   RENDERING
+   ============================================================ */
+
+function renderAll() {
+  document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('results').classList.remove('hidden');
+
+  var topbarMeta = document.getElementById('topbarMeta');
+  var metaHtml = 'Nota: <b>' + escapeHtml(state.notaFileName) + '</b> &nbsp;|&nbsp; Other: <b>' + escapeHtml(state.otherFileName) + '</b>';
+  if (state.otherLyFileName) {
+    metaHtml += ' &nbsp;|&nbsp; Other (LY): <b>' + escapeHtml(state.otherLyFileName) + '</b>';
+  }
+  topbarMeta.innerHTML = metaHtml;
+
+  updateFilterDateSummary();
+  renderKpis();
+  renderCharts();
+  renderGrowthTable();
+  populateStatusFilter();
+  renderTable();
+  renderPerDayTable();
+}
+
+function renderKpis() {
+  var rows = getDateFilteredRows();
+  var totalReceipt = rows.length;
+  var receiptsWithDelivery = 0;
+  var totalDelivery = 0;
+  rows.forEach(function (r) {
+    if (r.hasDelivery) {
+      receiptsWithDelivery++;
+      totalDelivery += r.deliveryCharge;
+    }
+  });
+
+  document.getElementById('kpiTotalDelivery').textContent = formatRupiah(totalDelivery);
+  document.getElementById('kpiDeliveryCount').textContent = formatNumber(receiptsWithDelivery);
+
+  document.getElementById('kpiTotalReceipt').textContent = formatNumber(totalReceipt);
+
+  var noDelivery = totalReceipt - receiptsWithDelivery;
+  document.getElementById('kpiNoDelivery').textContent = formatNumber(noDelivery);
+  var pct = totalReceipt ? (noDelivery / totalReceipt * 100) : 0;
+  document.getElementById('kpiNoDeliveryPct').textContent = pct.toFixed(1) + '%';
+
+  var avg = receiptsWithDelivery ? (totalDelivery / receiptsWithDelivery) : 0;
+  document.getElementById('kpiAvgDelivery').textContent = formatRupiah(avg);
+}
+
+function renderCharts() {
+  var filteredRows = getDateFilteredRows();
+
+  // ---- Donut: receipts with vs without delivery charge ----
+  var withD = 0, withoutD = 0;
+  filteredRows.forEach(function (r) { if (r.hasDelivery) withD++; else withoutD++; });
+  var total = withD + withoutD;
+  drawDonut('donutSvg', [
+    { label: 'Ada Delivery Charge', value: withD, color: '#c4622d' },
+    { label: 'Tanpa Delivery Charge', value: withoutD, color: '#dcd6c8' }
+  ]);
+  var legendHtml = '';
+  var items = [
+    { label: 'Ada Delivery Charge', value: withD, color: '#c4622d' },
+    { label: 'Tanpa Delivery Charge', value: withoutD, color: '#dcd6c8' }
+  ];
+  items.forEach(function (it) {
+    var pct = total ? (it.value / total * 100) : 0;
+    legendHtml += '<div class="legend-item"><span class="legend-swatch" style="background:' + it.color + ';"></span>' +
+      escapeHtml(it.label) + ' <b>' + formatNumber(it.value) + ' (' + pct.toFixed(0) + '%)</b></div>';
+  });
+  document.getElementById('donutLegend').innerHTML = legendHtml;
+}
+
+function drawDonut(svgId, segments) {
+  var svg = document.getElementById(svgId);
+  var size = 160, cx = 80, cy = 80, r = 60, strokeW = 24;
+  var total = segments.reduce(function (s, seg) { return s + seg.value; }, 0);
+  var circumference = 2 * Math.PI * r;
+  var html = '';
+  if (total === 0) {
+    html = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#e6e0cf" stroke-width="' + strokeW + '"/>';
+  } else {
+    var offset = 0;
+    segments.forEach(function (seg) {
+      var frac = seg.value / total;
+      var dash = frac * circumference;
+      html += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + seg.color + '" stroke-width="' + strokeW +
+        '" stroke-dasharray="' + dash.toFixed(2) + ' ' + (circumference - dash).toFixed(2) + '" stroke-dashoffset="' + (-offset).toFixed(2) +
+        '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>';
+      offset += dash;
+    });
+  }
+  html += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r - strokeW / 2 - 4) + '" fill="#fff"/>';
+  html += '<text x="' + cx + '" y="' + (cy - 2) + '" text-anchor="middle" font-size="20" font-weight="800" fill="#1c2230">' + total + '</text>';
+  html += '<text x="' + cx + '" y="' + (cy + 16) + '" text-anchor="middle" font-size="10" fill="#5b6472">receipt</text>';
+  svg.innerHTML = html;
+}
+
+function populateStatusFilter() {
+  var sel = document.getElementById('filterStatus');
+  var current = sel.value;
+  var statuses = {};
+  state.rows.forEach(function (r) { if (r.statusRaw) statuses[r.statusRaw] = true; });
+  var opts = '<option value="">Semua Status</option>';
+  Object.keys(statuses).sort().forEach(function (s) {
+    opts += '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>';
+  });
+  sel.innerHTML = opts;
+  sel.value = current;
+}
+
+function getFilteredSortedRows() {
+  var rows = getDateFilteredRows();
+
+  if (state.filterKet === 'has') rows = rows.filter(function (r) { return r.hasDelivery; });
+  else if (state.filterKet === 'none') rows = rows.filter(function (r) { return !r.hasDelivery; });
+
+  if (state.filterStatus) rows = rows.filter(function (r) { return r.statusRaw === state.filterStatus; });
+
+  if (state.searchText) {
+    var q = state.searchText.toLowerCase();
+    rows = rows.filter(function (r) {
+      return (r.receiptNo && r.receiptNo.toLowerCase().indexOf(q) !== -1) ||
+        (r.customer && r.customer.toLowerCase().indexOf(q) !== -1) ||
+        (r.phone && r.phone.toLowerCase().indexOf(q) !== -1) ||
+        (r.npNo && r.npNo.toLowerCase().indexOf(q) !== -1);
+    });
+  }
+
+  var key = state.sortKey;
+  var dir = state.sortDir;
+  rows.sort(function (a, b) {
+    var va = a[key], vb = b[key];
+    if (key === 'orderDate') {
+      va = a.orderDate ? a.orderDate.getTime() : 0;
+      vb = b.orderDate ? b.orderDate.getTime() : 0;
+    } else if (key === 'deliveryCharge') {
+      va = a.deliveryCharge; vb = b.deliveryCharge;
+    } else {
+      va = (va === undefined || va === null) ? '' : String(va).toLowerCase();
+      vb = (vb === undefined || vb === null) ? '' : String(vb).toLowerCase();
+    }
+    if (va < vb) return -1 * dir;
+    if (va > vb) return 1 * dir;
+    return 0;
+  });
+
+  return rows;
+}
+
+function statusTagClass(statusRaw) {
+  if (statusRaw === 'Closed') return 'status-closed';
+  if (statusRaw === 'Confirmed') return 'status-confirmed';
+  if (statusRaw === 'Paid') return 'status-paid';
+  return 'status-mixed';
+}
+
+function renderTable() {
+  var rows = getFilteredSortedRows();
+  var tbody = document.getElementById('tableBody');
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state">Tidak ada baris yang cocok dengan filter / pencarian.</div></td></tr>';
+  } else {
+    var html = '';
+    rows.forEach(function (r) {
+      html += '<tr>' +
+        '<td>' + escapeHtml(r.receiptNo) + '</td>' +
+        '<td title="' + escapeHtml(r.npNo) + '">' + escapeHtml(r.npNo) + '</td>' +
+        '<td>' + escapeHtml(formatDate(r.orderDate) || toStr(r.orderDateRaw)) + '</td>' +
+        '<td>' + escapeHtml(r.salesperson) + '</td>' +
+        '<td><span class="tag ' + statusTagClass(r.statusRaw) + '">' + escapeHtml(r.status) + '</span></td>' +
+        '<td>' + escapeHtml(r.customer) + '</td>' +
+        '<td>' + escapeHtml(r.phone) + '</td>' +
+        '<td class="num">' + (r.hasDelivery ? formatRupiah(r.deliveryCharge) : '-') + '</td>' +
+        '<td><span class="tag ' + (r.hasDelivery ? 'has' : 'none') + '">' + escapeHtml(r.ket) + '</span></td>' +
+        '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  document.getElementById('rowCountInfo').textContent = formatNumber(rows.length) + ' baris ditampilkan (dari total ' + formatNumber(state.rows.length) + ' receipt)';
+
+  var sumDelivery = rows.reduce(function (s, r) { return s + r.deliveryCharge; }, 0);
+  document.getElementById('tableTotals').textContent = 'Total Delivery Charge (baris tampil): ' + formatRupiah(sumDelivery);
+
+  // update sort arrows
+  document.querySelectorAll('#dataTable thead th').forEach(function (th) {
+    var arrowSpan = th.querySelector('.arrow');
+    if (!arrowSpan) return;
+    if (th.getAttribute('data-key') === state.sortKey) {
+      arrowSpan.textContent = state.sortDir === 1 ? '▲' : '▼';
+    } else {
+      arrowSpan.textContent = '';
+    }
+  });
+}
+
+/* ============================================================
+   SUMMARY PER-DAY TABLE  +  MTD (TOTAL PERIODE TERFILTER) TABLE
+   ============================================================ */
+
+// Builds an array of { dateKey, dateDisplay, total, withDelivery, withoutDelivery, deliveryTotal }
+// sorted ascending by date, based on rows currently passing the global date-range filter
+// (and respecting filterKet/filterStatus/searchText too, so it always matches what's
+// shown in the detail table and KPIs).
+function getPerDaySummary() {
+  var rows = getFilteredSortedRows();
+  var byDay = {}; // dateKey -> aggregate
+  var order = [];
+
+  rows.forEach(function (r) {
+    var key = dateKeyLocal(r.orderDate);
+    if (!key) key = '(Tanpa Tanggal)';
+    if (!byDay[key]) {
+      byDay[key] = { dateKey: key, total: 0, withDelivery: 0, withoutDelivery: 0, deliveryTotal: 0 };
+      order.push(key);
+    }
+    var d = byDay[key];
+    d.total++;
+    if (r.hasDelivery) {
+      d.withDelivery++;
+      d.deliveryTotal += r.deliveryCharge;
+    } else {
+      d.withoutDelivery++;
+    }
+  });
+
+  order.sort(function (a, b) {
+    if (a === '(Tanpa Tanggal)') return 1;
+    if (b === '(Tanpa Tanggal)') return -1;
+    return a < b ? -1 : a > b ? 1 : 0;
+  });
+
+  return order.map(function (k) { return byDay[k]; });
+}
+
+function renderPerDayTable() {
+  var days = getPerDaySummary();
+  var tbody = document.getElementById('tablePerDayBody');
+  var tfoot = document.getElementById('tablePerDayFoot');
+
+  if (days.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">Tidak ada data pada periode/filter ini.</div></td></tr>';
+    tfoot.innerHTML = '';
+    return;
+  }
+
+  var html = '';
+  var grandTotal = 0, grandWith = 0, grandWithout = 0, grandDelivery = 0;
+  days.forEach(function (d) {
+    var dateDisplay = d.dateKey === '(Tanpa Tanggal)' ? '(Tanpa Tanggal)' : dateKeyToDisplay(d.dateKey);
+    html += '<tr>' +
+      '<td>' + escapeHtml(dateDisplay) + '</td>' +
+      '<td class="num">' + formatNumber(d.total) + '</td>' +
+      '<td class="num">' + formatNumber(d.withDelivery) + '</td>' +
+      '<td class="num">' + formatNumber(d.withoutDelivery) + '</td>' +
+      '<td class="num">' + formatRupiah(d.deliveryTotal) + '</td>' +
+      '</tr>';
+    grandTotal += d.total;
+    grandWith += d.withDelivery;
+    grandWithout += d.withoutDelivery;
+    grandDelivery += d.deliveryTotal;
+  });
+  tbody.innerHTML = html;
+
+  tfoot.innerHTML = '<tr>' +
+    '<td>TOTAL</td>' +
+    '<td class="num">' + formatNumber(grandTotal) + '</td>' +
+    '<td class="num">' + formatNumber(grandWith) + '</td>' +
+    '<td class="num">' + formatNumber(grandWithout) + '</td>' +
+    '<td class="num">' + formatRupiah(grandDelivery) + '</td>' +
+    '</tr>';
+}
+
+/* ============================================================
+   GROWTH DELIVERY CHARGE TABLE (LY vs TY, per bulan — Januari s/d Desember)
+   Always based on the FULL monthly summary (state.monthlyTY / state.monthlyLY),
+   independent from the dashboard's date-range filter.
+   ============================================================ */
+
+function getGrowthSummary() {
+  var now = new Date();
+  var currentMonth0 = now.getMonth();  // 0-based (Jan=0 ... Des=11)
+  var currentDay    = now.getDate();   // tanggal hari ini (cutoff)
+
+  // Helper: dari dateKey "YYYY-MM-DD" ambil day-of-month
+  function dayOfKey(dk) {
+    if (!dk) return 0;
+    var parts = dk.split('-');
+    return parts.length === 3 ? parseInt(parts[2], 10) : 0;
+  }
+
+  // Hitung LY untuk bulan tertentu (mIdx = 0-based) dengan cutoff tanggal jika perlu.
+  // cutoffDay > 0 → hanya jumlahkan hari 1..cutoffDay (bulan parsial)
+  // cutoffDay = 0 → summary penuh dari monthlyLY
+  function lyForMonth(mIdx, cutoffDay) {
+    if (cutoffDay <= 0) {
+      var total = 0;
+      Object.keys(state.monthlyLY || {}).forEach(function (k) {
+        if (monthOfKey(k) === mIdx) total += state.monthlyLY[k];
+      });
+      return total;
+    }
+    var total = 0;
+    Object.keys(state.dailyLY || {}).forEach(function (dk) {
+      if (monthOfKey(dk) === mIdx && dayOfKey(dk) <= cutoffDay) {
+        total += state.dailyLY[dk];
+      }
+    });
+    return total;
+  }
+
+  // Hitung TY untuk bulan tertentu dengan cutoff tanggal jika perlu.
+  function tyForMonth(mIdx, cutoffDay) {
+    if (cutoffDay <= 0) {
+      var total = 0;
+      Object.keys(state.monthlyTY || {}).forEach(function (k) {
+        if (monthOfKey(k) === mIdx) total += state.monthlyTY[k];
+      });
+      return total;
+    }
+    var total = 0;
+    Object.keys(state.dailyTY || {}).forEach(function (dk) {
+      if (monthOfKey(dk) === mIdx && dayOfKey(dk) <= cutoffDay) {
+        total += state.dailyTY[dk];
+      }
+    });
+    return total;
+  }
+
+  // Kumpulkan bulan yang ada di data TY atau LY, tapi hanya s/d bulan berjalan
+  var monthsPresent = {};
+  Object.keys(state.monthlyTY || {}).forEach(function (k) {
+    var m = monthOfKey(k);
+    if (m <= currentMonth0) monthsPresent[m] = true;
+  });
+  Object.keys(state.monthlyLY || {}).forEach(function (k) {
+    var m = monthOfKey(k);
+    if (m <= currentMonth0) monthsPresent[m] = true;
+  });
+
+  var monthIndexes = Object.keys(monthsPresent).map(Number).sort(function (a, b) { return a - b; });
+
+  return monthIndexes.map(function (mIdx) {
+    // Bulan berjalan: potong keduanya di tanggal hari ini
+    // Bulan sebelumnya: summary penuh
+    var cutoffDay = (mIdx === currentMonth0) ? currentDay : 0;
+
+    var ly = lyForMonth(mIdx, cutoffDay);
+    var ty = tyForMonth(mIdx, cutoffDay);
+    var selisih = ty - ly;
+    var pct = ty !== 0 ? (selisih / ty * 100) : 0;
+
+    // Label: tambah "(s/d tgl N)" untuk bulan berjalan
+    var label = monthNameId(mIdx);
+    if (mIdx === currentMonth0) label += ' (s/d tgl ' + currentDay + ')';
+
+    return { monthIdx: mIdx, monthName: label, ly: ly, ty: ty, selisih: selisih, pct: pct };
+  });
+}
+
+function formatPct(p) {
+  var sign = p > 0 ? '+' : '';
+  return sign + p.toFixed(1) + '%';
+}
+
+function renderGrowthTable() {
+  var data = getGrowthSummary();
+  var tbody = document.getElementById('tableGrowthBody');
+  var tfoot = document.getElementById('tableGrowthFoot');
+
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">Belum ada data. Upload Other Transaction Report (tahun berjalan, dan opsional tahun lalu) lalu klik Proses &amp; Analisa.</div></td></tr>';
+    tfoot.innerHTML = '';
+    return;
+  }
+
+  var html = '';
+  var totalLy = 0, totalTy = 0;
+  data.forEach(function (d) {
+    var cls = d.selisih > 0 ? 'growth-pos' : (d.selisih < 0 ? 'growth-neg' : '');
+    html += '<tr>' +
+      '<td>' + escapeHtml(d.monthName) + '</td>' +
+      '<td class="num">' + formatRupiah(d.ly) + '</td>' +
+      '<td class="num">' + formatRupiah(d.ty) + '</td>' +
+      '<td class="num ' + cls + '">' + formatRupiah(d.selisih) + '</td>' +
+      '<td class="num ' + cls + '">' + formatPct(d.pct) + '</td>' +
+      '</tr>';
+    totalLy += d.ly;
+    totalTy += d.ty;
+  });
+  tbody.innerHTML = html;
+
+  var totalSelisih = totalTy - totalLy;
+  var totalPct = totalTy !== 0 ? (totalSelisih / totalTy * 100) : 0;
+  var totalCls = totalSelisih > 0 ? 'growth-pos' : (totalSelisih < 0 ? 'growth-neg' : '');
+  tfoot.innerHTML = '<tr>' +
+    '<td>TOTAL</td>' +
+    '<td class="num">' + formatRupiah(totalLy) + '</td>' +
+    '<td class="num">' + formatRupiah(totalTy) + '</td>' +
+    '<td class="num ' + totalCls + '">' + formatRupiah(totalSelisih) + '</td>' +
+    '<td class="num ' + totalCls + '">' + formatPct(totalPct) + '</td>' +
+    '</tr>';
+}
+
+
+document.getElementById('btnProcess').addEventListener('click', processData);
+
+document.getElementById('btnReset').addEventListener('click', function () {
+  state.notaWorkbook = null;
+  state.otherWorkbook = null;
+  state.otherLyWorkbook = null;
+  state.notaFileName = '';
+  state.otherFileName = '';
+  state.otherLyFileName = '';
+  state.rows = [];
+  state.monthlyTY = {};
+  state.monthlyLY = {};
+  state.dailyTY = {};
+  state.dailyLY = {};
+  state.dateFrom = null;
+  state.dateTo = null;
+  state.filterKet = '';
+  state.filterStatus = '';
+  state.searchText = '';
+  document.getElementById('file-nota').value = '';
+  document.getElementById('file-other').value = '';
+  document.getElementById('file-other-ly').value = '';
+  document.getElementById('filename-nota').textContent = '';
+  document.getElementById('filename-other').textContent = '';
+  document.getElementById('filename-other-ly').textContent = '';
+  document.getElementById('status-nota').textContent = 'Belum ada file dipilih. Anda juga bisa drag & drop file di sini.';
+  document.getElementById('status-other').textContent = 'Belum ada file dipilih. Anda juga bisa drag & drop file di sini.';
+  document.getElementById('status-other-ly').textContent = 'Belum ada file dipilih. Anda juga bisa drag & drop file di sini.';
+  document.getElementById('dz-nota').classList.remove('has-file');
+  document.getElementById('dz-other').classList.remove('has-file');
+  document.getElementById('dz-other-ly').classList.remove('has-file');
+  document.getElementById('processStatus').textContent = '';
+  document.getElementById('processStatus').className = 'status-line';
+  document.getElementById('results').classList.add('hidden');
+  document.getElementById('emptyState').classList.remove('hidden');
+  document.getElementById('topbarMeta').textContent = 'Belum ada data dimuat';
+  document.getElementById('filterDateFrom').value = '';
+  document.getElementById('filterDateTo').value = '';
+  checkReady();
+});
+
+document.getElementById('filterKet').addEventListener('change', function (e) {
+  state.filterKet = e.target.value;
+  renderTable();
+});
+document.getElementById('filterStatus').addEventListener('change', function (e) {
+  state.filterStatus = e.target.value;
+  renderTable();
+});
+document.getElementById('searchBox').addEventListener('input', function (e) {
+  state.searchText = e.target.value;
+  renderTable();
+});
+
+document.querySelectorAll('#dataTable thead th').forEach(function (th) {
+  th.addEventListener('click', function () {
+    var key = th.getAttribute('data-key');
+    if (state.sortKey === key) {
+      state.sortDir *= -1;
+    } else {
+      state.sortKey = key;
+      state.sortDir = 1;
+    }
+    renderTable();
+  });
+});
+
+document.getElementById('btnExportCsv').addEventListener('click', function () {
+  var rows = getFilteredSortedRows();
+  var headers = ['Receipt No', 'NP No', 'Order Date', 'Salesperson Code', 'Status', 'Sell to Customer Name', 'Phone No', 'Delivery Charge', 'KET'];
+  var csvLines = [headers.join(';')];
+  rows.forEach(function (r) {
+    var line = [
+      r.receiptNo,
+      r.npNo,
+      formatDate(r.orderDate) || toStr(r.orderDateRaw),
+      r.salesperson,
+      r.status,
+      r.customer,
+      r.phone,
+      r.deliveryCharge,
+      r.ket
+    ].map(function (v) {
+      var s = String(v === undefined || v === null ? '' : v);
+      if (s.indexOf(';') !== -1 || s.indexOf('"') !== -1) {
+        s = '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    });
+    csvLines.push(line.join(';'));
+  });
+  var csvContent = '\ufeff' + csvLines.join('\r\n');
+  var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'tabel-receipt-delivery-charge.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+/* ============================================================
+   DATE RANGE FILTER: inputs, quick presets
+   ============================================================ */
+
+function applyDateFilter(fromKey, toKey) {
+  state.dateFrom = fromKey || null;
+  state.dateTo = toKey || null;
+  document.getElementById('filterDateFrom').value = fromKey || '';
+  document.getElementById('filterDateTo').value = toKey || '';
+  renderAll();
+}
+
+document.getElementById('filterDateFrom').addEventListener('change', function (e) {
+  state.dateFrom = e.target.value || null;
+  renderAll();
+});
+document.getElementById('filterDateTo').addEventListener('change', function (e) {
+  state.dateTo = e.target.value || null;
+  renderAll();
+});
+
+document.getElementById('presetToday').addEventListener('click', function () {
+  var t = new Date();
+  var k = dateKeyLocal(t);
+  applyDateFilter(k, k);
+});
+document.getElementById('presetYesterday').addEventListener('click', function () {
+  var t = new Date();
+  t.setDate(t.getDate() - 1);
+  var k = dateKeyLocal(t);
+  applyDateFilter(k, k);
+});
+document.getElementById('presetMTD').addEventListener('click', function () {
+  var t = new Date();
+  var first = new Date(t.getFullYear(), t.getMonth(), 1);
+  applyDateFilter(dateKeyLocal(first), dateKeyLocal(t));
+});
+document.getElementById('presetLastMonth').addEventListener('click', function () {
+  var t = new Date();
+  var firstLast = new Date(t.getFullYear(), t.getMonth() - 1, 1);
+  var lastLast = new Date(t.getFullYear(), t.getMonth(), 0);
+  applyDateFilter(dateKeyLocal(firstLast), dateKeyLocal(lastLast));
+});
+document.getElementById('presetAll').addEventListener('click', function () {
+  applyDateFilter(null, null);
+});
+
+/* ============================================================
+   GENERIC EXPORT HELPERS (CSV + PDF) FOR SUMMARY TABLES
+   ============================================================ */
+
+function downloadCsvFromMatrix(filename, headerArr, rowsArr) {
+  var csvLines = [headerArr.join(';')];
+  rowsArr.forEach(function (line) {
+    var escaped = line.map(function (v) {
+      var s = String(v === undefined || v === null ? '' : v);
+      if (s.indexOf(';') !== -1 || s.indexOf('"') !== -1) {
+        s = '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    });
+    csvLines.push(escaped.join(';'));
+  });
+  var csvContent = '\ufeff' + csvLines.join('\r\n');
+  var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Opens a clean, print-ready window containing just one table (plus a title/period
+// caption) and triggers the browser's native print dialog, where the user can choose
+// "Save as PDF". This keeps everything 100% offline (no external PDF library needed).
+function exportElementAsPdf(panelSelector, titleText) {
+  var panel = document.querySelector(panelSelector);
+  if (!panel) return;
+  var tableHtml = panel.outerHTML;
+
+  var from = state.dateFrom, to = state.dateTo;
+  var periodTxt;
+  if (!from && !to) periodTxt = 'Semua Periode';
+  else if (from && to && from === to) periodTxt = dateKeyToDisplay(from);
+  else periodTxt = (from ? dateKeyToDisplay(from) : 'Awal Data') + ' s/d ' + (to ? dateKeyToDisplay(to) : 'Akhir Data');
+
+  var win = window.open('', '_blank');
+  if (!win) { alert('Pop-up diblokir oleh browser. Mohon izinkan pop-up untuk export PDF.'); return; }
+
+  win.document.write(
+    '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>' + escapeHtml(titleText) + '</title>' +
+    '<style>' +
+    'body{font-family:"Segoe UI",Arial,sans-serif;color:#1c2230;padding:24px;}' +
+    'h1{font-size:1.1rem;margin:0 0 2px;}' +
+    '.period{font-size:.82rem;color:#5b6472;margin:0 0 18px;}' +
+    'table{width:100%;border-collapse:collapse;font-size:.82rem;}' +
+    'thead th{background:#1c2230;color:#fff;text-align:left;padding:8px 9px;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;}' +
+    'tbody td{padding:7px 9px;border-bottom:1px solid #eee6d6;}' +
+    'tbody tr:nth-child(even){background:#fdfcf8;}' +
+    'tfoot td{padding:8px 9px;font-weight:800;border-top:2px solid #1c2230;background:#fbf1da;}' +
+    '.num{text-align:right;font-variant-numeric:tabular-nums;}' +
+    '.table-head-row,.table-controls,.btn,select,input,.not-printing{display:none !important;}' +
+    '.print-only-title{display:block !important;}' +
+    '.summary-scroll,.table-scroll{overflow:visible;max-height:none;border:none;}' +
+    'thead th{position:static;}' +
+    '.mtd-card-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}' +
+    '.mtd-mini{border:1px solid #dcd6c8;border-radius:8px;padding:10px 12px;}' +
+    '.mtd-mini .lbl{font-size:.68rem;text-transform:uppercase;color:#5b6472;font-weight:700;margin:0 0 4px;}' +
+    '.mtd-mini .val{font-size:1.05rem;font-weight:800;}' +
+    '@media print{ @page{ margin:14mm; } }' +
+    '</style></head><body>' +
+    '<h1>' + escapeHtml(titleText) + '</h1>' +
+    '<p class="period">Periode: <b>' + escapeHtml(periodTxt) + '</b> — dicetak ' + escapeHtml(formatDate(new Date())) + '</p>' +
+    tableHtml +
+    '</body></html>'
+  );
+  win.document.close();
+  win.focus();
+  setTimeout(function () {
+    win.print();
+  }, 350);
+}
+
+document.getElementById('btnExportPdf').addEventListener('click', function () {
+  exportElementAsPdf('#dataTable', 'Tabel Informasi Receipt (Detail)');
+});
+document.getElementById('btnExportPdfPerDay').addEventListener('click', function () {
+  exportElementAsPdf('#tablePerDay', 'Tabel Summary Per Hari — Receipt & Delivery Charge');
+});
+document.getElementById('btnExportPdfGrowth').addEventListener('click', function () {
+  exportElementAsPdf('#tableGrowth', 'Tabel Growth Delivery Charge per Bulan (LY vs TY)');
+});
+
+document.getElementById('btnExportCsvPerDay').addEventListener('click', function () {
+  var days = getPerDaySummary();
+  var headers = ['Tanggal', 'Total Receipt', 'Receipt Ada Delivery', 'Receipt Tanpa Delivery', 'Total Delivery Charge'];
+  var rowsArr = days.map(function (d) {
+    var dateDisplay = d.dateKey === '(Tanpa Tanggal)' ? '(Tanpa Tanggal)' : dateKeyToDisplay(d.dateKey);
+    return [dateDisplay, d.total, d.withDelivery, d.withoutDelivery, d.deliveryTotal];
+  });
+  var grandTotal = days.reduce(function (s, d) { return s + d.total; }, 0);
+  var grandWith = days.reduce(function (s, d) { return s + d.withDelivery; }, 0);
+  var grandWithout = days.reduce(function (s, d) { return s + d.withoutDelivery; }, 0);
+  var grandDelivery = days.reduce(function (s, d) { return s + d.deliveryTotal; }, 0);
+  rowsArr.push(['TOTAL', grandTotal, grandWith, grandWithout, grandDelivery]);
+  downloadCsvFromMatrix('summary-per-hari.csv', headers, rowsArr);
+});
+
+document.getElementById('btnExportCsvGrowth').addEventListener('click', function () {
+  var data = getGrowthSummary();
+  var headers = ['Bulan', 'Delivery Charge (LY)', 'Delivery Charge (TY)', 'Selisih', '% Growth'];
+  var rowsArr = data.map(function (d) {
+    return [d.monthName, d.ly, d.ty, d.selisih, d.pct.toFixed(1) + '%'];
+  });
+  var totalLy = data.reduce(function (s, d) { return s + d.ly; }, 0);
+  var totalTy = data.reduce(function (s, d) { return s + d.ty; }, 0);
+  var totalSelisih = totalTy - totalLy;
+  var totalPct = totalTy !== 0 ? (totalSelisih / totalTy * 100) : 0;
+  rowsArr.push(['TOTAL', totalLy, totalTy, totalSelisih, totalPct.toFixed(1) + '%']);
+  downloadCsvFromMatrix('growth-delivery-charge.csv', headers, rowsArr);
+});
+
+
+/* ============================================================
+   GOOGLE DRIVE IMPORT — Other Transaction Report Tahun Lalu
+   via Drive Bridge (Google Apps Script). Browser tidak bisa
+   fetch langsung ke drive.google.com (CORS-blocked oleh Google),
+   jadi dipakai jembatan Apps Script kecil (Code.gs, sama dengan
+   yang dipakai di Dashboard Omset — satu bridge dipakai bersama
+   untuk semua dashboard).
+
+   Link Google Drive disimpan TERPUSAT di server (Apps Script
+   PropertiesService) — sekali setting di device manapun, otomatis
+   kepakai di HP/komputer lain juga, tanpa perlu input ulang.
+   ============================================================ */
+
+// URL Web App Apps Script (Drive Bridge) — sama dengan yang dipakai
+// di Dashboard Omset, sudah di-deploy dan di-fix langsung di sini.
+var DRIVE_BRIDGE_URL_DC = 'https://script.google.com/macros/s/AKfycbyjVRDa_GooDqNk1E-rFJc3IGd7Fe7pVxYOZLxCfk56OfLwD-qSq7z_BLht3A1DtXeY/exec';
+var DRIVE_KEY_OTHER_LY = 'other_ly'; // key di server, dipakai dashboard ini
+
+// Cache di-memory dari link yang tersimpan di server.
+var driveLinkCacheDC = '';
+
+function extractDriveFileIdDC(input) {
+  if (!input) return null;
+  var str = input.trim();
+  var m = str.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+  if (m) return m[1];
+  m = str.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]{10,}$/.test(str)) return str;
+  return null;
+}
+
+function getBridgeURLDC() {
+  return DRIVE_BRIDGE_URL_DC;
+}
+
+/** Ambil link tersimpan di server saat halaman dimuat, supaya tombol ☁️ langsung tahu statusnya. */
+function refreshDriveLinkFromServerDC() {
+  fetch(DRIVE_BRIDGE_URL_DC + '?action=getLink&key=' + encodeURIComponent(DRIVE_KEY_OTHER_LY))
+    .then(function (resp) { return resp.json(); })
+    .then(function (data) {
+      driveLinkCacheDC = (data.ok && data.link) ? data.link : '';
+      updateDriveButtonStateDC();
+    })
+    .catch(function () { updateDriveButtonStateDC(); });
+}
+
+function fetchDriveLinkFromServerDC() {
+  return fetch(DRIVE_BRIDGE_URL_DC + '?action=getLink&key=' + encodeURIComponent(DRIVE_KEY_OTHER_LY))
+    .then(function (resp) { return resp.json(); })
+    .then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'Gagal mengambil link dari server');
+      driveLinkCacheDC = data.link || '';
+      return driveLinkCacheDC;
+    });
+}
+
+function saveDriveLinkToServerDC(link) {
+  return fetch(DRIVE_BRIDGE_URL_DC + '?action=setLink&key=' + encodeURIComponent(DRIVE_KEY_OTHER_LY) + '&link=' + encodeURIComponent(link))
+    .then(function (resp) { return resp.json(); })
+    .then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'Gagal menyimpan link ke server');
+      driveLinkCacheDC = link;
+    });
+}
+
+function deleteDriveLinkFromServerDC() {
+  return fetch(DRIVE_BRIDGE_URL_DC + '?action=deleteLink&key=' + encodeURIComponent(DRIVE_KEY_OTHER_LY))
+    .then(function (resp) { return resp.json(); })
+    .then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'Gagal menghapus link di server');
+      driveLinkCacheDC = '';
+    });
+}
+
+function openDriveModalDC() {
+  var input = document.getElementById('driveLinkInputDC');
+  var statusRow = document.getElementById('driveStatusRowDC');
+  var statusText = document.getElementById('driveStatusTextDC');
+  var removeBtn = document.getElementById('driveBtnRemoveDC');
+
+  input.value = '';
+  statusRow.classList.remove('show');
+  removeBtn.style.display = 'none';
+  document.getElementById('driveModalOverlayDC').classList.add('show');
+  setTimeout(function () { input.focus(); }, 50);
+
+  statusText.textContent = 'Memeriksa link tersimpan di server…';
+  statusRow.classList.add('show');
+  fetchDriveLinkFromServerDC().then(function (link) {
+    input.value = link;
+    if (link) {
+      statusText.textContent = 'Link tersimpan di server (kepakai di semua device) — klik "Simpan & Load" untuk ambil data terbaru';
+      removeBtn.style.display = 'inline-block';
+    } else {
+      statusRow.classList.remove('show');
+    }
+  }).catch(function () {
+    statusText.textContent = 'Gagal memeriksa server, link di bawah mungkin belum terbaru';
+  });
+}
+
+function closeDriveModalDC() {
+  document.getElementById('driveModalOverlayDC').classList.remove('show');
+}
+
+function saveDriveLinkDC() {
+  var raw = document.getElementById('driveLinkInputDC').value.trim();
+  if (!raw) { alert('Masukkan link Google Drive terlebih dahulu.'); return; }
+  var fileId = extractDriveFileIdDC(raw);
+  if (!fileId) { alert('Link Google Drive tidak valid.'); return; }
+
+  saveDriveLinkToServerDC(raw).then(function () {
+    updateDriveButtonStateDC();
+    closeDriveModalDC();
+    loadFromDriveDC();
+  }).catch(function (err) {
+    alert('Gagal menyimpan link ke server: ' + err.message);
+  });
+}
+
+function removeDriveLinkDC() {
+  deleteDriveLinkFromServerDC().then(function () {
+    updateDriveButtonStateDC();
+    closeDriveModalDC();
+  }).catch(function (err) {
+    alert('Gagal menghapus link: ' + err.message);
+  });
+}
+
+function updateDriveButtonStateDC() {
+  var btn = document.getElementById('driveBtnOtherLY');
+  if (!btn) return;
+  var linked = !!driveLinkCacheDC;
+  btn.classList.toggle('linked', linked);
+  btn.title = linked ? 'Link Google Drive aktif — klik untuk load / tahan untuk ubah' : 'Load dari Google Drive';
+}
+
+/**
+ * Ambil file Other Transaction Report LY dari Google Drive via Drive Bridge,
+ * lalu proses persis seperti file yang di-drag/upload manual ke dz-other-ly.
+ * Selalu minta link terbaru dari server dulu, supaya kalau link baru saja
+ * diubah dari device lain, device ini ikut dapat versi terbaru.
+ */
+function loadFromDriveDC() {
+  var statusEl = document.getElementById('status-other-ly');
+  var fnameEl = document.getElementById('filename-other-ly');
+  var dz = document.getElementById('dz-other-ly');
+  statusEl.textContent = 'Mengambil dari Google Drive…';
+  statusEl.classList.remove('error-text');
+
+  fetchDriveLinkFromServerDC().then(function (link) {
+    if (!link) {
+      statusEl.textContent = 'Belum ada link Google Drive di server untuk Other Transaction Report (LY).';
+      updateDriveButtonStateDC();
+      return;
+    }
+    var fileId = extractDriveFileIdDC(link);
+    if (!fileId) throw new Error('Link tersimpan di server tidak valid');
+
+    return fetch(DRIVE_BRIDGE_URL_DC + '?id=' + encodeURIComponent(fileId))
+      .then(function (resp) {
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        return resp.json();
+      })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Bridge mengembalikan error');
+        var byteChars = atob(data.base64);
+        var bytes = new Uint8Array(byteChars.length);
+        for (var i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+
+        var wb = parseXlsxBuffer(bytes);
+        state.otherLyWorkbook = wb;
+        state.otherLyFileName = data.name || 'OtherTransactionReport_LY.xlsx';
+        fnameEl.textContent = state.otherLyFileName + ' (dari Google Drive)';
+        dz.classList.add('has-file');
+        statusEl.textContent = 'Berhasil dibaca dari Google Drive — ' + wb.sheetNames.length + ' sheet ditemukan (' + wb.sheetNames.join(', ') + ')';
+        checkReady();
+      });
+  }).catch(function (err) {
+    dz.classList.remove('has-file');
+    statusEl.textContent = 'Gagal mengambil dari Google Drive: ' + err.message;
+    statusEl.classList.add('error-text');
+  });
+}
+
+/**
+ * Klik tombol ☁️ Drive:
+ *  - Belum ada link tersimpan (cache) → buka modal (setting awal).
+ *  - Sudah ada link → langsung load data, tanpa modal.
+ * Untuk ubah/ganti link yang sudah ada: tahan (long-press) tombolnya.
+ */
+function driveButtonClickDC() {
+  if (driveLinkCacheDC) {
+    loadFromDriveDC();
+  } else {
+    openDriveModalDC();
+  }
+}
+
+/**
+ * Mengatur interaksi tombol ☁️ Drive (tap singkat vs tahan/long-press).
+ * Satu-satunya pemilik event klik tombol ini (tidak ada onclick inline di HTML).
+ */
+function setupDriveLongPressDC() {
+  var btn = document.getElementById('driveBtnOtherLY');
+  if (!btn) return;
+  var pressTimer = null;
+  var longPressFired = false;
+  var moved = false;
+  var startX = 0, startY = 0;
+
+  function startPress(x, y) {
+    longPressFired = false;
+    moved = false;
+    startX = x; startY = y;
+    pressTimer = setTimeout(function () {
+      longPressFired = true;
+      openDriveModalDC();
+    }, 550);
+  }
+  function checkMove(x, y) {
+    if (Math.abs(x - startX) > 10 || Math.abs(y - startY) > 10) moved = true;
+    if (moved) clearTimeout(pressTimer);
+  }
+  function endPress() {
+    clearTimeout(pressTimer);
+    if (!longPressFired && !moved) driveButtonClickDC();
+  }
+  function cancelPress() { clearTimeout(pressTimer); }
+
+  btn.addEventListener('touchstart', function (e) { startPress(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  btn.addEventListener('touchmove', function (e) { checkMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  btn.addEventListener('touchend', function (e) { e.preventDefault(); endPress(); });
+  btn.addEventListener('touchcancel', cancelPress);
+
+  btn.addEventListener('mousedown', function (e) { startPress(e.clientX, e.clientY); });
+  btn.addEventListener('mousemove', function (e) { if (pressTimer) checkMove(e.clientX, e.clientY); });
+  btn.addEventListener('mouseup', endPress);
+  btn.addEventListener('mouseleave', cancelPress);
+
+  btn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+}
+
+document.addEventListener('DOMContentLoaded', refreshDriveLinkFromServerDC);
+document.addEventListener('DOMContentLoaded', setupDriveLongPressDC);
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && document.getElementById('driveModalOverlayDC').classList.contains('show')) closeDriveModalDC();
+});
+document.getElementById('driveModalOverlayDC').addEventListener('click', function (e) {
+  if (e.target.id === 'driveModalOverlayDC') closeDriveModalDC();
+});
+
+</script>
+</body>
+</html>

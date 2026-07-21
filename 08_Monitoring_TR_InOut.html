@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TR Monitoring system</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #1A2F4B; --accent: #ffb703; --bg: #eef5f9; --white: #ffffff;
+            --green: #407A52; --amber: #C27B07; --red: #BF392D; --shadow: 0 4px 15px rgba(0,0,0,0.06);
+        }
+
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+        .sticky-header {
+            position: sticky; top: 0; z-index: 100;
+            background: linear-gradient(135deg, #1A2F4B, #112033);
+            color: white; padding: 12px 24px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+        }
+        .sticky-header h1 { margin: 0; font-size: 18px; letter-spacing: 0.5px; }
+        .sticky-header p { margin: 2px 0 0 0; opacity: 0.7; font-size: 11px; }
+        .sticky-header .header-badge {
+            font-size: 10px; background: rgba(255,183,3,0.2); border: 1px solid var(--accent);
+            color: var(--accent); padding: 4px 10px; border-radius: 20px; font-weight: bold; white-space: nowrap;
+        }
+
+        .banner { display: none; }
+
+
+        .control-row {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px; margin-bottom: 20px;
+        }
+
+        .control-card {
+            background: white; padding: 15px; border-radius: 10px; box-shadow: var(--shadow);
+            display: flex; align-items: center; gap: 10px; border: 1px solid #e2e8f0;
+        }
+
+        .upload-area {
+            flex: 1; border: 2px dashed #cbd5e1; border-radius: 8px;
+            padding: 10px; text-align: center; cursor: pointer;
+        }
+
+        .search-area { flex: 1; display: flex; gap: 5px; }
+        .search-area input { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; }
+        .btn-search { padding: 10px 15px; background: var(--accent); border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+        .st-badge { font-size: 9px; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+        .st-empty { background: #fee2e2; color: #b91c1c; }
+        .st-ready { background: #dcfce7; color: #15803d; }
+
+        .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+        @media (min-width: 768px) { .summary-grid { grid-template-columns: repeat(3, 1fr); } }
+        .sum-card { padding: 15px; border-radius: 12px; color: white; box-shadow: var(--shadow); }
+
+        .table-section { background: white; border-radius: 12px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 20px; }
+        .table-container { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+        th { background: #f8fafc; color: var(--primary); padding: 10px; border-bottom: 2px solid #edf2f7; text-align: left; white-space: nowrap; }
+        td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
+
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .metric-card { background: white; border-radius: 12px; padding: 15px; box-shadow: var(--shadow); border-left: 5px solid var(--primary); }
+
+        .hidden { display: none; }
+
+        .ms-option { display:flex; align-items:center; gap:8px; padding:7px 10px; font-size:11px; cursor:pointer; }
+        .ms-option:hover { background:#f8fafc; }
+        .ms-option input[type=checkbox] { cursor:pointer; width:14px; height:14px; accent-color: var(--primary); }
+        .ms-empty { padding:10px; font-size:11px; color:#999; text-align:center; }
+        
+        /* Area Cetak PDF */
+        #pdf-export-area { padding: 10px; background: white; }
+    </style>
+</head>
+<body>
+
+    <!-- STICKY HEADER -->
+    <header class="sticky-header">
+        <div>
+            <h1>Monitoring TR IN/OUT</h1>
+            <p>TR Control by Admin TLC</p>
+        </div>
+        <span class="header-badge">Support Back TLC</span>
+    </header>
+
+    <div class="container">
+
+        <div class="control-row">
+            <div class="control-card">
+                <div class="upload-area" onclick="document.getElementById('fDel').click()">
+                    <div style="font-size:11px; font-weight:bold;">1. Delivery Confirmation</div>
+                    <span id="stDel" class="st-badge st-empty">Belum Dimuat</span>
+                </div>
+                <input type="file" id="fDel" class="hidden" onchange="loadFile(this, 'DEL')">
+            </div>
+
+            <div class="control-card">
+                <div class="upload-area" onclick="document.getElementById('fOts').click()">
+                    <div style="font-size:11px; font-weight:bold;">2. Outstanding TO Out</div>
+                    <span id="stOts" class="st-badge st-empty">Belum Dimuat</span>
+                </div>
+                <input type="file" id="fOts" class="hidden" onchange="loadFile(this, 'OTS')">
+            </div>
+
+            <div class="control-card">
+                <div class="upload-area" onclick="document.getElementById('fTr').click()">
+                    <div style="font-size:11px; font-weight:bold;">3. Transfer Request Status Detail</div>
+                    <span id="stTr" class="st-badge st-empty">Belum Dimuat</span>
+                </div>
+                <input type="file" id="fTr" class="hidden" onchange="loadFile(this, 'TR')">
+            </div>
+
+        </div>
+
+        <div class="summary-grid">
+            <div class="sum-card" style="background:var(--green)">
+                <div style="font-size:10px; font-weight:bold;">TTL CONTAINER OTS IN</div>
+                <div id="vTotalCont" style="font-size:24px; font-weight:bold;">0</div>
+            </div>
+            <div class="sum-card" style="background:var(--amber)">
+                <div style="font-size:10px; font-weight:bold;">TOTAL ITEM OTS IN</div>
+                <div id="vTotalItems" style="font-size:24px; font-weight:bold;">0</div>
+            </div>
+            <div class="sum-card" style="background:var(--red)">
+                <div style="font-size:10px; font-weight:bold;">TOTAL QTY OTS IN</div>
+                <div id="vTotalQty" style="font-size:24px; font-weight:bold;">0</div>
+            </div>
+            <div class="sum-card" style="background:#5B4B8A">
+                <div style="font-size:10px; font-weight:bold;">TOTAL OTS TR OUT</div>
+                <div id="vTotalOtsTr" style="font-size:24px; font-weight:bold;">0</div>
+            </div>
+            <div class="sum-card" style="background:#0E7C86">
+                <div style="font-size:10px; font-weight:bold;">TOTAL QTY OTS OUT</div>
+                <div id="vTotalQtyOtsTo" style="font-size:24px; font-weight:bold;">0</div>
+            </div>
+            <div class="sum-card" style="background:#B5562B">
+                <div style="font-size:10px; font-weight:bold;">TOTAL ITEM OTS OUT</div>
+                <div id="vTotalItemOtsTo" style="font-size:24px; font-weight:bold;">0</div>
+            </div>
+        </div>
+
+        <!-- TABEL AGING -->
+        <div id="secAging" class="table-section hidden">
+            <h3 style="margin:0 0 15px 0; font-size:14px; color:var(--red);">⚠️ 10 Ots TO Terlama Belum TI · Wajib CEK</h3>
+            <div class="table-container">
+                <table id="tblAging">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Transfer Order Date</th>
+                            <th>Posting Date</th>
+                            <th>Transfer Order No</th>
+                            <th>TO Number</th>
+                            <th>Load Manifest No</th>
+                            <th>Transfer from Name</th>
+                            <th>Container No</th>
+                            <th>Start Loading Date</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TABEL LIST TR PRIORITAS -->
+        <div id="secTrPriority" class="table-section hidden">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:8px;">
+                <h3 style="margin:0; font-size:14px; color:#5B4B8A;">📌 List TR Prioritas (20 Teratas · High Priority to Prepare)</h3>
+                <button id="btnPdfTr" onclick="downloadPdfTr()" style="background:#5B4B8A; color:white; border:none; padding:8px 14px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;">⬇ Download PDF</button>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                <div style="flex:1; min-width:200px; position:relative;">
+                    <label style="font-size:10px; font-weight:bold; color:#777; display:block; margin-bottom:4px;">Filter Transfer To Name</label>
+                    <button type="button" id="msTujuanBtn" onclick="toggleMultiSelect('msTujuan')" style="width:100%; text-align:left; padding:8px 30px 8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:11px; background:white; cursor:pointer; position:relative;">
+                        <span id="msTujuanLabel">Semua Transfer To Name</span>
+                        <span style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:9px; color:#777;">▼</span>
+                    </button>
+                    <div id="msTujuan" class="ms-panel hidden" style="position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #cbd5e1; border-radius:6px; box-shadow:0 4px 10px rgba(0,0,0,0.1); max-height:220px; overflow-y:auto; z-index:30; margin-top:4px;">
+                        <div style="padding:6px 10px; border-bottom:1px solid #f1f5f9; display:flex; gap:10px;">
+                            <a href="#" onclick="setAllMultiSelect('msTujuan', true); return false;" style="font-size:10px; color:var(--primary); font-weight:bold; text-decoration:none;">Pilih Semua</a>
+                            <a href="#" onclick="setAllMultiSelect('msTujuan', false); return false;" style="font-size:10px; color:var(--red); font-weight:bold; text-decoration:none;">Hapus Semua</a>
+                        </div>
+                        <div id="msTujuanOptions"></div>
+                    </div>
+                </div>
+                <div style="flex:1; min-width:200px; position:relative;">
+                    <label style="font-size:10px; font-weight:bold; color:#777; display:block; margin-bottom:4px;">Filter Item Category</label>
+                    <button type="button" id="msCategoryBtn" onclick="toggleMultiSelect('msCategory')" style="width:100%; text-align:left; padding:8px 30px 8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:11px; background:white; cursor:pointer; position:relative;">
+                        <span id="msCategoryLabel">Semua Item Category</span>
+                        <span style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:9px; color:#777;">▼</span>
+                    </button>
+                    <div id="msCategory" class="ms-panel hidden" style="position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #cbd5e1; border-radius:6px; box-shadow:0 4px 10px rgba(0,0,0,0.1); max-height:220px; overflow-y:auto; z-index:30; margin-top:4px;">
+                        <div style="padding:6px 10px; border-bottom:1px solid #f1f5f9; display:flex; gap:10px;">
+                            <a href="#" onclick="setAllMultiSelect('msCategory', true); return false;" style="font-size:10px; color:var(--primary); font-weight:bold; text-decoration:none;">Pilih Semua</a>
+                            <a href="#" onclick="setAllMultiSelect('msCategory', false); return false;" style="font-size:10px; color:var(--red); font-weight:bold; text-decoration:none;">Hapus Semua</a>
+                        </div>
+                        <div id="msCategoryOptions"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="tblTrPriority">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Original TR No</th>
+                            <th>Transfer To Name</th>
+                            <th>Item Category</th>
+                            <th>Status</th>
+                            <th>Item Code</th>
+                            <th>Item Name</th>
+                            <th>Request Delivery Date</th>
+                            <th>Outstanding TO Qty</th>
+                            <th>TR Comment</th>
+                            <th>Generate By</th>
+                            <th>Cust Store</th>
+                        </tr>
+                    </thead>
+
+                    <tbody></tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <!-- CEK CONTAINER & ITEM LIST -->
+        <div class="table-section" style="margin-bottom:20px;">
+            <h3 style="margin:0 0 5px 0; font-size:15px; color:var(--primary);">🔍 Cek Container &amp; Item List</h3>
+            <p style="margin:0 0 15px 0; font-size:11px; color:#777;">Pilih satu atau lebih nomor kontainer untuk melihat daftar item di dalamnya.</p>
+
+            <div style="max-width:480px; position:relative;">
+                <label style="font-size:10px; font-weight:bold; color:#777; display:block; margin-bottom:4px;">Filter No. Kontainer</label>
+                <button type="button" id="msContBtn" onclick="toggleMultiSelect('msCont')"
+                    style="width:100%; text-align:left; padding:8px 30px 8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:11px; background:white; cursor:pointer; position:relative;">
+                    <span id="msContLabel">Pilih Kontainer...</span>
+                    <span style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:9px; color:#777;">▼</span>
+                </button>
+                <div id="msCont" class="ms-panel hidden" style="position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #cbd5e1; border-radius:6px; box-shadow:0 4px 10px rgba(0,0,0,0.1); z-index:50; margin-top:4px;">
+                    <div style="padding:6px 8px; border-bottom:1px solid #f1f5f9;">
+                        <input type="text" id="msContSearch" placeholder="Ketik untuk cari kontainer..." oninput="filterContOptions()"
+                            style="width:100%; padding:5px 8px; border:1px solid #cbd5e1; border-radius:4px; font-size:11px; box-sizing:border-box;">
+                    </div>
+                    <div style="padding:5px 10px; border-bottom:1px solid #f1f5f9; display:flex; gap:10px;">
+                        <a href="#" onclick="setAllMultiSelect('msCont', true); return false;" style="font-size:10px; color:var(--primary); font-weight:bold; text-decoration:none;">Pilih Semua</a>
+                        <a href="#" onclick="setAllMultiSelect('msCont', false); return false;" style="font-size:10px; color:var(--red); font-weight:bold; text-decoration:none;">Hapus Semua</a>
+                    </div>
+                    <div id="msContOptions" style="max-height:220px; overflow-y:auto;"></div>
+                </div>
+            </div>
+            <button class="btn-search" onclick="runSearch()" style="margin-top:10px;">TAMPILKAN</button>
+
+            <!-- HASIL PENCARIAN (Metrics + Tabel Item) -->
+            <div id="printWrapper" style="margin-top:20px;">
+                <div id="secMetrics" class="metrics-grid hidden" style="margin-bottom:15px;">
+                    <div class="metric-card">
+                        <div style="font-size:10px; color:#777; font-weight:bold;">DATA KONTAINER</div>
+                        <div id="resCont" style="font-size:18px; font-weight:bold; color:var(--primary); margin:5px 0;">-</div>
+                        <div id="resTrans" style="font-size:11px;">-</div>
+                    </div>
+                    <div class="metric-card" style="border-left-color:var(--accent);">
+                        <div style="font-size:10px; color:#777; font-weight:bold;">MANIFEST & TUJUAN</div>
+                        <div id="resMan" style="font-size:16px; font-weight:bold; margin:5px 0;">-</div>
+                        <div id="resDest" style="font-size:11px;">-</div>
+                    </div>
+                    <div class="metric-card">
+                        <div style="font-size:10px; color:#777; font-weight:bold;">DRIVER</div>
+                        <div id="resDriver" style="font-size:16px; font-weight:bold; margin:5px 0;">-</div>
+                        <div id="resCount" style="font-size:11px; color:var(--red); font-weight:bold;">0 Items Found</div>
+                    </div>
+                </div>
+
+                <div id="secResult" class="hidden">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;" id="no-print-btn">
+                        <h4 style="margin:0; font-size:13px; color:var(--primary);">Daftar Item Kontainer</h4>
+                        <button id="btnPdfCont" onclick="downloadPdfCont()" style="background:var(--primary); color:white; border:none; padding:8px 14px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;">⬇ Download PDF</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="tblResult">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Category Name</th>
+                                    <th>Transfer Order No</th>
+                                    <th>TO Number</th>
+                                    <th>Item No</th>
+                                    <th>Nama Item</th>
+                                    <th>Qty</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end .container -->
+
+    <!-- FOOTER -->
+    <footer style="text-align:center; padding:18px 20px; font-size:11px; color:#94a3b8; background:white; border-top:1px solid #e2e8f0; margin-top:10px;">
+        &copy; <span id="footerYear"></span> Powered by <strong style="color:var(--primary);">Support Back TLC</strong>
+    </footer>
+    <script>document.getElementById('footerYear').textContent = new Date().getFullYear();</script>
+
+    <!-- Area khusus untuk export PDF tabel Daftar Item Kontainer (di luar tampilan, hanya dipakai saat cetak) -->
+    <div id="pdfItemArea" style="position:absolute; left:-9999px; top:0; width:190mm; background:#fff; padding:8mm; font-family:'Segoe UI', Tahoma, sans-serif; z-index:-1;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--primary); padding-bottom:6px; margin-bottom:8px;">
+            <div>
+                <div style="font-size:14px; font-weight:bold; color:var(--primary);">Daftar Item Kontainer</div>
+                <div style="font-size:9px; color:#777;">Monitoring Container · Admin TLC</div>
+            </div>
+            <div style="text-align:right; font-size:9px; color:#444;">
+                <div><b>Container:</b> <span id="pdfCont">-</span></div>
+                <div><b>Load Manifest:</b> <span id="pdfMan">-</span></div>
+                <div><b>Tujuan:</b> <span id="pdfDest">-</span></div>
+            </div>
+        </div>
+        <table id="pdfItemTable" style="width:100%; border-collapse:collapse; font-size:9px;">
+            <thead>
+                <tr>
+                    <th style="background:var(--primary); color:#fff; padding:4px 5px; text-align:left;">No</th>
+                    <th style="background:var(--primary); color:#fff; padding:4px 5px; text-align:left;">Category Name</th>
+                    <th style="background:var(--primary); color:#fff; padding:4px 5px; text-align:left;">Item No</th>
+                    <th style="background:var(--primary); color:#fff; padding:4px 5px; text-align:left;">Nama Item</th>
+                    <th style="background:var(--primary); color:#fff; padding:4px 5px; text-align:right;">Qty</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div style="margin-top:8px; font-size:8px; color:#999; text-align:right;" id="pdfFooterNote">-</div>
+    </div>
+
+    <script>
+        let dbDel = [];
+        let dbOts = [];
+        let dbTr = [];
+
+        function fmtDate(v) {
+            if (!v) return "-";
+            if (typeof v === 'number') {
+                let d = new Date((v - 25569) * 86400 * 1000);
+                return d.toLocaleDateString('id-ID', {day:'2-digit', month:'2-digit', year:'numeric'});
+            }
+            return String(v).split('T')[0];
+        }
+
+        function getV(row, keys) {
+            for (let k of keys) {
+                if (row[k] !== undefined && row[k] !== null) return String(row[k]).trim();
+            }
+            return "";
+        }
+
+        function findHeaderRow(json, markers) {
+            for (let i = 0; i < Math.min(json.length, 20); i++) {
+                const row = (json[i] || []).map(c => String(c || '').trim().toLowerCase());
+                if (markers.some(m => row.includes(m.toLowerCase()))) return i;
+            }
+            return -1;
+        }
+
+        function loadFile(input, type) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const wb = XLSX.read(data, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+                let markers;
+                if (type === 'DEL') markers = ['Container No', 'Load Manifest No'];
+                else if (type === 'OTS') markers = ['Load Manifest No', 'Item Name'];
+                else markers = ['Original TR No', 'Outstanding TO Qty'];
+
+                let skip = findHeaderRow(json, markers);
+                if (skip === -1) skip = (type === 'DEL') ? 6 : (type === 'OTS' ? 3 : 0);
+
+                const headers = json[skip] ? json[skip].map(h => String(h || '').trim()) : [];
+                const rows = [];
+                for (let i = skip + 1; i < json.length; i++) {
+                    if (!json[i] || json[i].length === 0) continue;
+                    let obj = {};
+                    headers.forEach((h, idx) => { if(h) obj[h] = json[i][idx]; });
+                    rows.push(obj);
+                }
+
+                if (type === 'DEL') {
+                    dbDel = rows;
+                    document.getElementById('stDel').innerText = "Sudah Dimuat";
+                    document.getElementById('stDel').className = "st-badge st-ready";
+                } else if (type === 'OTS') {
+                    dbOts = rows;
+                    document.getElementById('stOts').innerText = "Sudah Dimuat";
+                    document.getElementById('stOts').className = "st-badge st-ready";
+                } else {
+                    dbTr = rows;
+                    document.getElementById('stTr').innerText = "Sudah Dimuat";
+                    document.getElementById('stTr').className = "st-badge st-ready";
+                }
+                refresh();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function isTrExcluded(row) {
+            const status = getV(row, ['Status']).toUpperCase();
+            return status === 'EXPIRED' || status === 'CANCEL';
+        }
+
+        function trOutstandingQty(row) {
+            const q = parseFloat(row['Outstanding TO Qty']);
+            return isNaN(q) ? 0 : q;
+        }
+
+        function refreshTr() {
+            const validRows = dbTr.filter(r => !isTrExcluded(r));
+            const nonZeroRows = validRows.filter(r => trOutstandingQty(r) !== 0);
+
+            const uniqueTr = new Set(nonZeroRows.map(r => getV(r, ['Original TR No', 'Original TR'])).filter(Boolean));
+            document.getElementById('vTotalOtsTr').innerText = uniqueTr.size.toLocaleString();
+
+            const totalQtyOtsTo = validRows.reduce((a, b) => a + trOutstandingQty(b), 0);
+            document.getElementById('vTotalQtyOtsTo').innerText = totalQtyOtsTo.toLocaleString();
+
+            const uniqueItem = new Set(nonZeroRows.map(r => getV(r, ['Item Code'])).filter(Boolean));
+            document.getElementById('vTotalItemOtsTo').innerText = uniqueItem.size.toLocaleString();
+
+            populateTrFilters();
+            renderTrPriority();
+        }
+
+        function populateTrFilters() {
+            const prevTujuan = getSelectedValues('msTujuan');
+            const prevCategory = getSelectedValues('msCategory');
+            const isFirstLoad = !document.getElementById('msTujuanOptions').dataset.loaded;
+
+            const tujuanSet = new Set(dbTr.map(r => String(r['Transfer To Name'] || '').trim()).filter(Boolean));
+            const categorySet = new Set(dbTr.map(r => String(r['Item Category'] || '').trim()).filter(Boolean));
+
+            buildMultiSelectOptions('msTujuan', [...tujuanSet].sort(), isFirstLoad ? null : prevTujuan);
+            buildMultiSelectOptions('msCategory', [...categorySet].sort(), isFirstLoad ? null : prevCategory);
+
+            document.getElementById('msTujuanOptions').dataset.loaded = '1';
+            document.getElementById('msCategoryOptions').dataset.loaded = '1';
+
+            updateMultiSelectLabel('msTujuan', 'Semua Transfer To Name');
+            updateMultiSelectLabel('msCategory', 'Semua Item Category');
+        }
+
+        function buildMultiSelectOptions(id, values, keepSelected) {
+            const container = document.getElementById(id + 'Options');
+            container.innerHTML = '';
+            if (values.length === 0) {
+                container.innerHTML = '<div class="ms-empty">Tidak ada data</div>';
+                return;
+            }
+            const keepSet = keepSelected ? new Set(keepSelected) : null;
+            values.forEach((v, i) => {
+                const checked = keepSet ? keepSet.has(v) : false;
+                const optId = id + '_opt_' + i;
+                const label = document.createElement('label');
+                label.className = 'ms-option';
+                label.innerHTML = `<input type="checkbox" id="${optId}" value="${v.replace(/"/g,'&quot;')}" ${checked ? 'checked' : ''} onchange="onMultiSelectChange('${id}')"> <span>${v}</span>`;
+                container.appendChild(label);
+            });
+        }
+
+        function getSelectedValues(id) {
+            return [...document.querySelectorAll('#' + id + 'Options input[type=checkbox]:checked')].map(cb => cb.value);
+        }
+
+        function onMultiSelectChange(id) {
+            const defaultLabel = id === 'msTujuan' ? 'Semua Transfer To Name' : 'Semua Item Category';
+            updateMultiSelectLabel(id, defaultLabel);
+            renderTrPriority();
+        }
+
+        function updateMultiSelectLabel(id, defaultLabel) {
+            const selected = getSelectedValues(id);
+            const labelEl = document.getElementById(id + 'Label');
+            if (selected.length === 0) labelEl.textContent = defaultLabel;
+            else if (selected.length === 1) labelEl.textContent = selected[0];
+            else labelEl.textContent = selected.length + ' dipilih';
+        }
+
+        function setAllMultiSelect(id, checkAll) {
+            document.querySelectorAll('#' + id + 'Options input[type=checkbox]').forEach(cb => cb.checked = checkAll);
+            const defaultLabel = id === 'msTujuan' ? 'Semua Transfer To Name' : 'Semua Item Category';
+            updateMultiSelectLabel(id, defaultLabel);
+            renderTrPriority();
+        }
+
+        function toggleMultiSelect(id) {
+            const panel = document.getElementById(id);
+            const isOpen = !panel.classList.contains('hidden');
+            document.querySelectorAll('.ms-panel').forEach(p => p.classList.add('hidden'));
+            if (!isOpen) panel.classList.remove('hidden');
+        }
+
+        document.addEventListener('click', (e) => {
+            const isInsideFilter = e.target.closest('#msTujuanBtn, #msTujuan, #msCategoryBtn, #msCategory, #msContBtn, #msCont');
+            if (!isInsideFilter) {
+                document.querySelectorAll('.ms-panel').forEach(p => p.classList.add('hidden'));
+            }
+        });
+
+        function renderTrPriority() {
+            if (dbTr.length === 0) return;
+            document.getElementById('secTrPriority').classList.remove('hidden');
+            const tbody = document.querySelector('#tblTrPriority tbody');
+            tbody.innerHTML = '';
+
+            const filterTujuanList = getSelectedValues('msTujuan');
+            const filterCategoryList = getSelectedValues('msCategory');
+
+            const today = new Date(); today.setHours(0,0,0,0);
+            const limit = new Date(today); limit.setDate(limit.getDate() + 7);
+
+            function toDateObj(v) {
+                if (!v) return null;
+                if (typeof v === 'number') return new Date((v - 25569) * 86400 * 1000);
+                const d = new Date(v);
+                return isNaN(d.getTime()) ? null : d;
+            }
+
+            const candidates = dbTr.filter(r => {
+                if (isTrExcluded(r)) return false;
+                if (trOutstandingQty(r) === 0) return false;
+                const d = toDateObj(r['Request Delivery Date']);
+                if (!d) return false;
+                d.setHours(0,0,0,0);
+                if (d > limit) return false;
+                // Hanya tampilkan baris yang kolom TR Comment mengandung "tj" (case-insensitive)
+                const comment = String(r['TR Comment'] || '').trim().toLowerCase();
+                if (!comment.includes('tj')) return false;
+                const tujuan = String(r['Transfer To Name'] || '').trim();
+                const category = String(r['Item Category'] || '').trim();
+                if (filterTujuanList.length > 0 && !filterTujuanList.includes(tujuan)) return false;
+                if (filterCategoryList.length > 0 && !filterCategoryList.includes(category)) return false;
+                return true;
+            }).sort((a, b) => {
+                const da = toDateObj(a['Request Delivery Date']) || new Date(8640000000000000);
+                const db = toDateObj(b['Request Delivery Date']) || new Date(8640000000000000);
+                return da - db;
+            });
+
+            // Buang baris duplikat — kalau semua kolom yang ditampilkan di tabel ini
+            // sama persis (kemungkinan baris ganda dari hasil import xlsx), cukup
+            // tampilkan satu kali saja supaya 20 slot teratas tidak terbuang untuk
+            // data yang sebenarnya sama.
+            const seenTrKeys = new Set();
+            const dedupedCandidates = candidates.filter(row => {
+                const key = [
+                    getV(row, ['Original TR No', 'Original TR']),
+                    row['Transfer To Name'],
+                    row['Item Category'],
+                    row['Status'],
+                    getV(row, ['Item Code']),
+                    row['Item Name'],
+                    fmtDate(row['Request Delivery Date']),
+                    row['Outstanding TO Qty'],
+                    row['TR Comment'],
+                    row['Generate By'],
+                    row['Cust Store']
+                ].map(v => String(v ?? '').trim().toLowerCase()).join('|');
+                if (seenTrKeys.has(key)) return false;
+                seenTrKeys.add(key);
+                return true;
+            });
+
+            const top20 = dedupedCandidates.slice(0, 20);
+
+            if (top20.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; color:#999; padding:15px;">Tidak ada data TR yang cocok dengan filter.</td></tr>`;
+                return;
+            }
+
+            top20.forEach((row, idx) => {
+                tbody.innerHTML += `<tr>
+                    <td>${idx + 1}</td>
+                    <td>${getV(row, ['Original TR No', 'Original TR'])}</td>
+                    <td>${row['Transfer To Name'] || '-'}</td>
+                    <td>${row['Item Category'] || '-'}</td>
+                    <td>${row['Status'] || '-'}</td>
+                    <td>${getV(row, ['Item Code'])}</td>
+                    <td>${row['Item Name'] || '-'}</td>
+                    <td>${fmtDate(row['Request Delivery Date'])}</td>
+                    <td style="font-weight:bold;">${row['Outstanding TO Qty'] || 0}</td>
+                    <td>${row['TR Comment'] || '-'}</td>
+                    <td>${row['Generate By'] || '-'}</td>
+                    <td>${row['Cust Store'] || '-'}</td>
+                </tr>`;
+            });
+        }
+
+        function refresh() {
+            if (dbOts.length === 0) return;
+            document.getElementById('vTotalItems').innerText = dbOts.length.toLocaleString();
+            document.getElementById('vTotalQty').innerText = dbOts.reduce((a, b) => a + (parseInt(b['Quantity']) || 0), 0).toLocaleString();
+
+            if (dbDel.length > 0) {
+                const otsLM = new Set(dbOts.map(o => String(o['Load Manifest No'] || '').trim()));
+                const relDel = dbDel.filter(d => otsLM.has(String(d['Load Manifest No'] || '').trim()));
+                const uniqueC = [...new Set(relDel.map(d => getV(d, ['Container No', 'Container Name', 'Countainer Name'])).filter(Boolean))];
+                document.getElementById('vTotalCont').innerText = uniqueC.length;
+
+                buildContOptions(uniqueC.sort());
+            }
+            renderAging();
+            if (dbTr.length > 0) refreshTr();
+        }
+
+        function renderAging() {
+            const tbody = document.querySelector('#tblAging tbody');
+            document.getElementById('secAging').classList.remove('hidden');
+            tbody.innerHTML = '';
+
+            const sorted = [...dbOts].sort((a, b) => (parseFloat(a['Posting Date']) || 0) - (parseFloat(b['Posting Date']) || 0));
+            const top10 = []; const seenTO = new Set();
+
+            for (let item of sorted) {
+                let toNo = getV(item, ['Transfer Order No', 'Transfer Order No ']);
+                if(!seenTO.has(toNo) && toNo !== "") { seenTO.add(toNo); top10.push(item); }
+                if(top10.length === 10) break;
+            }
+
+            top10.forEach((row, idx) => {
+                const lmNo = String(row['Load Manifest No'] || '').trim();
+                const d = dbDel.find(x => String(x['Load Manifest No'] || '').trim() === lmNo) || {};
+                const cNo = getV(d, ['Container No', 'Container Name', 'Countainer Name']);
+                
+                tbody.innerHTML += `<tr>
+                    <td>${idx + 1}</td>
+                    <td>${fmtDate(row['Transfer Order Date'])}</td>
+                    <td style="color:var(--red); font-weight:bold;">${fmtDate(row['Posting Date'])}</td>
+                    <td>${getV(row, ['Transfer Order No', 'Transfer Order No '])}</td>
+                    <td>${row['TO Number'] || '-'}</td>
+                    <td>${lmNo}</td>
+                    <td>${row['Transfer from Name'] || '-'}</td>
+                    <td style="font-weight:bold; color:var(--primary);">${cNo}</td>
+                    <td>${fmtDate(d['Start Loading Date'])}</td>
+                </tr>`;
+            });
+        }
+
+        function buildContOptions(values) {
+            const container = document.getElementById('msContOptions');
+            container.innerHTML = '';
+            if (!values || values.length === 0) {
+                container.innerHTML = '<div class="ms-empty">Belum ada data kontainer</div>';
+                return;
+            }
+            values.forEach((v, i) => {
+                const optId = 'msCont_opt_' + i;
+                const label = document.createElement('label');
+                label.className = 'ms-option';
+                label.dataset.val = v.toLowerCase();
+                label.innerHTML = `<input type="checkbox" id="${optId}" value="${v.replace(/"/g,'&quot;')}" onchange="updateContLabel()"> <span>${v}</span>`;
+                container.appendChild(label);
+            });
+        }
+
+        function filterContOptions() {
+            const q = document.getElementById('msContSearch').value.toLowerCase();
+            document.querySelectorAll('#msContOptions label').forEach(lbl => {
+                lbl.style.display = lbl.dataset.val.includes(q) ? '' : 'none';
+            });
+        }
+
+        function updateContLabel() {
+            const selected = getSelectedValues('msCont');
+            const lbl = document.getElementById('msContLabel');
+            if (selected.length === 0) lbl.textContent = 'Pilih Kontainer...';
+            else if (selected.length === 1) lbl.textContent = selected[0];
+            else lbl.textContent = selected.length + ' kontainer dipilih';
+        }
+
+        function runSearch() {
+            const selectedConts = getSelectedValues('msCont');
+            if (selectedConts.length === 0) return alert("Pilih minimal satu nomor kontainer!");
+
+            const selectedSet = new Set(selectedConts.map(s => s.toLowerCase()));
+
+            // Ambil semua match dari dbDel untuk kontainer yang dipilih
+            const matches = dbDel.filter(d => selectedSet.has(getV(d, ['Container No', 'Container Name', 'Countainer Name']).toLowerCase()));
+            if (matches.length === 0) return alert("Data kontainer tidak ditemukan!");
+
+            const lmNos = new Set(matches.map(m => String(m['Load Manifest No'] || '').trim()).filter(Boolean));
+            const items = dbOts.filter(i => lmNos.has(String(i['Load Manifest No'] || '').trim()));
+
+            document.getElementById('secMetrics').classList.remove('hidden');
+            document.getElementById('secResult').classList.remove('hidden');
+
+            // Info: tampilkan nama kontainer yg dipilih
+            document.getElementById('resCont').innerText = selectedConts.join(', ');
+            const transSet = [...new Set(matches.map(m => m['Transporter'] || '').filter(Boolean))];
+            document.getElementById('resTrans').innerText = "Transporter: " + (transSet.join(', ') || '-');
+            document.getElementById('resMan').innerText = [...lmNos].join(', ') || '-';
+            const destSet = [...new Set(matches.map(m => getV(m, ['Destination Name', 'Transfer to Name'])).filter(Boolean))];
+            document.getElementById('resDest').innerText = "Tujuan: " + (destSet.join(', ') || '-');
+            document.getElementById('resCount').innerText = items.length + " Items Outstanding";
+            const driverSet = [...new Set(matches.map(m => m['Driver Name'] || '').filter(Boolean))];
+            document.getElementById('resDriver').innerText = driverSet.join(', ') || '-';
+
+            // Sort by Category Name
+            items.sort((a, b) => (a['Category Name'] || '').localeCompare(b['Category Name'] || ''));
+
+            const tb = document.querySelector('#tblResult tbody'); tb.innerHTML = '';
+            items.forEach((it, idx) => {
+                tb.innerHTML += `<tr>
+                    <td>${idx+1}</td>
+                    <td>${it['Category Name'] || '-'}</td>
+                    <td>${getV(it, ['Transfer Order No', 'Transfer Order No ']) || '-'}</td>
+                    <td>${it['TO Number'] || '-'}</td>
+                    <td>${getV(it, ['Item No', 'Item No '])}</td>
+                    <td>${it['Item Name'] || '-'}</td>
+                    <td style="font-weight:bold;">${it['Quantity'] || 0}</td>
+                </tr>`;
+            });
+        }
+
+        // ── Utilitas PDF pakai jsPDF + autoTable ──────────────────────
+        function makePdfBase(orientation) {
+            const { jsPDF } = window.jspdf;
+            return new jsPDF({ orientation: orientation, unit: 'mm', format: 'a4' });
+        }
+
+        function pdfHeader(doc, title, subtitle) {
+            const pageW = doc.internal.pageSize.getWidth();
+            doc.setFillColor(26, 47, 75);
+            doc.rect(0, 0, pageW, 18, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(255, 255, 255);
+            doc.text(title, 10, 8);
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            doc.text(subtitle, 10, 13.5);
+            doc.setTextColor(33, 33, 33);
+        }
+
+        function pdfFooter(doc, total) {
+            const pageW = doc.internal.pageSize.getWidth();
+            const pageH = doc.internal.pageSize.getHeight();
+            const pages = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(7);
+                doc.setTextColor(150);
+                doc.text('Dicetak: ' + new Date().toLocaleString('id-ID') + '   |   Total ' + total + ' baris   |   Halaman ' + i + ' / ' + pages,
+                    pageW / 2, pageH - 5, { align: 'center' });
+                doc.setTextColor(33, 33, 33);
+            }
+        }
+
+        function setBtnLoading(btn, loading) {
+            if (loading) { btn.dataset.orig = btn.innerText; btn.innerText = 'Menyiapkan...'; btn.disabled = true; }
+            else { btn.innerText = btn.dataset.orig || '⬇ Download PDF'; btn.disabled = false; }
+        }
+
+        // ── Download PDF: List TR Prioritas ──────────────────────────
+        function downloadPdfTr() {
+            const rows = document.querySelectorAll('#tblTrPriority tbody tr');
+            if (rows.length === 0) return alert('Belum ada data TR Prioritas untuk diekspor.');
+            const btn = document.getElementById('btnPdfTr');
+            setBtnLoading(btn, true);
+            try {
+                const doc = makePdfBase('landscape');
+                pdfHeader(doc, 'List TR Prioritas', 'Monitoring TR IN/OUT · Support Back TLC · Dicetak: ' + new Date().toLocaleDateString('id-ID'));
+                const head = [['No','Original TR No','Transfer To Name','Item Category','Status','Item Code','Item Name','Req. Del. Date','Ots Qty','TR Comment','Generate By','Cust Store']];
+                const body = [];
+                rows.forEach(tr => {
+                    const cells = tr.querySelectorAll('td');
+                    body.push([...cells].map(c => c.innerText));
+                });
+                doc.autoTable({
+                    head: head,
+                    body: body,
+                    startY: 22,
+                    styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
+                    headStyles: { fillColor: [91, 75, 138], textColor: 255, fontStyle: 'bold' },
+                    alternateRowStyles: { fillColor: [245, 243, 255] },
+                    columnStyles: { 0:{cellWidth:8}, 1:{cellWidth:24}, 8:{cellWidth:12, halign:'center'} },
+                    margin: { top: 22, left: 8, right: 8, bottom: 12 }
+                });
+                pdfFooter(doc, body.length);
+                doc.save('List_TR_Prioritas_' + new Date().toLocaleDateString('id-ID').replace(/\//g,'-') + '.pdf');
+            } catch(e) { alert('Gagal membuat PDF: ' + e.message); }
+            setBtnLoading(btn, false);
+        }
+
+        // ── Download PDF: Daftar Item Kontainer ──────────────────────
+        function downloadPdfCont() {
+            const rows = document.querySelectorAll('#tblResult tbody tr');
+            if (rows.length === 0) return alert('Belum ada data kontainer untuk diekspor.');
+            const btn = document.getElementById('btnPdfCont');
+            setBtnLoading(btn, true);
+            const contLabel = document.getElementById('resCont').innerText || '-';
+            const manLabel  = document.getElementById('resMan').innerText  || '-';
+            const destLabel = (document.getElementById('resDest').innerText || '-').replace('Tujuan: ', '');
+            try {
+                const doc = makePdfBase('portrait');
+                pdfHeader(doc, 'Daftar Item Kontainer', 'Container: ' + contLabel + '   |   Manifest: ' + manLabel + '   |   Tujuan: ' + destLabel);
+                const head = [['No','Category Name','Transfer Order No','TO Number','Item No','Nama Item','Qty']];
+                const body = [];
+                rows.forEach(tr => {
+                    const cells = tr.querySelectorAll('td');
+                    body.push([...cells].map(c => c.innerText.replace(/[\r\n]+/g, ' ')));
+                });
+                doc.autoTable({
+                    head: head,
+                    body: body,
+                    startY: 22,
+                    styles: { fontSize: 5, cellPadding: 1.2, overflow: 'visible', lineWidth: 0.1, lineColor: [220,220,220], fillColor: [255,255,255] },
+                    headStyles: { fillColor: [26, 47, 75], textColor: 255, fontStyle: 'bold', fontSize: 6.5, cellPadding: 2 },
+                    bodyStyles: { fillColor: [255,255,255] },
+                    alternateRowStyles: { fillColor: [255,255,255] },
+                    rowPageBreak: 'avoid',
+                    columnStyles: {
+                        0: { cellWidth: 7,  halign: 'center' },
+                        1: { cellWidth: 28 },
+                        2: { cellWidth: 26 },
+                        3: { cellWidth: 32 },
+                        4: { cellWidth: 20 },
+                        5: { cellWidth: 'auto' },
+                        6: { cellWidth: 10, halign: 'center', fontStyle: 'bold' }
+                    },
+                    margin: { top: 22, left: 6, right: 6, bottom: 10 }
+                });
+                pdfFooter(doc, body.length);
+                doc.save('Daftar_Item_Kontainer_' + contLabel.replace(/[^a-zA-Z0-9]/g,'_') + '.pdf');
+            } catch(e) { alert('Gagal membuat PDF: ' + e.message); }
+            setBtnLoading(btn, false);
+        }
+    </script>
+</body>
+</html>

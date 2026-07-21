@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Barang Balik — Belum Dikirim Kembali | Support Back TLC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root{
+    --navy-900:#0B1E3A;
+    --navy-800:#122A4E;
+    --navy-700:#1B3A63;
+    --navy-600:#284B7D;
+    --navy-100:#E8EEF6;
+    --navy-050:#F4F7FB;
+    --white:#FFFFFF;
+    --red:#C22A2A;
+    --red-bg:#FBEAEA;
+    --green:#1E7A46;
+    --green-bg:#E9F6EE;
+    --amber:#B5790A;
+    --amber-bg:#FDF3E1;
+    --gray-500:#64748A;
+    --gray-300:#CBD5E1;
+    --shadow: 0 1px 2px rgba(11,30,58,.06), 0 4px 14px rgba(11,30,58,.06);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Roboto',sans-serif; background:var(--navy-050); color:var(--navy-900);
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'Roboto Mono',monospace;}
+
+  /* Topbar */
+  .topbar{
+    background:linear-gradient(135deg,var(--navy-900) 0%, var(--navy-700) 100%);
+    color:var(--white); padding:22px 28px; display:flex; align-items:center; justify-content:space-between;
+    box-shadow:var(--shadow); position:sticky; top:0; z-index:50;
+  }
+  .topbar .brand{display:flex; align-items:center; gap:14px;}
+  .brand-mark{
+    width:44px; height:44px; border-radius:10px; background:rgba(255,255,255,.12);
+    display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0;
+  }
+  .brand-text h1{margin:0; font-size:17px; font-weight:700; letter-spacing:.2px;}
+  .brand-text p{margin:2px 0 0; font-size:11.5px; color:#AFC3DE; letter-spacing:.3px;}
+  .topbar .meta{font-size:12px; color:#AFC3DE; text-align:right;}
+  .topbar .meta span{display:block;}
+  .topbar .meta b{color:#fff;}
+
+  .wrap{max-width:1320px; margin:0 auto; padding:24px 28px 60px;}
+
+  /* Import panel */
+  .panel{
+    background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); padding:22px 24px; margin-bottom:22px;
+  }
+  .panel h2{margin:0 0 4px; font-size:15px; font-weight:700; color:var(--navy-900);}
+  .panel .sub{margin:0 0 16px; font-size:12.5px; color:var(--gray-500);}
+  .import-row{display:flex; gap:14px; flex-wrap:wrap; align-items:stretch;}
+  .drop{
+    flex:1; min-width:260px; border:2px dashed var(--gray-300); border-radius:12px; padding:18px;
+    display:flex; align-items:center; gap:14px; transition:.15s; background:var(--navy-050);
+  }
+  .drop.drag{border-color:var(--navy-600); background:var(--navy-100);}
+  .drop .ic{font-size:26px;}
+  .drop .txt b{display:block; font-size:13px; color:var(--navy-900);}
+  .drop .txt span{font-size:11.5px; color:var(--gray-500);}
+  .btn{
+    border:none; border-radius:10px; padding:11px 18px; font-size:13px; font-weight:700; cursor:pointer;
+    display:inline-flex; align-items:center; gap:8px; transition:.15s; white-space:nowrap;
+  }
+  .btn-primary{background:var(--navy-800); color:#fff;}
+  .btn-primary:hover{background:var(--navy-700);}
+  .btn-outline{background:#fff; color:var(--navy-800); border:1.5px solid var(--navy-800);}
+  .btn-outline:hover{background:var(--navy-100);}
+  .btn-green{background:var(--green); color:#fff;}
+  .btn-green:hover{background:#166238;}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+  .btn-col{display:flex; flex-direction:column; gap:8px; justify-content:center;}
+  input[type=file]{display:none;}
+
+  .filelist{margin-top:14px; display:flex; flex-wrap:wrap; gap:8px;}
+  .chip{
+    background:var(--navy-100); color:var(--navy-800); font-size:11.5px; padding:6px 10px; border-radius:20px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .chip b{font-weight:700;}
+
+  #status{font-size:12.5px; margin-top:10px; color:var(--gray-500);}
+  #status.err{color:var(--red);}
+  #status.ok{color:var(--green);}
+
+  .progress{height:6px; background:var(--navy-100); border-radius:6px; overflow:hidden; margin-top:10px; display:none;}
+  .progress > div{height:100%; width:0%; background:var(--navy-600); transition:width .2s;}
+
+  /* KPI */
+  .kpis{display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:22px;}
+  .kpi{
+    background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px 18px 16px;
+    border-left:4px solid var(--navy-700);
+  }
+  .kpi.red{border-left-color:var(--red);}
+  .kpi.green{border-left-color:var(--green);}
+  .kpi.amber{border-left-color:var(--amber);}
+  .kpi .lbl{font-size:11.5px; color:var(--gray-500); font-weight:500; margin-bottom:6px; letter-spacing:.2px;}
+  .kpi .val{font-size:28px; font-weight:900; color:var(--navy-900); line-height:1;}
+  .kpi.red .val{color:var(--red);}
+  .kpi.green .val{color:var(--green);}
+  .kpi.amber .val{color:var(--amber);}
+  .kpi .sub{font-size:11px; color:var(--gray-500); margin-top:6px;}
+
+  /* Filters */
+  .filters{
+    background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 20px; margin-bottom:16px;
+    display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;
+  }
+  .field{display:flex; flex-direction:column; gap:6px;}
+  .field label{font-size:11px; font-weight:700; color:var(--navy-800); text-transform:uppercase; letter-spacing:.4px;}
+  .field input, .field select{
+    border:1.5px solid var(--gray-300); border-radius:8px; padding:8px 10px; font-size:13px; font-family:inherit;
+    min-width:150px; color:var(--navy-900); background:#fff;
+  }
+  .field input:focus, .field select:focus{outline:none; border-color:var(--navy-600);}
+  .field.grow{flex:1; min-width:220px;}
+  .field.grow input{width:100%;}
+
+  /* Table card */
+  .tablecard{background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;}
+  .tablecard-head{
+    display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--navy-100);
+    flex-wrap:wrap; gap:10px;
+  }
+  .tablecard-head h3{margin:0; font-size:14.5px; color:var(--navy-900); font-weight:700;}
+  .tablecard-head .count{font-size:12px; color:var(--gray-500); margin-left:8px; font-weight:400;}
+
+  .table-scroll{overflow-x:auto;}
+  table{width:100%; border-collapse:collapse; font-size:12.5px; min-width:1100px;}
+  thead th{
+    background:var(--navy-900); color:#fff; text-align:left; padding:10px 12px; font-weight:600; white-space:nowrap;
+    position:sticky; top:0; cursor:pointer; user-select:none;
+  }
+  thead th:hover{background:var(--navy-700);}
+  thead th .arrow{opacity:.6; font-size:10px; margin-left:4px;}
+  tbody tr{border-bottom:1px solid var(--navy-100); cursor:pointer;}
+  tbody tr:hover{background:var(--navy-050);}
+  tbody td{padding:9px 12px; color:var(--navy-900); white-space:nowrap;}
+  tbody tr.exp-row{background:var(--navy-050); cursor:default;}
+  tbody tr.exp-row:hover{background:var(--navy-050);}
+  .badge{padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700; display:inline-block;}
+  .badge.red{background:var(--red-bg); color:var(--red);}
+  .badge.amber{background:var(--amber-bg); color:var(--amber);}
+  .badge.gray{background:var(--navy-100); color:var(--navy-700);}
+  .detailbox{padding:14px 20px; background:var(--navy-050);}
+  .detailbox table{min-width:0; font-size:11.5px;}
+  .detailbox thead th{background:var(--navy-700);}
+  .caret{display:inline-block; transition:.15s; margin-right:6px; font-size:10px; color:var(--gray-500);}
+  .caret.open{transform:rotate(90deg);}
+
+  .empty{padding:60px 20px; text-align:center; color:var(--gray-500);}
+  .empty .ic{font-size:40px; margin-bottom:10px;}
+
+  .pagebar{display:flex; justify-content:space-between; align-items:center; padding:14px 20px; border-top:1px solid var(--navy-100); font-size:12px; color:var(--gray-500); flex-wrap:wrap; gap:10px;}
+  .pagebar .pages{display:flex; gap:6px; align-items:center;}
+  .pagebar button{border:1px solid var(--gray-300); background:#fff; border-radius:6px; padding:5px 10px; font-size:12px; cursor:pointer;}
+  .pagebar button:disabled{opacity:.4; cursor:not-allowed;}
+  .pagebar select{border:1px solid var(--gray-300); border-radius:6px; padding:4px 6px; font-size:12px;}
+
+  footer{text-align:center; padding:26px 0 10px; color:var(--gray-500); font-size:11.5px;}
+  footer b{color:var(--navy-800);}
+
+  @media (max-width:980px){
+    .kpis{grid-template-columns:repeat(2,1fr);}
+    table{min-width:900px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">📦</div>
+    <div class="brand-text">
+      <h1>Dashboard Barang Balik — Belum Dikirim Kembali</h1>
+      <p>Support Back TLC · MITRA10 Tallasa City Makassar</p>
+    </div>
+  </div>
+  <div class="meta">
+    <span>Data terakhir diproses</span>
+    <b id="lastUpdate">—</b>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- IMPORT PANEL -->
+  <div class="panel">
+    <h2>Import Data</h2>
+    <p class="sub">Import file "Daily Delivery Confirmation Report" (.xlsx). Gunakan <b>Import Data Awal</b> untuk memuat data baru dari nol, atau <b>Tambah / Update Data</b> untuk menggabungkan file tambahan (baris duplikat otomatis diabaikan).</p>
+    <div class="import-row">
+      <div class="drop" id="dropZone">
+        <div class="ic">📄</div>
+        <div class="txt">
+          <b>Seret file .xlsx ke sini, atau klik tombol di samping</b>
+          <span>Kolom wajib: GI No, TR No, LM Status</span>
+        </div>
+      </div>
+      <div class="btn-col">
+        <button class="btn btn-primary" id="btnLoadNew">↻ Import Data Awal</button>
+        <button class="btn btn-outline" id="btnAppend">＋ Tambah / Update Data</button>
+      </div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" multiple>
+    </div>
+    <div class="progress" id="progress"><div id="progressBar"></div></div>
+    <div id="status">Belum ada data. Silakan import file xlsx untuk mulai.</div>
+    <div class="filelist" id="fileList"></div>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpis" id="kpis" style="display:none;">
+    <div class="kpi">
+      <div class="lbl">TOTAL BARIS DATA</div>
+      <div class="val" id="kpiTotal">0</div>
+      <div class="sub" id="kpiTotalSub">dari semua file diimport</div>
+    </div>
+    <div class="kpi amber">
+      <div class="lbl">TOTAL "FAIL TO DELIVERED"</div>
+      <div class="val" id="kpiFail">0</div>
+      <div class="sub">baris LM Status = Fail to Delivered</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">KOMBINASI GI+TR GAGAL (UNIK)</div>
+      <div class="val" id="kpiUnik">0</div>
+      <div class="sub">dokumen barang balik unik</div>
+    </div>
+    <div class="kpi green">
+      <div class="lbl">SUDAH DIKIRIM KEMBALI</div>
+      <div class="val" id="kpiSudah">0</div>
+      <div class="sub">sudah ada status Successfully Delivered</div>
+    </div>
+    <div class="kpi red">
+      <div class="lbl">BELUM DIKIRIM KEMBALI</div>
+      <div class="val" id="kpiBelum">0</div>
+      <div class="sub">perlu ditindaklanjuti</div>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters" id="filters" style="display:none;">
+    <div class="field grow">
+      <label>Cari</label>
+      <input type="text" id="fSearch" placeholder="GI No, TR No, DO No, Destination, Vehicle, Driver...">
+    </div>
+    <div class="field">
+      <label>Destination</label>
+      <select id="fDest"><option value="">Semua</option></select>
+    </div>
+    <div class="field">
+      <label>Transporter</label>
+      <select id="fTrans"><option value="">Semua</option></select>
+    </div>
+    <div class="field">
+      <label>Dari Tanggal Gagal</label>
+      <input type="date" id="fDateFrom">
+    </div>
+    <div class="field">
+      <label>Sampai Tanggal Gagal</label>
+      <input type="date" id="fDateTo">
+    </div>
+    <div class="field">
+      <button class="btn btn-outline" id="btnResetFilter">✕ Reset Filter</button>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="tablecard" id="tablecard" style="display:none;">
+    <div class="tablecard-head">
+      <h3>Dokumen Barang Balik Belum Dikirim Kembali <span class="count" id="tblCount"></span></h3>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-green" id="btnExport">⬇ Export ke Excel</button>
+        <button class="btn btn-outline" id="btnExportPdf">⬇ Export ke PDF</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:24px;"></th>
+            <th data-k="giNo">GI No <span class="arrow"></span></th>
+            <th data-k="trNo">TR No <span class="arrow"></span></th>
+            <th data-k="doNo">Delivery Order No <span class="arrow"></span></th>
+            <th data-k="dest">Destination <span class="arrow"></span></th>
+            <th data-k="vehicle">Vehicle No <span class="arrow"></span></th>
+            <th data-k="driver">Driver <span class="arrow"></span></th>
+            <th data-k="trans">Transporter <span class="arrow"></span></th>
+            <th data-k="lastDate">Tgl Gagal Terakhir <span class="arrow"></span></th>
+            <th data-k="statusFlag">Status <span class="arrow"></span></th>
+            <th data-k="attempts">Jml Gagal <span class="arrow"></span></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="pagebar">
+      <div>Baris per halaman:
+        <select id="pageSize"><option>10</option><option selected>25</option><option>50</option><option>100</option></select>
+      </div>
+      <div class="pages">
+        <button id="prevPage">‹ Sebelumnya</button>
+        <span id="pageInfo">Halaman 1 / 1</span>
+        <button id="nextPage">Selanjutnya ›</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty" id="emptyState" style="display:none;">
+    <div class="ic">🎉</div>
+    <div><b>Tidak ada dokumen barang balik yang belum dikirim kembali</b></div>
+    <div style="font-size:12px; margin-top:4px;">Semua barang dengan status Fail to Delivered sudah dikirim kembali (Successfully Delivered).</div>
+  </div>
+
+  <footer>© <span id="footYear"></span> Powered by <b>Support Back TLC</b></footer>
+</div>
+
+<script>
+let rawData = [];        // all parsed rows across files
+let seenRowKeys = new Set();
+let importedFiles = [];
+let outstanding = [];     // computed outstanding groups
+let filtered = [];
+let sortKey = 'lastDate', sortDir = -1;
+let currentPage = 1;
+
+const $ = id => document.getElementById(id);
+$('footYear').textContent = new Date().getFullYear();
+
+function excelDateToJS(v){
+  if(v === null || v === undefined || v === '') return null;
+  if(v instanceof Date) return v;
+  if(typeof v === 'number'){
+    const d = new Date(Math.round((v - 25569) * 86400 * 1000));
+    return isNaN(d) ? null : d;
+  }
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+function fmtDate(d){
+  if(!d) return '-';
+  const dt = (d instanceof Date) ? d : excelDateToJS(d);
+  if(!dt) return '-';
+  const p = n => String(n).padStart(2,'0');
+  return `${p(dt.getDate())}-${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][dt.getMonth()]}-${dt.getFullYear()}`;
+}
+function setStatus(msg, cls){
+  const el = $('status');
+  el.textContent = msg;
+  el.className = cls || '';
+}
+function showProgress(show){
+  $('progress').style.display = show ? 'block' : 'none';
+  if(!show) $('progressBar').style.width = '0%';
+}
+
+function parseWorkbookRows(workbook){
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const raw = XLSX.utils.sheet_to_json(sheet, {header:1, defval:null, raw:true});
+  let headerRowIdx = -1;
+  for(let i=0;i<Math.min(30, raw.length);i++){
+    const row = raw[i];
+    if(row && row.some(c => typeof c === 'string' && c.trim().toLowerCase() === 'lm status')){
+      headerRowIdx = i; break;
+    }
+  }
+  if(headerRowIdx === -1) throw new Error('Kolom "LM Status" tidak ditemukan. Pastikan file sesuai format Daily Delivery Confirmation Report.');
+  const headers = raw[headerRowIdx].map(h => (h===null||h===undefined) ? '' : String(h).trim());
+  const out = [];
+  for(let i=headerRowIdx+1;i<raw.length;i++){
+    const r = raw[i];
+    if(!r || r.every(c => c===null || c==='')) continue;
+    const obj = {};
+    headers.forEach((h,idx) => { if(h) obj[h] = r[idx]; });
+    out.push(obj);
+  }
+  return out;
+}
+
+function rowKey(r){
+  return [r['GI No'], r['TR No'], r['LM Status'], r['Vehicle No'], r['Departure Date'], r['Delivery Order No']].map(v=>v==null?'':String(v)).join('~');
+}
+
+function ingestRows(rows, filename){
+  let added = 0, dup = 0;
+  rows.forEach(r => {
+    const k = rowKey(r);
+    if(seenRowKeys.has(k)){ dup++; return; }
+    seenRowKeys.add(k);
+    rawData.push(r);
+    added++;
+  });
+  importedFiles.push({name:filename, rows:rows.length, added, dup});
+  renderFileList();
+  return {added, dup};
+}
+
+function renderFileList(){
+  const el = $('fileList');
+  el.innerHTML = importedFiles.map(f =>
+    `<div class="chip">📄 <b>${f.name}</b> — ${f.added} baris baru${f.dup? `, ${f.dup} duplikat dilewati`:''}</div>`
+  ).join('');
+}
+
+function analyze(){
+  const successKeys = new Set();
+  let failCount = 0;
+  rawData.forEach(r => {
+    const st = (r['LM Status']||'').toString().trim();
+    if(st === 'Successfully Delivered'){
+      successKeys.add((r['GI No']||'') + '|' + (r['TR No']||''));
+    }
+    if(st === 'Fail to Delivered') failCount++;
+  });
+
+  const groups = {};
+  rawData.forEach(r => {
+    const st = (r['LM Status']||'').toString().trim();
+    if(st !== 'Fail to Delivered') return;
+    const key = (r['GI No']||'') + '|' + (r['TR No']||'');
+    if(!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+
+  const uniqueKeys = Object.keys(groups).filter(k => k !== 'null|null' && k.trim() !== '|');
+  const belumArr = [];
+  let sudahCount = 0;
+  uniqueKeys.forEach(key => {
+    if(successKeys.has(key)){ sudahCount++; return; }
+    const rows = groups[key].slice().sort((a,b)=>{
+      const da = excelDateToJS(a['Departure Date']), db = excelDateToJS(b['Departure Date']);
+      return (db?db.getTime():0) - (da?da.getTime():0);
+    });
+    const latest = rows[0];
+    belumArr.push({
+      key,
+      giNo: latest['GI No']||'-',
+      trNo: latest['TR No']||'-',
+      doNo: latest['Delivery Order No']||'-',
+      dest: latest['Destination Name']||'-',
+      vehicle: latest['Vehicle No']||'-',
+      driver: latest['Driver Name']||'-',
+      trans: latest['Transporter']||'-',
+      lastDate: excelDateToJS(latest['Departure Date']),
+      statusFlag: latest['Status']||'-',
+      attempts: rows.length,
+      history: rows
+    });
+  });
+
+  return {
+    total: rawData.length,
+    failCount,
+    uniqueCount: uniqueKeys.length,
+    sudahCount,
+    belumArr
+  };
+}
+
+let lastAnalysis = null;
+
+function refreshDashboard(){
+  if(rawData.length === 0){
+    $('kpis').style.display='none';
+    $('filters').style.display='none';
+    $('tablecard').style.display='none';
+    $('emptyState').style.display='none';
+    return;
+  }
+  lastAnalysis = analyze();
+  outstanding = lastAnalysis.belumArr;
+
+  $('kpis').style.display='grid';
+  $('kpiTotal').textContent = lastAnalysis.total.toLocaleString('id-ID');
+  $('kpiTotalSub').textContent = `dari ${importedFiles.length} file diimport`;
+  $('kpiFail').textContent = lastAnalysis.failCount.toLocaleString('id-ID');
+  $('kpiUnik').textContent = lastAnalysis.uniqueCount.toLocaleString('id-ID');
+  $('kpiSudah').textContent = lastAnalysis.sudahCount.toLocaleString('id-ID');
+  $('kpiBelum').textContent = outstanding.length.toLocaleString('id-ID');
+
+  populateFilterOptions();
+  $('filters').style.display='flex';
+  $('lastUpdate').textContent = new Date().toLocaleString('id-ID');
+
+  applyFiltersAndRender();
+}
+
+function populateFilterOptions(){
+  const dests = [...new Set(outstanding.map(o=>o.dest).filter(Boolean))].sort();
+  const transes = [...new Set(outstanding.map(o=>o.trans).filter(Boolean))].sort();
+  const curDest = $('fDest').value, curTrans = $('fTrans').value;
+  $('fDest').innerHTML = '<option value="">Semua</option>' + dests.map(d=>`<option value="${d.replace(/"/g,'&quot;')}">${d}</option>`).join('');
+  $('fTrans').innerHTML = '<option value="">Semua</option>' + transes.map(t=>`<option value="${t.replace(/"/g,'&quot;')}">${t}</option>`).join('');
+  $('fDest').value = dests.includes(curDest) ? curDest : '';
+  $('fTrans').value = transes.includes(curTrans) ? curTrans : '';
+}
+
+function applyFiltersAndRender(){
+  const q = $('fSearch').value.trim().toLowerCase();
+  const dest = $('fDest').value;
+  const trans = $('fTrans').value;
+  const dFrom = $('fDateFrom').value ? new Date($('fDateFrom').value) : null;
+  const dTo = $('fDateTo').value ? new Date($('fDateTo').value) : null;
+
+  filtered = outstanding.filter(o => {
+    if(dest && o.dest !== dest) return false;
+    if(trans && o.trans !== trans) return false;
+    if(dFrom && (!o.lastDate || o.lastDate < dFrom)) return false;
+    if(dTo && (!o.lastDate || o.lastDate > new Date(dTo.getTime()+86400000))) return false;
+    if(q){
+      const hay = [o.giNo,o.trNo,o.doNo,o.dest,o.vehicle,o.driver,o.trans].join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  filtered.sort((a,b)=>{
+    let va = a[sortKey], vb = b[sortKey];
+    if(sortKey==='lastDate'){ va = va?va.getTime():0; vb = vb?vb.getTime():0; }
+    if(typeof va === 'string') va = va.toLowerCase();
+    if(typeof vb === 'string') vb = vb.toLowerCase();
+    if(va<vb) return -1*sortDir;
+    if(va>vb) return 1*sortDir;
+    return 0;
+  });
+
+  currentPage = 1;
+  renderTable();
+}
+
+function renderTable(){
+  const total = filtered.length;
+  $('tblCount').textContent = `(${total} dokumen)`;
+
+  if(total === 0){
+    $('tablecard').style.display='none';
+    $('emptyState').style.display='block';
+    return;
+  }
+  $('tablecard').style.display='block';
+  $('emptyState').style.display='none';
+
+  const pageSize = parseInt($('pageSize').value,10);
+  const totalPages = Math.max(1, Math.ceil(total/pageSize));
+  if(currentPage > totalPages) currentPage = totalPages;
+  const startIdx = (currentPage-1)*pageSize;
+  const pageRows = filtered.slice(startIdx, startIdx+pageSize);
+
+  const tbody = $('tbody');
+  tbody.innerHTML = '';
+  pageRows.forEach((o, idx) => {
+    const rowId = 'row_'+startIdx+'_'+idx;
+    const tr = document.createElement('tr');
+    let badge = '<span class="badge red">Belum Sukses Kirim</span>';
+    if(o.attempts > 1) badge = `<span class="badge amber">Belum Sukses Kirim · ${o.attempts}x Gagal</span>`;
+    tr.innerHTML = `
+      <td><span class="caret" data-target="${rowId}">▶</span></td>
+      <td class="mono">${o.giNo}</td>
+      <td class="mono">${o.trNo}</td>
+      <td class="mono">${o.doNo}</td>
+      <td>${o.dest}</td>
+      <td class="mono">${o.vehicle}</td>
+      <td>${o.driver}</td>
+      <td>${o.trans}</td>
+      <td>${fmtDate(o.lastDate)}</td>
+      <td>${badge}</td>
+      <td style="text-align:center;">${o.attempts}</td>
+    `;
+    tr.addEventListener('click', () => toggleDetail(rowId, tr, o));
+    tbody.appendChild(tr);
+  });
+
+  $('pageInfo').textContent = `Halaman ${currentPage} / ${totalPages}`;
+  $('prevPage').disabled = currentPage <= 1;
+  $('nextPage').disabled = currentPage >= totalPages;
+}
+
+function toggleDetail(rowId, tr, o){
+  const existing = tr.nextElementSibling;
+  const caret = tr.querySelector('.caret');
+  if(existing && existing.classList.contains('exp-row') && existing.dataset.owner === rowId){
+    existing.remove();
+    caret.classList.remove('open');
+    return;
+  }
+  document.querySelectorAll('tr.exp-row').forEach(e=>e.remove());
+  document.querySelectorAll('.caret.open').forEach(c=>c.classList.remove('open'));
+  caret.classList.add('open');
+
+  const detTr = document.createElement('tr');
+  detTr.className = 'exp-row';
+  detTr.dataset.owner = rowId;
+  const td = document.createElement('td');
+  td.colSpan = 11;
+  const histRows = o.history.map(h => `
+    <tr>
+      <td>${fmtDate(excelDateToJS(h['Departure Date']))}</td>
+      <td>${h['Departure Site Name']||'-'}</td>
+      <td>${h['Vehicle No']||'-'}</td>
+      <td>${h['Driver Name']||'-'}</td>
+      <td>${h['Status']||'-'}</td>
+      <td>${h['Lates (Day)']!=null?h['Lates (Day)']:'-'}</td>
+      <td>${h['LM Status']||'-'}</td>
+    </tr>`).join('');
+  td.innerHTML = `
+    <div class="detailbox">
+      <b style="font-size:12px;">Riwayat percobaan pengiriman untuk GI No: ${o.giNo} / TR No: ${o.trNo}</b>
+      <table style="margin-top:8px;">
+        <thead><tr><th>Tgl Berangkat</th><th>Site</th><th>Vehicle</th><th>Driver</th><th>Status</th><th>Lates(Day)</th><th>LM Status</th></tr></thead>
+        <tbody>${histRows}</tbody>
+      </table>
+    </div>`;
+  detTr.appendChild(td);
+  tr.after(detTr);
+}
+
+/* ---- File import handling ---- */
+function handleFiles(fileListObj, append){
+  if(!fileListObj || fileListObj.length === 0) return;
+  if(!append){
+    rawData = []; seenRowKeys = new Set(); importedFiles = []; renderFileList();
+  }
+  showProgress(true);
+  setStatus('Memproses file...', '');
+  let idx = 0;
+  const files = Array.from(fileListObj);
+
+  function next(){
+    if(idx >= files.length){
+      showProgress(false);
+      setStatus(`Selesai. Total ${rawData.length.toLocaleString('id-ID')} baris data siap dianalisis.`, 'ok');
+      refreshDashboard();
+      return;
+    }
+    const file = files[idx];
+    $('progressBar').style.width = Math.round((idx/files.length)*100)+'%';
+    const reader = new FileReader();
+    reader.onload = e => {
+      try{
+        const wb = XLSX.read(e.target.result, {type:'array', cellDates:false});
+        const rows = parseWorkbookRows(wb);
+        ingestRows(rows, file.name);
+      }catch(err){
+        setStatus('Gagal membaca "'+file.name+'": '+err.message, 'err');
+      }
+      idx++;
+      setTimeout(next, 10);
+    };
+    reader.onerror = () => { setStatus('Gagal membaca file '+file.name, 'err'); idx++; setTimeout(next,10); };
+    reader.readAsArrayBuffer(file);
+  }
+  next();
+}
+
+$('btnLoadNew').addEventListener('click', () => { $('fileInput').dataset.mode='new'; $('fileInput').click(); });
+$('btnAppend').addEventListener('click', () => { $('fileInput').dataset.mode='append'; $('fileInput').click(); });
+$('fileInput').addEventListener('change', e => {
+  handleFiles(e.target.files, $('fileInput').dataset.mode === 'append');
+  e.target.value = '';
+});
+
+const dz = $('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag');
+  handleFiles(e.dataTransfer.files, rawData.length > 0);
+});
+dz.addEventListener('click', () => { $('fileInput').dataset.mode = rawData.length>0 ? 'append' : 'new'; $('fileInput').click(); });
+
+/* ---- Filters ---- */
+['fSearch','fDest','fTrans','fDateFrom','fDateTo'].forEach(id => {
+  $(id).addEventListener('input', applyFiltersAndRender);
+  $(id).addEventListener('change', applyFiltersAndRender);
+});
+$('btnResetFilter').addEventListener('click', () => {
+  $('fSearch').value=''; $('fDest').value=''; $('fTrans').value=''; $('fDateFrom').value=''; $('fDateTo').value='';
+  applyFiltersAndRender();
+});
+
+/* ---- Sorting ---- */
+document.querySelectorAll('thead th[data-k]').forEach(th => {
+  th.addEventListener('click', () => {
+    const k = th.dataset.k;
+    if(sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = 1; }
+    document.querySelectorAll('thead .arrow').forEach(a=>a.textContent='');
+    th.querySelector('.arrow').textContent = sortDir===1 ? '▲' : '▼';
+    applyFiltersAndRender();
+  });
+});
+
+/* ---- Pagination ---- */
+$('pageSize').addEventListener('change', () => { currentPage = 1; renderTable(); });
+$('prevPage').addEventListener('click', () => { if(currentPage>1){ currentPage--; renderTable(); } });
+$('nextPage').addEventListener('click', () => {
+  const totalPages = Math.max(1, Math.ceil(filtered.length/parseInt($('pageSize').value,10)));
+  if(currentPage<totalPages){ currentPage++; renderTable(); }
+});
+
+/* ---- Export ---- */
+$('btnExport').addEventListener('click', () => {
+  if(filtered.length === 0) return;
+  const rows = filtered.map(o => ({
+    'GI No': o.giNo,
+    'TR No': o.trNo,
+    'Delivery Order No': o.doNo,
+    'Destination Name': o.dest,
+    'Vehicle No': o.vehicle,
+    'Driver Name': o.driver,
+    'Transporter': o.trans,
+    'Tanggal Gagal Terakhir': fmtDate(o.lastDate),
+    'Status': o.statusFlag,
+    'Jumlah Percobaan Gagal': o.attempts,
+    'Keterangan': 'Belum Dikirim Kembali'
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:22},{wch:20},{wch:22},{wch:28},{wch:14},{wch:18},{wch:20},{wch:18},{wch:10},{wch:16},{wch:20}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Barang Balik Belum Kembali');
+  const d = new Date();
+  const fname = `Barang_Balik_Belum_Dikirim_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.xlsx`;
+  XLSX.writeFile(wb, fname);
+});
+
+$('btnExportPdf').addEventListener('click', () => {
+  if(filtered.length === 0) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape', unit:'pt', format:'a4'});
+  const now = new Date();
+
+  doc.setFontSize(14);
+  doc.setTextColor(11,30,58);
+  doc.text('Dokumen Barang Balik — Belum Dikirim Kembali', 40, 36);
+  doc.setFontSize(9);
+  doc.setTextColor(100,100,100);
+  doc.text('Support Back TLC · MITRA10 Tallasa City Makassar', 40, 52);
+  doc.text('Dicetak: ' + now.toLocaleString('id-ID') + '   |   Total dokumen: ' + filtered.length, 40, 65);
+
+  const head = [['GI No','TR No','DO No','Destination','Vehicle','Driver','Transporter','Tgl Gagal Terakhir','Status','Jml Gagal']];
+  const body = filtered.map(o => [
+    o.giNo, o.trNo, o.doNo, o.dest, o.vehicle, o.driver, o.trans, fmtDate(o.lastDate), o.statusFlag, o.attempts
+  ]);
+
+  doc.autoTable({
+    head, body,
+    startY: 78,
+    styles: { fontSize: 7.5, cellPadding: 4, textColor: [11,30,58] },
+    headStyles: { fillColor: [11,30,58], textColor: [255,255,255], fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [244,247,251] },
+    columnStyles: { 9: { halign: 'center' } },
+    margin: { left: 40, right: 40 },
+    didDrawPage: (data) => {
+      const pageCount = doc.internal.getNumberOfPages();
+      doc.setFontSize(8);
+      doc.setTextColor(120,120,120);
+      doc.text(
+        '© ' + now.getFullYear() + ' Powered by Support Back TLC',
+        40, doc.internal.pageSize.getHeight() - 18
+      );
+      doc.text(
+        'Halaman ' + doc.internal.getCurrentPageInfo().pageNumber + ' / ' + pageCount,
+        doc.internal.pageSize.getWidth() - 90, doc.internal.pageSize.getHeight() - 18
+      );
+    }
+  });
+
+  const fname = `Barang_Balik_Belum_Dikirim_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.pdf`;
+  doc.save(fname);
+});
+</script>
+</body>
+</html>

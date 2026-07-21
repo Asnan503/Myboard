@@ -1,0 +1,2870 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Monitoring Omset — TallasaCity</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1976D2">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dashboard M10">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+
+  :root {
+    --bg: #f5f5f5;
+    --surface: #ffffff;
+    --card: #ffffff;
+    --border: #e0e0e0;
+    --border-soft: #f5f5f5;
+    --accent: #1976D2; /* Material Blue 700 */
+    --accent-light: #E3F2FD; /* Material Blue 500 light background */
+    --accent-mid: #2196F3;
+    --sky: #90CAF9;
+    --accent2: #388E3C; /* Material Green 700 */
+    --accent2-light: #E8F5E9;
+    --warn: #F57C00; /* Material Orange 700 */
+    --warn-light: #FFF3E0;
+    --danger: #D32F2F; /* Material Red 700 */
+    --danger-light: #FFEBEE;
+    --text: #212121;
+    --text-sec: #666666;
+    --muted: #9e9e9e;
+    --label: #757575;
+    --header-from: #1976D2;
+    --header-to: #1565C0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Roboto', '-apple-system', BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* HEADER (Material Style) */
+  .header {
+    background: linear-gradient(135deg, var(--header-from) 0%, var(--header-to) 100%);
+    padding: 18px 28px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .header-title { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 22px; color: #fff;
+    border: 1px solid rgba(255,255,255,0.4);
+  }
+  .header-title h1 { font-size: 20px; font-weight: 500; color: #fff; letter-spacing: 0.15px; }
+  .header-sub { font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 2px; }
+  .last-update { font-size: 11px; color: rgba(255,255,255,0.8); text-align: right; background: rgba(0,0,0,0.15); padding: 6px 14px; border-radius: 16px; }
+
+  /* IMPORT BAR */
+  .import-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 28px;
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .import-bar > span { font-size: 11px; color: var(--label); font-weight: 700; letter-spacing: .7px; text-transform: uppercase; margin-right: 4px; }
+  .btn-import {
+    display: flex; align-items: center; gap: 7px;
+    background: #ffffff; border: 1px solid var(--border); border-radius: 4px;
+    padding: 8px 14px; cursor: pointer; font-size: 12px; color: var(--text-sec); font-weight: 500;
+    transition: all .2s ease-in-out; position: relative; overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .btn-import:hover { border-color: var(--accent); background: var(--accent-light); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+  .btn-import input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .btn-import .icon { font-size: 15px; }
+  .btn-import .tag {
+    font-size: 10px; font-weight: 700; padding: 1px 6px;
+    border-radius: 3px; background: var(--accent); color: #fff; letter-spacing: .4px;
+  }
+  .btn-import.loaded { border-color: var(--accent2); background: var(--accent2-light); color: var(--accent2); }
+  .btn-import.loaded .tag { background: var(--accent2); color: #fff; }
+  .btn-import.cached { border-color: var(--warn); background: var(--warn-light); color: var(--warn); }
+  .btn-import.cached .tag { background: var(--warn); color: #fff; }
+
+  /* MAIN */
+  .main { padding: 24px 28px; }
+
+  /* DATE FILTER */
+  .filter-bar {
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 22px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+    padding: 14px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .filter-bar label { font-size: 12px; color: var(--label); font-weight: 700; }
+  .filter-bar select, .filter-bar input[type=date] {
+    background: #fff; border: 1px solid var(--border); color: var(--text);
+    border-radius: 4px; padding: 8px 12px; font-size: 13px; font-family: inherit;
+    -webkit-appearance: none;
+  }
+  .filter-bar select:focus, .filter-bar input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(25,118,210,0.2); }
+  .btn-apply {
+    background: var(--accent); color: #fff; border: none; border-radius: 4px;
+    padding: 8px 20px; font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: background .2s; font-family: inherit; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .btn-apply:hover { background: #1565C0; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+
+  /* KPI CARDS (Material Elevation Style) */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .kpi-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 4px;
+    padding: 16px 20px; position: relative; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
+    transition: box-shadow .2s ease, transform .2s ease;
+  }
+  .kpi-card:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.05); transform: translateY(-1px); }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .kpi-card.blue::before { background: var(--accent); }
+  .kpi-card.green::before { background: var(--accent2); }
+  .kpi-card.amber::before { background: var(--warn); }
+  .kpi-card.purple::before { background: #7B1FA2; }
+  .kpi-card.red::before { background: var(--danger); }
+  .kpi-card .kpi-icon {
+    position: absolute; right: 18px; top: 18px; font-size: 26px; opacity: 0.12;
+  }
+  .kpi-label { font-size: 11px; color: var(--label); font-weight: 700; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 6px; }
+  .kpi-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; color: var(--text); }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  /* COLLAPSIBLE HEADERS */
+  .collapsible-title {
+    font-size: 12px; font-weight: 700; color: var(--label); letter-spacing: .8px;
+    text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+    cursor: pointer; user-select: none;
+  }
+  .collapsible-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .collapsible-arrow { font-size: 14px; transition: transform 0.2s; display: inline-block; }
+  .collapsed .collapsible-arrow { transform: rotate(-90deg); }
+  .collapsible-content { transition: max-height 0.3s ease-out, opacity 0.2s; overflow: hidden; }
+  .collapsible-content.hide { max-height: 0 !important; opacity: 0; margin-bottom: 0 !important; pointer-events: none; }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 12px; font-weight: 700; color: var(--label); letter-spacing: .8px;
+    text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* CHARTS GRID */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 22px; }
+  @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+  .chart-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 4px;
+    padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .chart-title {
+    font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .chart-title-left { display: flex; align-items: center; gap: 8px; }
+  .chart-title-left::before { content: ''; width: 4px; height: 16px; background: var(--accent); border-radius: 2px; display: inline-block; }
+  .chart-wrap { position: relative; display: flex; justify-content: center; align-items: center; }
+
+  /* TABLE (Material Design Plain Specification) */
+  .table-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 4px;
+    overflow: hidden; margin-bottom: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    position: relative;
+  }
+  .table-header {
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: #fafafa;
+  }
+  .table-header h3 { font-size: 14px; font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .table-header h3::before { content: ''; width: 4px; height: 16px; background: var(--accent); border-radius: 2px; display: inline-block; }
+  .table-search {
+    background: #fff; border: 1px solid var(--border); border-radius: 4px;
+    padding: 6px 12px; color: var(--text); font-size: 12px; width: 200px; font-family: inherit;
+  }
+  .table-search:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(25,118,210,0.2); }
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    background: #f5f5f5; padding: 12px 14px; text-align: left; font-size: 11px;
+    color: var(--label); font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+    border-bottom: 2px solid var(--border); white-space: nowrap; cursor: pointer;
+    user-select: none;
+  }
+  th:hover { color: var(--accent); background: var(--accent-light); }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--border-soft); white-space: nowrap; color: var(--text-sec); }
+  td strong { color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f9f9f9; }
+  
+  /* TOTAL ROW STYLE */
+  tr.total-row td { background: #f5f5f5; font-weight: 700; border-top: 2px solid var(--border); color: var(--text); }
+
+  .badge-pct { display: inline-block; padding: 2px 8px; border-radius: 2px; font-size: 11px; font-weight: 700; }
+  .badge-pct.good { background: var(--accent2-light); color: var(--accent2); }
+  .badge-pct.mid { background: var(--warn-light); color: var(--warn); }
+  .badge-pct.bad { background: var(--danger-light); color: var(--danger); }
+  .bar-mini { background: var(--border-soft); border-radius: 2px; height: 4px; width: 80px; display: inline-block; vertical-align: middle; overflow: hidden; }
+  .bar-mini-fill { height: 100%; border-radius: 2px; }
+
+  /* BUTTON ACTION TABLE */
+  .btn-table-action {
+    background: #ffffff; color: var(--accent); border: 1px solid var(--border);
+    border-radius: 4px; padding: 6px 12px; font-size: 11px; font-weight: 500; cursor: pointer;
+    transition: all 0.2s; font-family: inherit; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .btn-table-action:hover { background: var(--accent-light); border-color: var(--sky); }
+
+  /* NO DATA */
+  .no-data { text-align: center; padding: 56px 20px; color: var(--muted); }
+  .no-data .icon { font-size: 44px; margin-bottom: 12px; opacity: 0.5; }
+  .no-data p { font-size: 14px; color: var(--muted); }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: #323232;
+    color: #fff; border-radius: 4px;
+    padding: 14px 24px; font-size: 14px; z-index: 9999; animation: slideIn .2s cubic-bezier(0, 0, 0.2, 1);
+    max-width: 344px; box-shadow: 0 3px 5px -1px rgba(0,0,0,0.2), 0 6px 10px 0 rgba(0,0,0,0.14);
+  }
+  .toast.error { background: var(--danger); }
+  @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+  .pill.blue { background: var(--accent-light); color: var(--accent); }
+  .pill.green { background: var(--accent2-light); color: var(--accent2); }
+  .pill.amber { background: var(--warn-light); color: var(--warn); }
+
+  /* IMPORT GROUP */
+  .import-group {
+    display: flex; align-items: stretch; gap: 0;
+  }
+  .import-group .btn-import {
+    border-radius: 4px 0 0 4px;
+  }
+  .import-group .btn-reload {
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; border: 1px solid var(--border); border-left: none;
+    border-radius: 0 4px 4px 0;
+    padding: 0 10px; cursor: pointer; font-size: 14px;
+    transition: background .2s, border-color .2s;
+    color: var(--text-sec);
+    white-space: nowrap;
+    min-width: 34px;
+  }
+  .import-group .btn-reload:hover { background: var(--accent-light); border-color: var(--accent); }
+  .import-group .btn-reload.active { background: var(--accent2-light); border-color: var(--accent2); color: var(--accent2); }
+  .import-group:not(:has(.btn-reload[style*="display:none"])) .btn-import { border-radius: 4px 0 0 4px; }
+
+  /* FSAPI badge */
+  .fsapi-badge {
+    display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 5px;
+    border-radius: 3px; background: #E3F2FD; color: #1565C0; margin-left: 4px;
+    vertical-align: middle; letter-spacing: .3px;
+  }
+
+  /* DRIVE BUTTON */
+  .btn-drive {
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; border: 1px solid var(--border); border-left: none;
+    border-radius: 0 4px 4px 0;
+    padding: 0 10px; cursor: pointer; font-size: 14px;
+    transition: background .2s, border-color .2s;
+    color: var(--text-sec);
+    white-space: nowrap;
+    min-width: 34px;
+  }
+  .btn-drive:hover { background: #E8F0FE; border-color: #4285F4; color: #4285F4; }
+  .btn-drive.linked { background: #E8F0FE; border-color: #4285F4; color: #4285F4; }
+  .import-group.has-drive .btn-import,
+  .import-group.has-drive .btn-reload { border-radius: 0; }
+  .import-group.has-drive .btn-import { border-radius: 4px 0 0 4px; }
+
+  /* DRIVE MODAL */
+  .drive-modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 10000; align-items: center; justify-content: center; padding: 20px;
+  }
+  .drive-modal-overlay.show { display: flex; }
+  .drive-modal {
+    background: #fff; border-radius: 8px; max-width: 460px; width: 100%;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25); overflow: hidden;
+  }
+  .drive-modal-head {
+    background: linear-gradient(135deg,#1976D2,#1565C0); color: #fff;
+    padding: 16px 20px; display: flex; align-items: center; gap: 10px;
+  }
+  .drive-modal-head .icon { font-size: 20px; }
+  .drive-modal-head h3 { font-size: 15px; font-weight: 700; }
+  .drive-modal-body { padding: 20px; }
+  .drive-modal-body label { font-size: 12px; font-weight: 700; color: var(--label); display: block; margin-bottom: 6px; }
+  .drive-modal-body input[type=text] {
+    width: 100%; border: 1px solid var(--border); border-radius: 4px;
+    padding: 10px 12px; font-size: 13px; font-family: inherit; color: var(--text);
+  }
+  .drive-modal-body input[type=text]:focus { outline: none; border-color: #4285F4; box-shadow: 0 0 0 2px rgba(66,133,244,0.2); }
+  .drive-modal-hint { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+  .drive-modal-hint b { color: var(--text-sec); }
+  .drive-modal-actions { display: flex; gap: 8px; margin-top: 18px; justify-content: flex-end; }
+  .drive-modal-actions button {
+    border-radius: 4px; padding: 9px 18px; font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: inherit; border: none;
+  }
+  .drive-btn-cancel { background: #f0f0f0; color: var(--text-sec); }
+  .drive-btn-cancel:hover { background: #e0e0e0; }
+  .drive-btn-remove { background: var(--danger-light); color: var(--danger); margin-right: auto; }
+  .drive-btn-remove:hover { background: #ffd6d6; }
+  .drive-btn-save { background: #4285F4; color: #fff; }
+  .drive-btn-save:hover { background: #3367D6; }
+  .drive-status-row {
+    display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted);
+    margin-top: 10px; padding: 8px 10px; background: #f5f5f5; border-radius: 4px; display: none;
+  }
+  .drive-status-row.show { display: flex; }
+  .drive-status-row .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent2); flex-shrink: 0; }
+
+    display: flex; align-items: center; gap: 7px;
+    background: var(--accent); color: #fff; border: none; border-radius: 4px;
+    padding: 8px 16px; cursor: pointer; font-size: 12px; font-weight: 500;
+    font-family: inherit; letter-spacing: .3px;
+    transition: background .2s, box-shadow .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    white-space: nowrap;
+  }
+  .btn-refresh:hover { background: #1565C0; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+  .btn-refresh:disabled { background: #bdbdbd; cursor: not-allowed; box-shadow: none; }
+
+  /* EXPORT TXT PANEL */
+  .export-panels-row {
+    display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;
+  }
+  .export-panels-row .export-panel {
+    flex: 1 1 420px; min-width: 340px; margin-bottom: 0;
+  }
+  .export-panel {
+    background: var(--card); border: 1px solid var(--border); border-radius: 4px;
+    padding: 20px 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .export-panel-title {
+    font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 14px;
+    text-transform: uppercase; letter-spacing: .3px;
+  }
+  .export-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px 16px; margin-bottom: 14px;
+  }
+  .export-field label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; }
+  .export-field input {
+    width: 100%; box-sizing: border-box; border: 1px solid var(--border); border-radius: 4px;
+    padding: 8px 12px; font-size: 13px; color: var(--text); background: #fff; transition: border .15s;
+  }
+  .export-field input:focus { outline: none; border-color: var(--accent); }
+  .export-field .auto-val {
+    padding: 8px 12px; font-size: 13px; font-weight: 600;
+    color: var(--accent); background: var(--accent-light);
+    border-radius: 4px; border: 1px solid var(--sky); min-height: 34px;
+  }
+  .btn-export {
+    background: var(--accent2); color: #fff; border: none; border-radius: 4px;
+    padding: 10px 22px; font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: background .15s; letter-spacing: .3px; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .btn-export:hover { background: #2E7D32; }
+  .export-preview-card {
+    background: #212121; border-radius: 10px; border: 1px solid #424242;
+    padding: 18px; margin-top: 14px; position: relative; min-height: 64px;
+  }
+  .export-preview-toolbar {
+    position: absolute; top: 12px; right: 16px; display: flex; gap: 10px; z-index: 2;
+  }
+  .btn-icon {
+    width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.55);
+    background: transparent; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; padding: 0; transition: background .15s, border-color .15s;
+  }
+  .btn-icon:hover { background: rgba(255,255,255,0.15); border-color: #fff; }
+  .btn-icon svg { width: 15px; height: 15px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .export-preview {
+    color: #A5D6A7; font-family: 'Courier New', monospace;
+    font-size: 12px; line-height: 1.7; white-space: pre;
+    padding-right: 90px; overflow-x: auto;
+  }
+  .export-preview.empty { color: #757575; font-style: italic; white-space: normal; }
+  .refresh-icon { font-size: 16px; display: inline-block; transition: transform .5s ease; }
+  .refresh-icon.spinning { animation: spin .7s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  .download-timestamp {
+    display: none; position: absolute; top: 14px; right: 20px; font-size: 11px; color: var(--muted);
+    background: rgba(250, 250, 250, 0.9); padding: 4px 10px; border-radius: 4px; border: 1px dashed var(--border); z-index: 10;
+  }
+
+  footer {
+    text-align: center;
+    padding: 20px 0;
+    color: var(--text-sec);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* RESPONSIVE TABLET */
+  @media (max-width: 768px) {
+    html, body { overflow-x: hidden; }
+    body { font-size: 13px; }
+    .header { padding: 12px 16px; gap: 8px; }
+    .header-title h1 { font-size: 16px; }
+    .import-bar { padding: 10px 16px; gap: 8px; }
+    .import-bar > span { width: 100%; font-size: 10px; }
+    .btn-import { flex: 1 1 calc(50% - 8px); justify-content: center; padding: 8px; }
+    .main { padding: 16px 12px; }
+    .filter-bar { padding: 12px; gap: 8px; }
+    .filter-bar input[type=date] { flex: 1 1 auto; min-width: 0; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .kpi-value { font-size: 18px; }
+    .table-header { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 14px; }
+    .table-search { width: 100%; }
+    th, td { padding: 10px 12px; font-size: 12px; }
+  }
+
+  /* RESPONSIVE MOBILE */
+  @media (max-width: 420px) {
+    .header { flex-direction: column; align-items: flex-start; }
+    .last-update { align-self: flex-start; }
+    .btn-import { flex: 1 1 100%; }
+    .btn-refresh { flex: 1 1 100%; }
+    .kpi-grid { grid-template-columns: 1fr; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">
+    <div class="logo">M</div>
+    <div>
+      <h1>Dashboard Monitoring Omset</h1>
+      <div class="header-sub">MITRA10 TallasaCity Makassar</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <button id="btnInstallPWA" onclick="installPWA()" style="display:none;align-items:center;gap:6px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:8px 16px;border-radius:24px;font-size:12px;font-weight:500;cursor:pointer">⬇️ Install App</button>
+    <div class="last-update" id="lastUpdate">Belum ada data diimport</div>
+  </div>
+</div>
+
+<div class="import-bar">
+  <span>Import Data:</span>
+
+  <!-- DATA_SALES -->
+  <div class="import-group" id="grpSales">
+    <label class="btn-import" id="btnSales" title="Pilih file DATA_SALES (CSV)">
+      <span class="icon">📊</span>
+      <span>DATA_SALES</span>
+      <span class="tag" id="tagSales">CSV</span>
+      <input type="file" accept=".csv" onchange="importFile('sales', this)">
+    </label>
+    <button class="btn-reload" id="reloadSales" onclick="reloadFile('sales')" title="Reload file dari disk" style="display:none">🔄</button>
+  </div>
+
+  <!-- DATA_SALES_2025 LY -->
+  <div class="import-group has-drive" id="grpSalesLY">
+    <label class="btn-import" id="btnSalesLY" title="Pilih file DATA_SALES_2025 (CSV)">
+      <span class="icon">📈</span>
+      <span>DATA_SALES_2025 (LY)</span>
+      <span class="tag" id="tagSalesLY">CSV</span>
+      <input type="file" accept=".csv" onchange="importFile('sales_ly', this)">
+    </label>
+    <button class="btn-reload" id="reloadSalesLY" onclick="reloadFile('sales_ly')" title="Reload file dari disk" style="display:none">🔄</button>
+    <button class="btn-drive" id="driveSalesLY" title="Load dari Google Drive (tahan untuk ubah link)">☁️</button>
+  </div>
+
+  <!-- BUDGET_CATEGORY -->
+  <div class="import-group has-drive" id="grpBudgetCat">
+    <label class="btn-import" id="btnBudgetCat" title="Pilih file BUDGET_CATEGORY (XLSX)">
+      <span class="icon">📂</span>
+      <span>BUDGET_CATEGORY</span>
+      <span class="tag" id="tagBudgetCat">XLSX</span>
+      <input type="file" accept=".xlsx,.xls" onchange="importFile('budget_category', this)">
+    </label>
+    <button class="btn-reload" id="reloadBudgetCat" onclick="reloadFile('budget_category')" title="Reload file dari disk" style="display:none">🔄</button>
+    <button class="btn-drive" id="driveBudgetCat" title="Load dari Google Drive (tahan untuk ubah link)">☁️</button>
+  </div>
+
+  <!-- BUDGET_SALPER -->
+  <div class="import-group" id="grpBudgetSP">
+    <label class="btn-import" id="btnBudgetSP" title="Pilih file BUDGET_SALPER (XLSX)">
+      <span class="icon">👤</span>
+      <span>BUDGET_SALPER</span>
+      <span class="tag" id="tagBudgetSP">XLSX</span>
+      <input type="file" accept=".xlsx,.xls" onchange="importFile('budget_salesperson', this)">
+    </label>
+    <button class="btn-reload" id="reloadBudgetSP" onclick="reloadFile('budget_salesperson')" title="Reload file dari disk" style="display:none">🔄</button>
+  </div>
+
+  <div style="flex:1"></div>
+
+  <!-- Reload All (FSAPI only) -->
+  <button class="btn-refresh" id="btnReloadAll" onclick="reloadAllFiles()" title="Reload semua file yang sudah di-pin dari disk" style="display:none;background:#388E3C">
+    🔄 Reload Semua
+  </button>
+
+  <button class="btn-refresh" id="btnRefresh" onclick="handleRefresh()" title="Hitung ulang semua data">
+    <span class="refresh-icon" id="refreshIcon">&#x21BB;</span>
+    Refresh
+  </button>
+  <button class="btn-refresh" onclick="if(confirm('Hapus semua data cache?')) clearStorage()" title="Hapus data tersimpan" style="background:#D32F2F;margin-left:4px">
+    &#x1F5D1; Hapus Cache
+  </button>
+</div>
+
+<!-- GOOGLE DRIVE MODAL -->
+<div class="drive-modal-overlay" id="driveModalOverlay">
+  <div class="drive-modal">
+    <div class="drive-modal-head">
+      <span class="icon">☁️</span>
+      <h3 id="driveModalTitle" style="flex:1">Load dari Google Drive</h3>
+    </div>
+    <div class="drive-modal-body">
+      <label for="driveLinkInput">Link share Google Drive (Anyone with the link)</label>
+      <input type="text" id="driveLinkInput" placeholder="https://drive.google.com/file/d/.../view?usp=sharing">
+      <div class="drive-modal-hint">
+        Di Google Drive: klik kanan file → <b>Share</b> → ubah ke <b>"Anyone with the link"</b> → Copy link, lalu tempel di sini.
+        Link disimpan terpusat di server — sekali setting di device manapun, otomatis kepakai di HP/komputer lain juga.
+      </div>
+      <div class="drive-status-row" id="driveStatusRow">
+        <span class="dot"></span>
+        <span id="driveStatusText">Tersimpan</span>
+      </div>
+    </div>
+    <div style="padding:0 20px 20px;">
+      <div class="drive-modal-actions">
+        <button class="drive-btn-remove" id="driveBtnRemove" onclick="removeDriveLink()" style="display:none">Hapus Link</button>
+        <button class="drive-btn-cancel" onclick="closeDriveModal()">Batal</button>
+        <button class="drive-btn-save" onclick="saveDriveLink()">Simpan &amp; Load</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="filter-bar">
+    <label>Filter Tanggal:</label>
+    <input type="date" id="dateFrom" onchange="renderAll()">
+    <span style="color:var(--muted)">s/d</span>
+    <input type="date" id="dateTo" onchange="renderAll()">
+    <button class="btn-apply" onclick="resetFilter()">Reset</button>
+    <span style="color:var(--muted);font-size:11px;margin-left:8px" id="filterInfo"></span>
+  </div>
+
+  <div class="collapsible-title collapsed" onclick="toggleSection('exportSection', this)">
+    <span>📄 Export Laporan TXT <span class="collapsible-arrow">▼</span></span>
+  </div>
+  <div class="collapsible-content hide" id="exportSection">
+    <div class="export-panels-row">
+    <div class="export-panel">
+      <div class="export-panel-title">📋 Laporan Utama</div>
+      <div class="export-grid">
+        <div class="export-field">
+          <label>Nama Store</label>
+          <input type="text" id="expStoreName" value="Store Mitra10 Tallasa City Makassar" readonly style="background-color: var(--border-soft);">
+        </div>
+        <div class="export-field">
+          <label>s/d Jam</label>
+          <input type="text" id="expJam" placeholder="00.00 WITA" oninput="updateExportPreview(); updateExportPreviewPM();">
+        </div>
+        <div class="export-field">
+          <label>FFC (Customer Count)</label>
+          <input type="number" id="expFFC" placeholder="0" oninput="updateFFCTraffic(); updateExportPreview();">
+        </div>
+        <div class="export-field">
+          <label>FFC Manual</label>
+          <input type="number" id="expFFCManual" placeholder="0" oninput="updateFFCTraffic(); updateExportPreview();">
+        </div>
+        <div class="export-field">
+          <label>New Member</label>
+          <input type="number" id="expNewMember" placeholder="0" oninput="updateExportPreview()">
+        </div>
+        <div class="export-field">
+          <label>Voucher CRM</label>
+          <input type="number" id="expVoucher" placeholder="0" oninput="updateExportPreview()">
+        </div>
+        <div class="export-field">
+          <label>Omset Full Month LY</label>
+          <input type="number" id="expOmsetFullMonthLY" placeholder="0" oninput="updateExportPreview()">
+        </div>
+        <div class="export-field">
+          <label>Delivery Charge (Total Rp)</label>
+          <input type="number" id="expDeliveryCharge" placeholder="0" oninput="updateExportPreview()">
+        </div>
+        <div class="export-field" style="display:none">
+          <label>Sales LY (harian, auto)</label>
+          <input type="number" id="expSalesLY" placeholder="auto" readonly style="background-color: var(--border-soft);">
+        </div>
+        <div class="export-field" style="display:none">
+          <label>MTD LY (Omset, auto)</label>
+          <input type="number" id="expMTDLY" placeholder="auto" readonly style="background-color: var(--border-soft);">
+        </div>
+        <div class="export-field" style="display:none">
+          <label>EFT (auto: FFC/INV)</label>
+          <div class="auto-val" id="expEFTDisplay">—</div>
+        </div>
+        <div class="export-field" style="display:none">
+          <label>EFT Manual (auto)</label>
+          <div class="auto-val" id="expEFTManualDisplay">—</div>
+        </div>
+        <div class="export-field" style="display:none">
+          <label>INV / Transaksi (auto)</label>
+          <div class="auto-val" id="expINVDisplay">—</div>
+        </div>
+        <div class="export-field" style="display:none">
+          <label>Mitra10 Protection (auto)</label>
+          <div class="auto-val" id="expProtectionDisplay">—</div>
+        </div>
+        <div class="export-field" style="display:none">
+          <label>Sales Store / Realisasi Harian (auto)</label>
+          <div class="auto-val" id="expSalesStoreDisplay">—</div>
+        </div>
+        <div class="export-field" style="display:none">
+          <label>Delivery Charge % (auto)</label>
+          <div class="auto-val" id="expDeliveryChargePctDisplay">—</div>
+        </div>
+      </div>
+      <div class="export-preview-card">
+        <div class="export-preview-toolbar">
+          <button class="btn-icon" onclick="generateExportTXT()" title="Download Laporan TXT">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v7"/><path d="M8.7 11.2L12 14.5l3.3-3.3"/></svg>
+          </button>
+          <button class="btn-icon" onclick="copyExportPreview()" title="Copy Preview">
+            <svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          </button>
+        </div>
+        <div class="export-preview" id="exportPreview">Lengkapi data filter & input untuk melihat preview laporan...</div>
+      </div>
+    </div>
+
+    <div class="export-panel">
+      <div class="export-panel-title">🎯 Laporan Sales Project & Member</div>
+      <div class="export-grid">
+        <div class="export-field">
+          <label>Qty Member (Harian)</label>
+          <input type="number" id="expPMQtyMember" placeholder="0" oninput="updateExportPreviewPM()">
+        </div>
+        <div class="export-field">
+          <label>Qty Nems (Harian)</label>
+          <input type="number" id="expPMQtyNems" placeholder="0" oninput="updateExportPreviewPM()">
+        </div>
+        <div class="export-field">
+          <label>Value Nems (Rp, Harian)</label>
+          <input type="number" id="expPMValueNems" placeholder="0" oninput="updateExportPreviewPM()">
+        </div>
+        <div class="export-field">
+          <label>Qty Member (MTD)</label>
+          <input type="number" id="expPMQtyMemberMTD" placeholder="0" oninput="updateExportPreviewPM()">
+        </div>
+        <div class="export-field">
+          <label>MTD by Value (Rp)</label>
+          <input type="number" id="expPMByValueMTD" placeholder="0" oninput="updateExportPreviewPM()">
+        </div>
+        <div class="export-field">
+          <label>Pre-regist Daily</label>
+          <input type="number" id="expPMPreRegistDaily" placeholder="0" oninput="updateExportPreviewPM()">
+        </div>
+        <div class="export-field">
+          <label>Total Pre-regist</label>
+          <input type="number" id="expPMTotalPreRegist" placeholder="0" oninput="updateExportPreviewPM()">
+        </div>
+        <div class="export-field">
+          <label>Budget Sales Project (auto)</label>
+          <div class="auto-val" id="expPMBudgetProjectDisplay">—</div>
+        </div>
+        <div class="export-field">
+          <label>Sales Project (auto)</label>
+          <div class="auto-val" id="expPMSalesProjectDisplay">—</div>
+        </div>
+        <div class="export-field">
+          <label>Budget Member (auto)</label>
+          <div class="auto-val" id="expPMBudgetMemberDisplay">—</div>
+        </div>
+      </div>
+      <div class="export-preview-card">
+        <div class="export-preview-toolbar">
+          <button class="btn-icon" onclick="generateExportTXTPM()" title="Download Laporan TXT">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v7"/><path d="M8.7 11.2L12 14.5l3.3-3.3"/></svg>
+          </button>
+          <button class="btn-icon" onclick="copyExportPreviewPM()" title="Copy Preview">
+            <svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          </button>
+        </div>
+        <div class="export-preview" id="exportPreviewPM">Lengkapi data filter & input untuk melihat preview laporan...</div>
+      </div>
+    </div>
+
+    <div class="export-panel">
+      <div class="export-panel-title">⏱️ Laporan AWT (Average Waiting Time)</div>
+      <div class="export-grid">
+        <div class="export-field">
+          <label>Total DR</label>
+          <input type="number" id="expAWTTotalDR" placeholder="0" oninput="updateExportPreviewAWT()">
+        </div>
+        <div class="export-field">
+          <label>Avg Time (HH:MM:SS)</label>
+          <input type="text" id="expAWTAvgTime" placeholder="00:00:00" oninput="updateExportPreviewAWT()">
+        </div>
+        <div class="export-field">
+          <label>&gt;10 Menit Tanpa Tinting - Total DR</label>
+          <input type="number" id="expAWTGt10NoTinting" placeholder="0" oninput="updateExportPreviewAWT()">
+        </div>
+        <div class="export-field">
+          <label>&gt;10 Menit Tanpa Tinting - Avg Time</label>
+          <input type="text" id="expAWTAvgTime1" placeholder="00:00:00" oninput="updateExportPreviewAWT()">
+        </div>
+        <div class="export-field">
+          <label>Finish Time Barang Tinting - Total DR</label>
+          <input type="number" id="expAWTFinishTintingDR" placeholder="0" oninput="updateExportPreviewAWT()">
+        </div>
+        <div class="export-field">
+          <label>Finish Time Barang Tinting - Avg Time</label>
+          <input type="text" id="expAWTAvgTime2" placeholder="00:00:00" oninput="updateExportPreviewAWT()">
+        </div>
+        <div class="export-field">
+          <label>30 Menit DR Proses Tinting - Total DR</label>
+          <input type="number" id="expAWTDr30Tinting" placeholder="0" oninput="updateExportPreviewAWT()">
+        </div>
+        <div class="export-field">
+          <label>30 Menit DR Proses Tinting - Avg Time</label>
+          <input type="text" id="expAWTAvgTime3" placeholder="00:00:00" oninput="updateExportPreviewAWT()">
+        </div>
+        <div class="export-field">
+          <label>&lt; 10 Menit</label>
+          <input type="number" id="expAWTLt10Menit" placeholder="0" oninput="updateExportPreviewAWT()">
+        </div>
+        <div class="export-field">
+          <label>&gt; 10 Menit (auto: Total DR - &lt;10 Menit)</label>
+          <div class="auto-val" id="expAWTGt10MenitDisplay">—</div>
+        </div>
+      </div>
+      <div class="export-preview-card">
+        <div class="export-preview-toolbar">
+          <button class="btn-icon" onclick="generateExportTXTAWT()" title="Download Laporan TXT">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v7"/><path d="M8.7 11.2L12 14.5l3.3-3.3"/></svg>
+          </button>
+          <button class="btn-icon" onclick="copyExportPreviewAWT()" title="Copy Preview">
+            <svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          </button>
+        </div>
+        <div class="export-preview" id="exportPreviewAWT">Lengkapi data filter & input untuk melihat preview laporan...</div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <div class="section-title">📈 Ringkasan Kinerja</div>
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">Realisasi (TY)</div>
+      <div class="kpi-value" id="kpiRealMTD">—</div>
+      <div class="kpi-sub" id="kpiRealPB">Real PB: —</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Budget</div>
+      <div class="kpi-value" id="kpiBudgetMTD">—</div>
+      <div class="kpi-sub" id="kpiBudgetPB">Budget PB: —</div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-label">% Pencapaian</div>
+      <div class="kpi-value" id="kpiPctMTD">—</div>
+      <div class="kpi-sub" id="kpiPctPB">% Ach PB: —</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">% Growth Sales</div>
+      <div class="kpi-value" id="kpiPctGrowth">—</div>
+      <div class="kpi-sub" id="kpiGrowthPB">Growth PB: —</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Value Growth</div>
+      <div class="kpi-value" id="kpiValueGrowth">—</div>
+      <div class="kpi-sub" id="kpiValGrowthPB">Val Growth PB: —</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">Invoice</div>
+      <div class="kpi-value" id="kpiTrx">—</div>
+      <div class="kpi-sub" id="kpiTrxLY">LY: —</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">EFT Traffic</div>
+      <div class="kpi-value" id="kpiEftTraffic">—</div>
+      <div class="kpi-sub">Invoice / FFC</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Basket Size</div>
+      <div class="kpi-value" id="kpiAvgTrx">—</div>
+      <div class="kpi-sub" id="kpiAvgTrxLY">LY: —</div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-label">Salesperson Aktif</div>
+      <div class="kpi-value" id="kpiSP">—</div>
+      <div class="kpi-sub">Dengan transaksi di periode ini</div>
+    </div>
+  </div>
+
+  <div class="section-title">📅 Tren Harian</div>
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-title">
+      <div class="chart-title-left">Penjualan Harian vs Budget</div>
+    </div>
+    <div class="chart-wrap"><canvas id="chartDaily" height="100"></canvas></div>
+  </div>
+
+  <div class="section-title">📋 Ringkasan Kategori & Zonasi</div>
+  <div class="table-card" style="margin-bottom:16px" id="captureCatTable">
+    <div class="download-timestamp"></div>
+    <div class="table-header">
+      <h3>Realisasi per Kategori</h3>
+      <button class="btn-table-action" onclick="downloadTableAsPNG('captureCatTable', 'Ringkasan_Kategori_Zonasi')">📸 Download PNG</button>
+    </div>
+    <div class="tbl-wrap"><table id="tblCat">
+      <thead><tr><th>Kategori</th><th>Budget MTD</th><th>Realisasi</th><th>% Real</th><th>Selisih</th><th>BUDGET PB</th><th>REAL PB</th><th>% REAL PB</th><th>Progress</th></tr></thead>
+      <tbody id="tblCatBody"><tr><td colspan="9"><div class="no-data"><div class="icon">📥</div><p>Import DATA_SALES untuk menampilkan data</p></div></td></tr></tbody>
+    </table></div>
+
+    <div class="table-header" style="border-top:1px solid var(--border)">
+      <h3>Realisasi PerZonasi</h3>
+    </div>
+    <div class="tbl-wrap"><table id="tblZona">
+      <thead><tr><th>Zona</th><th>Budget</th><th>Realisasi</th><th>% Real</th><th>Selisih</th><th>BUDGET PB</th><th>REAL PB</th><th>% REAL PB</th><th>Progress</th></tr></thead>
+      <tbody id="tblZonaBody"><tr><td colspan="9"><div class="no-data"><div class="icon">📥</div><p>Import DATA_SALES untuk menampilkan data</p></div></td></tr></tbody>
+    </table></div>
+
+    <div class="table-header" style="border-top:1px solid var(--border)">
+      <h3 id="growthTableTitle">Analisa Growth per Kategori</h3>
+    </div>
+    <div class="tbl-wrap"><table id="tblGrowth">
+      <thead><tr><th>Kategori</th><th>Sales LY</th><th>Sales TY</th><th>Growth</th><th>% Growth</th><th>Sales PB LY</th><th>Sales PB TY</th><th>Growth PB</th><th>% Growth PB</th></tr></thead>
+      <tbody id="tblGrowthBody"><tr><td colspan="9"><div class="no-data"><div class="icon">📥</div><p>Import DATA_SALES & DATA_SALES_2025 untuk melihat growth</p></div></td></tr></tbody>
+    </table></div>
+  </div>
+
+  <div class="table-card" style="margin-bottom:16px" id="captureRoadTable">
+    <div class="download-timestamp"></div>
+    <div class="table-header">
+      <h3>Road To 100%</h3>
+      <button class="btn-table-action" onclick="downloadTableAsPNG('captureRoadTable', 'Road_To_100_Persen')">📸 Download PNG</button>
+    </div>
+    <div class="tbl-wrap"><table id="tblRoad">
+      <thead><tr><th>Kategori</th><th>Budget Full Month</th><th>Realisasi</th><th>% Real</th><th>Kurang</th><th>Avg Day to 100%</th></tr></thead>
+      <tbody id="tblRoadBody"><tr><td colspan="6"><div class="no-data"><div class="icon">📥</div><p>Import DATA_SALES untuk menampilkan data</p></div></td></tr></tbody>
+    </table></div>
+  </div>
+
+  <div class="section-title">📂 Breakdown Kinerja</div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">
+        <div class="chart-title-left">Top 10 Salesperson — Realisasi</div>
+      </div>
+      <div class="tbl-wrap">
+        <table id="tblTopSP">
+          <thead><tr><th>No</th><th>Kode</th><th>Nama</th><th>Realisasi</th></tr></thead>
+          <tbody id="tblTopSPBody">
+            <tr><td colspan="4" style="text-align:center; color:var(--muted); padding:20px;">Belum ada data</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">
+        <div class="chart-title-left">Source Type Mix</div>
+      </div>
+      <div class="chart-wrap" style="max-height: 260px;">
+        <canvas id="chartSource"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="collapsible-title collapsed" onclick="toggleSection('spSection', this)">
+    <span>👤 Detail per Salesperson <span class="collapsible-arrow">▼</span></span>
+  </div>
+  <div class="collapsible-content hide" id="spSection">
+    <div class="table-card" id="captureSPTable">
+      <div class="download-timestamp"></div>
+      <div class="table-header">
+        <h3>Analisa Kinerja Salper</h3>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input class="table-search" type="text" placeholder="Cari nama..." oninput="filterSPTable(this.value)">
+          <button class="btn-table-action" onclick="downloadTableAsPNGPaged('captureSPTable', 'Analisa_Kinerja_Salper')">📸 Download PNG</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table id="tblSP">
+        <thead><tr>
+          <th onclick="sortSPTable('index')">#</th>
+          <th onclick="sortSPTable('id')">Kode</th>
+          <th onclick="sortSPTable('name')">Nama</th>
+          <th onclick="sortSPTable('budget')">Budget</th>
+          <th onclick="sortSPTable('real')">Realisasi</th>
+          <th onclick="sortSPTable('pct')">% Real</th>
+          <th onclick="sortSPTable('budgetPB')">Budget PB</th>
+          <th onclick="sortSPTable('realPB')">Real PB</th>
+          <th onclick="sortSPTable('pctPB')">% Real PB</th>
+          <th onclick="sortSPTable('receiptsCount')">Invoice TY</th>
+          <th onclick="sortSPTable('receiptsCountLY')">Invoice LY</th>
+          <th onclick="sortSPTable('avg')">Basket Size TY</th>
+          <th onclick="sortSPTable('avgLY')">Basket Size LY</th>
+          <th onclick="sortSPTable('utp')">UTP</th>
+          <th onclick="sortSPTable('ipd')">IPD</th>
+        </tr></thead>
+        <tbody id="tblSPBody"><tr><td colspan="15"><div class="no-data"><div class="icon">📥</div><p>Import DATA_SALES untuk menampilkan data</p></div></td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="collapsible-title collapsed" onclick="toggleSection('topProductSection', this)">
+    <span>🏆 Top Produk <span class="collapsible-arrow">▼</span></span>
+  </div>
+  <div class="collapsible-content hide" id="topProductSection">
+    <div class="table-card">
+      <div class="table-header">
+        <h3>Top 30 Produk Terlaris</h3>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>#</th><th>Item Name</th><th>Kategori</th><th>Brand</th><th>Qty</th><th>Nilai</th></tr></thead>
+        <tbody id="tblProdBody"><tr><td colspan="6"><div class="no-data"><div class="icon">📥</div><p>Import DATA_SALES untuk menampilkan data</p></div></td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  © <span id="footerYear"></span> Powered by Support Back TLC
+</footer>
+
+<script>
+// ──────────────────────────────────────────
+// STATE & CONFIG
+// ──────────────────────────────────────────
+const state = {
+  sales: [],
+  sales_ly: [], 
+  budgetCat: {},
+  budgetSP: {},
+  charts: {},
+  spSort: { col: 'real', asc: false }
+};
+
+const STORAGE_KEYS = {
+  sales: 'dashboard_sales',
+  sales_ly: 'dashboard_sales_ly',
+  budgetCat: 'dashboard_budgetCat',
+  budgetSP: 'dashboard_budgetSP',
+  meta: 'dashboard_meta'
+};
+
+document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+function toggleSection(id, headerEl) {
+  const content = document.getElementById(id);
+  if (content.classList.contains('hide')) {
+    content.classList.remove('hide');
+    headerEl.classList.remove('collapsed');
+  } else {
+    content.classList.add('hide');
+    headerEl.classList.add('collapsed');
+  }
+}
+
+function saveToStorage(type) {
+  try {
+    if (type === 'sales') localStorage.setItem(STORAGE_KEYS.sales, JSON.stringify(state.sales));
+    else if (type === 'sales_ly') localStorage.setItem(STORAGE_KEYS.sales_ly, JSON.stringify(state.sales_ly));
+    else if (type === 'budget_category') localStorage.setItem(STORAGE_KEYS.budgetCat, JSON.stringify(state.budgetCat));
+    else if (type === 'budget_salesperson') localStorage.setItem(STORAGE_KEYS.budgetSP, JSON.stringify(state.budgetSP));
+  } catch(e) { console.warn('Storage penuh atau tidak tersedia:', e); }
+}
+
+function loadFromStorage() {
+  try {
+    const sales = localStorage.getItem(STORAGE_KEYS.sales);
+    const sales_ly = localStorage.getItem(STORAGE_KEYS.sales_ly);
+    const budgetCat = localStorage.getItem(STORAGE_KEYS.budgetCat);
+    const budgetSP = localStorage.getItem(STORAGE_KEYS.budgetSP);
+    const meta = localStorage.getItem(STORAGE_KEYS.meta);
+
+    if (sales) { state.sales = JSON.parse(sales); markLoaded('btnSales','tagSales','CACHED','(tersimpan)'); }
+    if (sales_ly) { state.sales_ly = JSON.parse(sales_ly); markLoaded('btnSalesLY','tagSalesLY','CACHED','(tersimpan)'); }
+    if (budgetCat) { state.budgetCat = JSON.parse(budgetCat); markLoaded('btnBudgetCat','tagBudgetCat','CACHED','(tersimpan)'); }
+    if (budgetSP) { state.budgetSP = JSON.parse(budgetSP); markLoaded('btnBudgetSP','tagBudgetSP','CACHED','(tersimpan)'); }
+    if (meta) {
+      const m = JSON.parse(meta);
+      document.getElementById('lastUpdate').textContent = 'Diupdate: ' + m.lastUpdate + ' (cache)';
+    }
+
+    if (state.sales.length) { setDateRange(); renderAll(); }
+  } catch(e) { console.warn('Gagal load dari storage:', e); }
+}
+
+function clearStorage() {
+  Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+  state.sales = []; state.sales_ly = []; state.budgetCat = {}; state.budgetSP = {};
+  ['btnSales','btnSalesLY','btnBudgetCat','btnBudgetSP'].forEach(id => document.getElementById(id)?.classList.remove('loaded','cached'));
+  ['tagSales','tagSalesLY','tagBudgetCat','tagBudgetSP'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.textContent = id.includes('Sales') ? 'CSV' : 'XLSX';
+  });
+  // Reset FSAPI handles
+  Object.keys(fileHandles).forEach(k => { fileHandles[k] = null; });
+  ['reloadSales','reloadSalesLY','reloadBudgetCat','reloadBudgetSP'].forEach(id => {
+    const btn = document.getElementById(id); if (btn) { btn.style.display = 'none'; btn.classList.remove('active'); }
+  });
+  checkReloadAllButton();
+  showToast('🗑️ Data cache berhasil dihapus');
+}
+
+window.addEventListener('DOMContentLoaded', loadFromStorage);
+
+function excelDateToJS(serial) {
+  if (!serial || isNaN(serial)) return null;
+  return new Date((serial - 25569) * 86400 * 1000);
+}
+function excelDateToISO(serial) {
+  if (!serial && serial !== 0) return null;
+  let d = null;
+  if (serial instanceof Date) d = serial;
+  else if (typeof serial === 'string') return serial.slice(0, 10);
+  else if (typeof serial === 'number') d = new Date(Math.round((serial - 25569) * 86400 * 1000));
+  else return null;
+  
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function formatDate(d) {
+  if (!d) return '';
+  const dt = typeof d === 'number' ? excelDateToJS(d) : new Date(d);
+  return dt ? dt.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }) : '';
+}
+
+// importFile: dipanggil dari onchange input[type=file] (Android/iOS fallback)
+// Di PC dengan FSAPI, ini tidak akan terpanggil karena klik dihandle openFileWithFSAPI
+function importFile(type, input) {
+  const file = input.files[0];
+  if (!file) return;
+  processFile(type, file);
+}
+
+function parseCSVDate(str) {
+  if (!str) return null;
+  str = String(str).trim();
+  const m = str.match(/^(\d{2})\/(\d{2})\/(\d{2,4})/);
+  if (!m) return null;
+  let yy = m[3]; if (yy.length === 2) yy = '20' + yy;
+  return `${yy}-${m[2]}-${m[1]}`;
+}
+
+function parseCSVNumber(str) {
+  if (!str) return 0;
+  return parseFloat(String(str).replace(/,/g, '')) || 0;
+}
+
+function parseCSVSales(text, fname, type) {
+  const lines = text.split(/\r?\n/);
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(lines.length, 15); i++) {
+    if (lines[i].includes('Receipt Date')) { headerIdx = i; break; }
+  }
+  if (headerIdx === -1) { showToast('Format CSV tidak dikenali', true); return; }
+
+  // Deteksi otomatis separator: file export bisa memakai ';' ATAU '|' tergantung
+  // versi/setting sistem POS saat export. Pilih yang paling banyak muncul di baris
+  // header — jika salah, semua baris akan ter-skip total (parts.length terlalu sedikit)
+  // walau status tombol sudah "LOADED", sehingga KPI tampil kosong tanpa pesan error.
+  const headerLine = lines[headerIdx];
+  const countPipe = (headerLine.match(/\|/g) || []).length;
+  const countSemi = (headerLine.match(/;/g) || []).length;
+  const sep = countPipe > countSemi ? '|' : ';';
+  const headers = lines[headerIdx].split(sep).map(h => h.trim());
+  const idx = {};
+  ['Receipt Date','Receipt No','Salesperson ID','Salesperson Name','Amount Exclude Sales','Category','Item Name','Brand','Master Brand','Quantity','Source Type Name','Master Type Brand']
+  .forEach(name => { idx[name] = headers.findIndex(h => h.toLowerCase() === name.toLowerCase()); });
+
+  const getCol = (parts, name) => { const i = idx[name]; return (i >= 0 && i < parts.length) ? parts[i].trim() : ''; };
+
+  const parsedRecords = [];
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim(); if (!line) continue;
+    const parts = line.split(sep); if (parts.length < 10) continue;
+
+    const dateISO = parseCSVDate(getCol(parts, 'Receipt Date'));
+    const amountExcl = parseCSVNumber(getCol(parts, 'Amount Exclude Sales'));
+    if (!dateISO || amountExcl === 0) continue;
+
+    parsedRecords.push({
+      date: dateISO,
+      receiptNo: getCol(parts, 'Receipt No'),
+      salespersonId: getCol(parts, 'Salesperson ID'),
+      salespersonName: getCol(parts, 'Salesperson Name'),
+      amount: amountExcl,
+      category: getCol(parts, 'Category'),
+      itemName: getCol(parts, 'Item Name'),
+      brand: getCol(parts, 'Brand'),
+      masterBrand: getCol(parts, 'Master Brand'),
+      qty: -(parseCSVNumber(getCol(parts, 'Quantity'))),
+      sourceType: getCol(parts, 'Source Type Name'),
+      masterTypeBrand: getCol(parts, 'Master Type Brand')
+    });
+  }
+
+  if (type === 'sales') {
+    state.sales = parsedRecords;
+    markLoaded('btnSales', 'tagSales', 'LOADED', fname);
+    setDateRange();
+  } else {
+    state.sales_ly = parsedRecords;
+    markLoaded('btnSalesLY', 'tagSalesLY', 'LOADED', fname);
+  }
+
+  const now = new Date().toLocaleString('id-ID');
+  document.getElementById('lastUpdate').innerHTML = `Diupdate: ${now}`;
+  saveToStorage(type);
+  renderAll();
+}
+
+function parseAndStore(type, wb, fname) {
+  const sheetMap = {
+    sales: ['DATA_SALES'], budget_category: ['BUDGET_CATEGORY'], budget_salesperson: ['BUDGET_SALPER', 'BUDGET_SALESPERSON']
+  };
+  const candidates = sheetMap[type];
+  let sheet = null;
+  for (const name of candidates) {
+    if (wb.SheetNames.find(s => s.toUpperCase() === name.toUpperCase())) {
+      sheet = wb.Sheets[wb.SheetNames.find(s => s.toUpperCase() === name.toUpperCase())];
+      break;
+    }
+  }
+  if (!sheet) sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: null, raw: true, cellDates: true });
+
+  if (type === 'sales') {
+    state.sales = rows.map(r => ({
+      date: excelDateToISO(r['Receipt Date'] || r['receipt date'] || r['RECEIPT DATE']),
+      receiptNo: r['Receipt No'] || r['RECEIPT NO'] || '',
+      salespersonId: r['Salesperson ID'] || r['SALESPERSON ID'] || '',
+      salespersonName: r['Salesperson Name'] || r['SALESPERSON NAME'] || '',
+      amount: parseFloat(r['Amount Exclude Sales'] || r['AMOUNT EXCLUDE SALES'] || 0) || 0,
+      category: r['Category'] || r['CATEGORY'] || '',
+      itemName: r['Item Name'] || r['ITEM NAME'] || '',
+      brand: r['Brand'] || r['BRAND'] || '',
+      masterBrand: r['Master Brand'] || r['MASTER BRAND'] || '',
+      qty: -(r['Quantity'] || r['QUANTITY'] || 0),
+      sourceType: r['Source Type Name'] || r['SOURCE TYPE NAME'] || '',
+      masterTypeBrand: r['Master Type Brand'] || r['MASTER TYPE BRAND'] || ''
+    })).filter(r => r.amount !== 0);
+    markLoaded('btnSales', 'tagSales', 'LOADED', fname);
+    setDateRange();
+  } else if (type === 'budget_category') {
+    state.budgetCat = {};
+    const headers = rows.length ? Object.keys(rows[0]) : [];
+
+    // Normalisasi nama kolom: uppercase + rapatkan spasi ganda, untuk pencocokan yang stabil
+    const norm = h => h.toUpperCase().replace(/\s+/g, ' ').trim();
+
+    // Kolom yang bukan kategori (Tanggal, grand total, dan kolom tambahan non-produk
+    // seperti PROJECT/MEMBER/PROTECTION yang punya arti berbeda dari kategori barang)
+    const nonCatNorms = [
+      norm(headers[0]), 'TOTAL', 'TOTAL MTD', 'TOTAL PB', 'TOTAL PB MTD', 'BUDGET PB',
+      'PROJECT', 'PROJECT MTD', 'MEMBER', 'MEMBER MTD', 'PROTECTION', 'PROTECTION MTD'
+    ];
+
+    // Kategori dasar = kolom yang BUKAN salah satu varian (MTD / PB / PB MTD), bukan kolom
+    // non-kategori, dan bukan kolom header-kosong otomatis dari SheetJS (__EMPTY, __EMPTY_1, dst)
+    // yang muncul kalau ada kolom tanpa nama/kolom kosong di file Excel.
+    const cats = headers.filter(h => {
+      if (/^__EMPTY/i.test(h)) return false;
+      const n = norm(h);
+      if (nonCatNorms.includes(n)) return false;
+      if (n.endsWith(' MTD') || n.endsWith(' PB')) return false;
+      return true;
+    });
+
+    // Cari nama kolom asli (case/spasi bisa bervariasi) untuk kolom tambahan non-kategori
+    const findCol = norm2 => headers.find(h => norm(h) === norm2);
+    const colProject = findCol('PROJECT'), colProjectMtd = findCol('PROJECT MTD');
+    const colMember = findCol('MEMBER'), colMemberMtd = findCol('MEMBER MTD');
+    const colProtection = findCol('PROTECTION'), colProtectionMtd = findCol('PROTECTION MTD');
+
+    rows.forEach(r => {
+      const dateISO = excelDateToISO(r[headers[0]]); if (!dateISO) return;
+      state.budgetCat[dateISO] = {
+        _total: parseFloat(r['TOTAL'] || 0),
+        _totalMtd: parseFloat(r['TOTAL MTD'] || 0),
+        _totalPB: parseFloat(r['TOTAL PB'] || 0),
+        _totalPBMtd: parseFloat(r['TOTAL PB MTD'] || 0),
+        _budgetPB: parseFloat(r['BUDGET PB'] || r['TOTAL PB'] || 0),
+        // Kolom tambahan dari file BUDGET_CATEGORY (disiapkan untuk kebutuhan berikutnya,
+        // belum dipakai di tampilan manapun saat ini)
+        _project: colProject ? parseFloat(r[colProject] || 0) : 0,
+        _projectMtd: colProjectMtd ? parseFloat(r[colProjectMtd] || 0) : 0,
+        _member: colMember ? parseFloat(r[colMember] || 0) : 0,
+        _memberMtd: colMemberMtd ? parseFloat(r[colMemberMtd] || 0) : 0,
+        _protectionTarget: colProtection ? parseFloat(r[colProtection] || 0) : 0,
+        _protectionTargetMtd: colProtectionMtd ? parseFloat(r[colProtectionMtd] || 0) : 0,
+        _categories: {}
+      };
+      cats.forEach(cat => {
+        const catNorm = norm(cat);
+        // Cocokkan 3 varian kolom lain berdasarkan nama kategori dasar + suffix, tahan spasi ganda
+        const mtdKey = headers.find(h => norm(h) === `${catNorm} MTD`);
+        const pbKey = headers.find(h => norm(h) === `${catNorm} PB`);
+        const pbMtdKey = headers.find(h => norm(h) === `${catNorm} PB MTD`);
+
+        state.budgetCat[dateISO]._categories[cat] = {
+          daily: r[cat] || 0,
+          mtd: mtdKey ? (r[mtdKey] ?? null) : null,
+          pbDaily: pbKey ? (r[pbKey] || 0) : 0,
+          pbMtd: pbMtdKey ? (r[pbMtdKey] ?? null) : null
+        };
+      });
+    });
+    markLoaded('btnBudgetCat', 'tagBudgetCat', 'LOADED', fname);
+  } else if (type === 'budget_salesperson') {
+    state.budgetSP = {};
+    rows.forEach(r => {
+      const keys = Object.keys(r);
+      const code = r[keys[0]] || ''; if (!code) return;
+      state.budgetSP[code] = { name: r[keys[1]] || '', budgets: {} };
+      keys.slice(2).forEach(k => { if (r[k]) state.budgetSP[code].budgets[k] = r[k]; });
+    });
+    markLoaded('btnBudgetSP', 'tagBudgetSP', 'LOADED', fname);
+  }
+
+  const now = new Date().toLocaleString('id-ID');
+  document.getElementById('lastUpdate').innerHTML = `Diupdate: ${now}`;
+  saveToStorage(type);
+  showToast(`✅ ${fname} berhasil diimport`);
+  renderAll();
+}
+
+function markLoaded(btnId, tagId, text, fname) {
+  const btn = document.getElementById(btnId); const tag = document.getElementById(tagId);
+  if (!btn || !tag) return;
+  if (text === 'CACHED') { btn.classList.add('cached'); btn.classList.remove('loaded'); } 
+  else { btn.classList.add('loaded'); btn.classList.remove('cached'); }
+  tag.textContent = text; tag.title = fname;
+}
+
+function setDateRange() {
+  if (!state.sales.length) return;
+  const dates = state.sales.map(r => r.date).filter(Boolean).sort();
+  document.getElementById('dateFrom').value = dates[0];
+  document.getElementById('dateTo').value = dates[dates.length - 1];
+}
+
+function getFilteredSales() {
+  const from = document.getElementById('dateFrom').value;
+  const to = document.getElementById('dateTo').value;
+  return state.sales.filter(r => (!from || r.date >= from) && (!to || r.date <= to));
+}
+
+function getFilteredSalesLY() {
+  const from = document.getElementById('dateFrom').value;
+  const to = document.getElementById('dateTo').value;
+  if (!from || !to || !state.sales_ly.length) return [];
+  
+  const fromLY = '2025' + from.slice(4);
+  const toLY = '2025' + to.slice(4);
+  return state.sales_ly.filter(r => r.date >= fromLY && r.date <= toLY);
+}
+
+function countDaysInclusive(from, to) {
+  if (!from || !to) return 0;
+  const start = new Date(from + 'T00:00:00');
+  const end = new Date(to + 'T00:00:00');
+  const diff = Math.floor((end - start) / 86400000) + 1;
+  return diff > 0 ? diff : 0;
+}
+
+function resetFilter() { setDateRange(); renderAll(); }
+
+function getBudgetCategoryTotalRange(from, to) {
+  let dailySum = 0; let mtdSum = 0;
+  Object.entries(state.budgetCat).forEach(([d, data]) => {
+    if (d >= from && d <= to) {
+      dailySum += data._total || 0;
+      mtdSum = data._totalMtd || mtdSum + data._total;
+    }
+  });
+
+  // Budget PB total diambil dari penjumlahan PB per kategori (getCatBudgets),
+  // bukan dari kolom TOTAL PB/TOTAL PB MTD terpisah di file Excel — supaya selalu
+  // konsisten dengan angka yang tampil di tabel "Ringkasan Kategori & Zonasi",
+  // termasuk saat kolom TOTAL PB tidak ikut diisi oleh user.
+  const catBudgets = getCatBudgets(from, to);
+  let pbDailySum = 0, pbMtdSum = 0;
+  Object.values(catBudgets).forEach(c => {
+    pbDailySum += c.pbDaily || 0;
+    pbMtdSum += (c.pbMtd !== null ? c.pbMtd : c.pbDaily) || 0;
+  });
+
+  return { daily: dailySum, mtd: mtdSum, budgetPBDaily: pbDailySum, budgetPBMtd: pbMtdSum };
+}
+
+function isPrivateOrExclusiveBrand(r) {
+  // Kolom "Master Type Brand" di DATA_SALES / DATA_SALES_2025 berisi salah satu dari:
+  // "Private Brand", "Exclusive Brand", atau "Non Private Brand".
+  // PENTING: gunakan exact match (bukan substring), karena "Non Private Brand"
+  // juga mengandung kata "Private Brand" dan akan ikut tertangkap secara salah
+  // jika dicocokkan dengan .includes().
+  const mtb = String(r.masterTypeBrand || '').trim().toUpperCase();
+  return mtb === 'PRIVATE BRAND' || mtb === 'EXCLUSIVE BRAND';
+}
+
+function renderAll() {
+  if (!state.sales.length) return;
+  const sales = getFilteredSales();
+  const salesLY = getFilteredSalesLY();
+  const from = document.getElementById('dateFrom').value;
+  const to = document.getElementById('dateTo').value;
+  
+  // Update Field Auto Otomatis di panel export inputan
+  if (to) {
+    const toLY = '2025' + to.slice(4);
+    const daySalesLY = state.sales_ly.filter(r => r.date === toLY).reduce((s, r) => s + r.amount, 0);
+    document.getElementById('expSalesLY').value = Math.round(daySalesLY);
+    
+    const monthStartLY = '2025' + to.slice(4, 8) + '01';
+    const mtdSalesLY = state.sales_ly.filter(r => r.date >= monthStartLY && r.date <= toLY).reduce((s, r) => s + r.amount, 0);
+    document.getElementById('expMTDLY').value = Math.round(mtdSalesLY);
+  }
+
+  document.getElementById('filterInfo').textContent = sales.length.toLocaleString('id') + ' baris transaksi';
+  
+  renderKPI(sales, salesLY, from, to);
+  renderDailyChart(sales, from, to);
+  renderSourceChart(sales);
+  renderCatTable(sales, salesLY, from, to);
+  renderSPTable(sales, salesLY, from, to);
+  renderProductTable(sales);
+}
+
+function updateFFCTraffic() {
+  const sales = getFilteredSales();
+  const receipts = new Set(sales.map(r => r.receiptNo)).size;
+  const ffc = parseInt(document.getElementById('expFFC').value) || 0;
+  const eftTrafficEl = document.getElementById('kpiEftTraffic');
+  
+  if (ffc > 0) {
+    const eftTraffic = (receipts / ffc) * 100;
+    eftTrafficEl.textContent = eftTraffic.toFixed(2) + '%';
+  } else {
+    eftTrafficEl.textContent = '—';
+  }
+}
+
+function renderKPI(sales, salesLY, from, to) {
+  const total = sales.reduce((s, r) => s + r.amount, 0);
+  const totalLY = salesLY.reduce((s, r) => s + r.amount, 0);
+  
+  const totalPB = sales.filter(isPrivateOrExclusiveBrand).reduce((s, r) => s + r.amount, 0);
+  const totalPBLY = salesLY.filter(isPrivateOrExclusiveBrand).reduce((s, r) => s + r.amount, 0);
+
+  const budgetObj = getBudgetCategoryTotalRange(from, to);
+  const isSingleDay = (from && to && from === to);
+  const targetAcuan = isSingleDay ? budgetObj.daily : budgetObj.mtd;
+  const budgetPBTarget = isSingleDay ? budgetObj.budgetPBDaily : budgetObj.budgetPBMtd;
+
+  document.getElementById('kpiRealMTD').textContent = formatRp(total);
+  document.getElementById('kpiRealPB').textContent = `Real PB: ${formatRp(totalPB)}`;
+
+  document.getElementById('kpiBudgetMTD').textContent = formatRp(targetAcuan);
+  document.getElementById('kpiBudgetPB').textContent = `Budget PB: ${formatRp(budgetPBTarget)}`;
+  
+  const pctReal = targetAcuan > 0 ? (total / targetAcuan * 100) : 0;
+  const pctPB = budgetPBTarget > 0 ? (totalPB / budgetPBTarget * 100) : 0;
+  document.getElementById('kpiPctMTD').textContent = pctReal.toFixed(1) + '%';
+  document.getElementById('kpiPctPB').textContent = `% Ach PB: ${pctPB.toFixed(1)}%`;
+  
+  if (state.sales_ly.length > 0 && totalLY > 0) {
+    const pctGrowth = ((total - totalLY) / totalLY) * 100;
+    const valGrowth = total - totalLY;
+    document.getElementById('kpiPctGrowth').textContent = (pctGrowth >= 0 ? '+' : '') + pctGrowth.toFixed(1) + '%';
+    document.getElementById('kpiValueGrowth').textContent = formatRp(valGrowth);
+    document.getElementById('kpiValueGrowth').style.color = valGrowth >= 0 ? 'var(--accent2)' : 'var(--danger)';
+    
+    const pctGrowthPB = totalPBLY > 0 ? ((totalPB - totalPBLY) / totalPBLY * 100) : 0;
+    const valGrowthPB = totalPB - totalPBLY;
+    document.getElementById('kpiGrowthPB').textContent = `Growth PB: ${(pctGrowthPB >= 0 ? '+' : '')}${pctGrowthPB.toFixed(1)}%`;
+    document.getElementById('kpiValGrowthPB').textContent = `Val Growth PB: ${formatRp(valGrowthPB)}`;
+  } else {
+    document.getElementById('kpiPctGrowth').textContent = '—';
+    document.getElementById('kpiValueGrowth').textContent = '—';
+    document.getElementById('kpiValueGrowth').style.color = 'var(--text)';
+    document.getElementById('kpiGrowthPB').textContent = 'Growth PB: —';
+    document.getElementById('kpiValGrowthPB').textContent = 'Val Growth PB: —';
+  }
+
+  // Invoice & Basket Size TY/LY specifications
+  const receiptsTY = new Set(sales.map(r => r.receiptNo)).size;
+  const receiptsLY = new Set(salesLY.map(r => r.receiptNo)).size;
+  document.getElementById('kpiTrx').textContent = receiptsTY.toLocaleString('id');
+  document.getElementById('kpiTrxLY').textContent = `LY: ${receiptsLY.toLocaleString('id')}`;
+
+  const avgTrxTY = receiptsTY > 0 ? total / receiptsTY : 0;
+  const avgTrxLY = receiptsLY > 0 ? totalLY / receiptsLY : 0;
+  document.getElementById('kpiAvgTrx').textContent = formatRp(avgTrxTY);
+  document.getElementById('kpiAvgTrxLY').textContent = `LY: ${formatRp(avgTrxLY)}`;
+
+  document.getElementById('kpiSP').textContent = new Set(sales.map(r => r.salespersonId).filter(Boolean)).size.toLocaleString('id');
+  
+  updateFFCTraffic();
+  updateExportPreview();
+  updateExportPreviewPM();
+  updateExportPreviewAWT();
+}
+
+function renderDailyChart(sales, from, to) {
+  const byDate = {}; sales.forEach(r => { if (r.date) byDate[r.date] = (byDate[r.date] || 0) + r.amount; });
+  const labels = Object.keys(byDate).sort();
+  
+  const ctx = document.getElementById('chartDaily').getContext('2d');
+  if (state.charts.daily) state.charts.daily.destroy();
+  state.charts.daily = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels.map(d => formatDateShort(d)),
+      datasets: [
+        { label: 'Realisasi', data: labels.map(d => byDate[d]), backgroundColor: 'rgba(25,118,210,0.75)', borderRadius: 2 },
+        { label: 'Budget', data: labels.map(d => state.budgetCat[d]?._total || 0), type: 'line', borderColor: '#F57C00', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.3 }
+      ]
+    },
+    options: chartOpts()
+  });
+}
+
+function renderSourceChart(sales) {
+  const bySrc = {}; let totalReal = 0;
+  sales.forEach(r => { const s = r.sourceType || 'Unknown'; bySrc[s] = (bySrc[s] || 0) + r.amount; totalReal += r.amount; });
+  const sorted = Object.entries(bySrc).sort((a,b) => b[1]-a[1]);
+
+  const ctx = document.getElementById('chartSource').getContext('2d');
+  if (state.charts.source) state.charts.source.destroy();
+  state.charts.source = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: sorted.map(x => x[0]),
+      datasets: [{
+        data: sorted.map(x => x[1]),
+        backgroundColor: ['#1976D2','#388E3C','#F57C00','#D32F2F','#7B1FA2','#0097A7','#E91E63']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              const val = ctx.raw;
+              const pct = totalReal > 0 ? ((val / totalReal) * 100).toFixed(1) + '%' : '0%';
+              return ` ${ctx.label}: ${formatRp(val)} (${pct})`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function getCatBudgets(from, to) {
+  const allCatNames = new Set(); 
+  Object.values(state.budgetCat).forEach(data => {
+    if (data._categories) Object.keys(data._categories).forEach(c => allCatNames.add(c));
+  });
+  
+  const result = {};
+  allCatNames.forEach(cat => {
+    let dailySum = 0; let mtdSum = 0; let pbDailySum = 0; let pbMtdSum = 0;
+    Object.entries(state.budgetCat).forEach(([d, data]) => {
+      if (d >= from && d <= to && data._categories[cat]) { 
+        const c = data._categories[cat];
+        dailySum += c.daily || 0; 
+        mtdSum = c.mtd !== null ? c.mtd : mtdSum + c.daily; 
+        pbDailySum += c.pbDaily || 0;
+        pbMtdSum = c.pbMtd !== null ? c.pbMtd : pbMtdSum + (c.pbDaily || 0);
+      }
+    });
+    result[cat] = { daily: dailySum, mtd: mtdSum || null, pbDaily: pbDailySum, pbMtd: pbMtdSum || null };
+  });
+  return result;
+}
+
+function formatJustNumber(v) {
+  if (!v && v !== 0) return '—';
+  return Math.round(v).toLocaleString('id-ID');
+}
+
+function renderCatTable(sales, salesLY, from, to) {
+  const byCat = {}; 
+  const byCatPB = {};
+  sales.forEach(r => { 
+    if (r.category) {
+      byCat[r.category] = (byCat[r.category] || 0) + r.amount; 
+      if (isPrivateOrExclusiveBrand(r)) {
+        byCatPB[r.category] = (byCatPB[r.category] || 0) + r.amount;
+      }
+    }
+  });
+
+  const byCatLY = {}; 
+  const byCatPBLY = {};
+  salesLY.forEach(r => { 
+    if (r.category) {
+      byCatLY[r.category] = (byCatLY[r.category] || 0) + r.amount;
+      if (isPrivateOrExclusiveBrand(r)) {
+        byCatPBLY[r.category] = (byCatPBLY[r.category] || 0) + r.amount;
+      }
+    }
+  });
+  
+  const catBudgets = getCatBudgets(from, to);
+  const allCats = Array.from(new Set([...Object.keys(byCat), ...Object.keys(catBudgets)])).sort();
+  const isSingleDay = (from && to && from === to);
+
+  const thead = document.querySelector('#tblCat thead tr');
+  thead.innerHTML = `<th>Kategori</th><th>${isSingleDay ? 'Budget Harian' : 'Budget MTD'}</th><th>Realisasi</th><th>% Real</th><th>Selisih</th><th>BUDGET PB</th><th>REAL PB</th><th>% REAL PB</th><th>Progress</th>`;
+
+  let totalDaily = 0, totalMTD = 0, totalReal = 0, totalRealPB = 0;
+  let totalPBDaily = 0, totalPBMTD = 0;
+  const rows = allCats.map(cat => {
+    const real = byCat[cat] || 0; 
+    const realPB = byCatPB[cat] || 0;
+    const bObj = catBudgets[cat] || { daily: 0, mtd: null, pbDaily: 0, pbMtd: null };
+    const bDaily = bObj.daily || 0; 
+    const bMTD = bObj.mtd !== null ? bObj.mtd : bDaily;
+    const bPBDaily = bObj.pbDaily || 0;
+    const bPBMTD = bObj.pbMtd !== null ? bObj.pbMtd : bPBDaily;
+
+    // Budget PB per kategori diambil langsung dari kolom CATEGORY PB / CATEGORY PB MTD di file BUDGET_CATEGORY
+    const budgetPB = isSingleDay ? bPBDaily : bPBMTD;
+
+    totalDaily += bDaily; totalMTD += bMTD; totalReal += real; totalRealPB += realPB;
+    totalPBDaily += bPBDaily; totalPBMTD += bPBMTD;
+    const targetAcuan = isSingleDay ? bDaily : bMTD;
+
+    return { 
+      cat, real, bDaily, bMTD, targetAcuan, 
+      pct: targetAcuan > 0 ? (real / targetAcuan) * 100 : 0, 
+      selisih: real - targetAcuan,
+      budgetPB, realPB,
+      pctPB: budgetPB > 0 ? (realPB / budgetPB * 100) : 0
+    };
+  });
+
+  rows.sort((a, b) => b.pct - a.pct);
+
+  const tbody = document.getElementById('tblCatBody');
+  if (!rows.length) { 
+    tbody.innerHTML = `<tr><td colspan="9"><div class="no-data"><p>Tidak ada data</p></div></td></tr>`; 
+    renderZonaTable([], isSingleDay);
+    renderRoadTable([], to);
+    renderGrowthTable([], isSingleDay);
+    return; 
+  }
+
+  let html = rows.map(r => `
+    <tr>
+      <td>${r.cat}</td>
+      <td>${isSingleDay ? formatJustNumber(r.bDaily) : formatJustNumber(r.bMTD)}</td>
+      <td><strong>${formatJustNumber(r.real)}</strong></td>
+      <td>${pctBadge(r.pct)}</td>
+      <td style="color:${r.selisih >= 0 ? 'var(--accent2)' : 'var(--danger)'}">${formatJustNumber(Math.abs(r.selisih))} ${r.selisih >= 0 ? '▲' : '▼'}</td>
+      <td>${formatJustNumber(r.budgetPB)}</td>
+      <td><strong>${formatJustNumber(r.realPB)}</strong></td>
+      <td>${pctBadge(r.pctPB)}</td>
+      <td><div class="bar-mini"><div class="bar-mini-fill" style="width:${Math.min(r.pct, 100)}%;background:${barColor(r.pct)}"></div></div></td>
+    </tr>`).join('');
+
+  const totalTargetAcuan = isSingleDay ? totalDaily : totalMTD;
+  const totalPct = totalTargetAcuan > 0 ? (totalReal / totalTargetAcuan) * 100 : 0;
+  const totalSelisih = totalReal - totalTargetAcuan;
+  const totalBudgetPB = isSingleDay ? totalPBDaily : totalPBMTD;
+  const totalPctPB = totalBudgetPB > 0 ? (totalRealPB / totalBudgetPB * 100) : 0;
+
+  html += `
+    <tr class="total-row">
+      <td>TOTAL</td>
+      <td>${isSingleDay ? formatJustNumber(totalDaily) : formatJustNumber(totalMTD)}</td>
+      <td>${formatJustNumber(totalReal)}</td>
+      <td>${pctBadge(totalPct)}</td>
+      <td style="color:${totalSelisih >= 0 ? 'var(--accent2)' : 'var(--danger)'}">${formatJustNumber(Math.abs(totalSelisih))} ${totalSelisih >= 0 ? '▲' : '▼'}</td>
+      <td>${formatJustNumber(totalBudgetPB)}</td>
+      <td>${formatJustNumber(totalRealPB)}</td>
+      <td>${pctBadge(totalPctPB)}</td>
+      <td><div class="bar-mini"><div class="bar-mini-fill" style="width:${Math.min(totalPct, 100)}%;background:${barColor(totalPct)}"></div></div></td>
+    </tr>`;
+
+  tbody.innerHTML = html;
+  renderZonaTable(rows, isSingleDay);
+  renderRoadTable(rows, to);
+  
+  const growthRows = allCats.map(cat => {
+    return {
+      cat, salesTY: byCat[cat] || 0, salesLY: byCatLY[cat] || 0,
+      salesPBTY: byCatPB[cat] || 0, salesPBLY: byCatPBLY[cat] || 0
+    };
+  });
+  renderGrowthTable(growthRows, isSingleDay);
+}
+
+const ZONA_DEFS = [
+  { zona: 'ZONA 1 (FW)',        keywords: ['FLOORING', 'WALL'] },
+  { zona: 'ZONA 2 (BTPL)',      keywords: ['BATHROOM', 'PLUMBING'] },
+  { zona: 'ZONA 3 (BMDWHW)',    keywords: ['BUILDING MATERIAL', 'DOOR', 'WINDOW', 'HARDWARE'] },
+  { zona: 'ZONA 4 (APPKCELHH)', keywords: ['APPLIANCE', 'KITCHEN', 'ELECTRICAL', 'LIGHTING', 'HOUSEWARE', 'HOBB', 'MISCELLANEOUS'] },
+  { zona: 'ZONA 5 (PSTL)',      keywords: ['PAINT', 'SUNDR', 'TOOL'] }
+];
+
+function renderZonaTable(rows, isSingleDay) {
+  const theadZona = document.querySelector('#tblZona thead tr');
+  if (theadZona) {
+    theadZona.innerHTML = `<th>Zona</th><th>${isSingleDay ? 'Budget Harian' : 'Budget MTD'}</th><th>Realisasi</th><th>% Real</th><th>Selisih</th><th>BUDGET PB</th><th>REAL PB</th><th>% REAL PB</th><th>Progress</th>`;
+  }
+
+  const tbody = document.getElementById('tblZonaBody');
+  if (!tbody) return;
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="9"><div class="no-data"><p>Tidak ada data</p></div></td></tr>`; return; }
+
+  const zonaResults = ZONA_DEFS.map(z => {
+    let real = 0, budget = 0, budgetPB = 0, realPB = 0;
+    rows.forEach(r => {
+      const catUpper = (r.cat || '').toUpperCase();
+      if (z.keywords.some(k => catUpper.includes(k))) { 
+        real += r.real; budget += r.targetAcuan; 
+        budgetPB += r.budgetPB || 0; realPB += r.realPB || 0;
+      }
+    });
+    return { 
+      zona: z.zona, real, budget, pct: budget > 0 ? (real / budget * 100) : 0, selisih: real - budget,
+      budgetPB, realPB, pctPB: budgetPB > 0 ? (realPB / budgetPB * 100) : 0
+    };
+  });
+
+  let totalReal = 0, totalBudget = 0, totalBudgetPB = 0, totalRealPB = 0;
+  zonaResults.forEach(z => { totalReal += z.real; totalBudget += z.budget; totalBudgetPB += z.budgetPB; totalRealPB += z.realPB; });
+  const totalPct = totalBudget > 0 ? (totalReal / totalBudget * 100) : 0;
+  const totalSelisih = totalReal - totalBudget;
+  const totalPctPB = totalBudgetPB > 0 ? (totalRealPB / totalBudgetPB * 100) : 0;
+
+  let html = zonaResults.map(z => `
+    <tr>
+      <td><strong>${z.zona}</strong></td>
+      <td>${formatJustNumber(z.budget)}</td>
+      <td><strong>${formatJustNumber(z.real)}</strong></td>
+      <td>${pctBadge(z.pct)}</td>
+      <td style="color:${z.selisih >= 0 ? 'var(--accent2)' : 'var(--danger)'}">${formatJustNumber(Math.abs(z.selisih))} ${z.selisih >= 0 ? '▲' : '▼'}</td>
+      <td>${formatJustNumber(z.budgetPB)}</td>
+      <td><strong>${formatJustNumber(z.realPB)}</strong></td>
+      <td>${pctBadge(z.pctPB)}</td>
+      <td><div class="bar-mini"><div class="bar-mini-fill" style="width:${Math.min(z.pct, 100)}%;background:${barColor(z.pct)}"></div></div></td>
+    </tr>`).join('');
+
+  html += `
+    <tr class="total-row">
+      <td>TOTAL</td>
+      <td>${formatJustNumber(totalBudget)}</td>
+      <td>${formatJustNumber(totalReal)}</td>
+      <td>${pctBadge(totalPct)}</td>
+      <td style="color:${totalSelisih >= 0 ? 'var(--accent2)' : 'var(--danger)'}">${formatJustNumber(Math.abs(totalSelisih))} ${totalSelisih >= 0 ? '▲' : '▼'}</td>
+      <td>${formatJustNumber(totalBudgetPB)}</td>
+      <td>${formatJustNumber(totalRealPB)}</td>
+      <td>${pctBadge(totalPctPB)}</td>
+      <td><div class="bar-mini"><div class="bar-mini-fill" style="width:${Math.min(totalPct, 100)}%;background:${barColor(totalPct)}"></div></div></td>
+    </tr>`;
+
+  tbody.innerHTML = html;
+}
+
+function renderGrowthTable(rows, isSingleDay) {
+  const tbody = document.getElementById('tblGrowthBody');
+  const titleEl = document.getElementById('growthTableTitle');
+  if(!tbody) return;
+
+  if (titleEl) {
+    titleEl.textContent = isSingleDay ? "Analisa Growth per Kategori (Harian)" : "Analisa Growth per Kategori (MTD)";
+  }
+
+  if (state.sales_ly.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="no-data"><div class="icon">📥</div><p>Silakan import DATA_SALES_2025 (LY) untuk menganalisa growth</p></div></td></tr>`;
+    return;
+  }
+
+  const computedRows = rows.map(r => {
+    const growthVal = r.salesTY - r.salesLY;
+    const growthPct = r.salesLY > 0 ? (growthVal / r.salesLY) * 100 : 0;
+    const growthPBVal = r.salesPBTY - r.salesPBLY;
+    const growthPBPct = r.salesPBLY > 0 ? (growthPBVal / r.salesPBLY) * 100 : 0;
+    return { ...r, growthVal, growthPct, growthPBVal, growthPBPct };
+  });
+
+  computedRows.sort((a, b) => b.growthVal - a.growthVal);
+
+  let totalLY = 0, totalTY = 0, totalPBLY = 0, totalPBTY = 0;
+  let html = computedRows.map(r => {
+    totalLY += r.salesLY;
+    totalTY += r.salesTY;
+    totalPBLY += r.salesPBLY;
+    totalPBTY += r.salesPBTY;
+    const isPositive = r.growthVal >= 0;
+    const isPBPositive = r.growthPBVal >= 0;
+    return `
+      <tr>
+        <td>${r.cat}</td>
+        <td>${formatJustNumber(r.salesLY)}</td>
+        <td><strong>${formatJustNumber(r.salesTY)}</strong></td>
+        <td style="color:${isPositive ? 'var(--accent2)' : 'var(--danger)'}">
+          ${isPositive ? '+' : ''}${formatJustNumber(r.growthVal)}
+        </td>
+        <td>
+          <span class="badge-pct ${isPositive ? 'good' : 'bad'}">${isPositive ? '+' : ''}${r.growthPct.toFixed(1)}%</span>
+        </td>
+        <td>${formatJustNumber(r.salesPBLY)}</td>
+        <td><strong>${formatJustNumber(r.salesPBTY)}</strong></td>
+        <td style="color:${isPBPositive ? 'var(--accent2)' : 'var(--danger)'}">
+          ${isPBPositive ? '+' : ''}${formatJustNumber(r.growthPBVal)}
+        </td>
+        <td>
+          <span class="badge-pct ${isPBPositive ? 'good' : 'bad'}">${isPBPositive ? '+' : ''}${r.growthPBPct.toFixed(1)}%</span>
+        </td>
+      </tr>`;
+  }).join('');
+
+  const totalGrowthVal = totalTY - totalLY;
+  const totalGrowthPct = totalLY > 0 ? (totalGrowthVal / totalLY) * 100 : 0;
+  const totalPositive = totalGrowthVal >= 0;
+  const totalGrowthPBVal = totalPBTY - totalPBLY;
+  const totalGrowthPBPct = totalPBLY > 0 ? (totalGrowthPBVal / totalPBLY) * 100 : 0;
+  const totalPBPositive = totalGrowthPBVal >= 0;
+
+  html += `
+    <tr class="total-row">
+      <td>TOTAL</td>
+      <td>${formatJustNumber(totalLY)}</td>
+      <td>${formatJustNumber(totalTY)}</td>
+      <td style="color:${totalPositive ? 'var(--accent2)' : 'var(--danger)'}">
+        ${totalPositive ? '+' : ''}${formatJustNumber(totalGrowthVal)}
+      </td>
+      <td>
+        <span class="badge-pct ${totalPositive ? 'good' : 'bad'}">${totalPositive ? '+' : ''}${totalGrowthPct.toFixed(1)}%</span>
+      </td>
+      <td>${formatJustNumber(totalPBLY)}</td>
+      <td>${formatJustNumber(totalPBTY)}</td>
+      <td style="color:${totalPBPositive ? 'var(--accent2)' : 'var(--danger)'}">
+        ${totalPBPositive ? '+' : ''}${formatJustNumber(totalGrowthPBVal)}
+      </td>
+      <td>
+        <span class="badge-pct ${totalPBPositive ? 'good' : 'bad'}">${totalPBPositive ? '+' : ''}${totalGrowthPBPct.toFixed(1)}%</span>
+      </td>
+    </tr>`;
+
+  tbody.innerHTML = html;
+}
+
+function getCatBudgetFullMonth(toISO) {
+  if (!toISO) return {};
+  const ym = toISO.slice(0, 7);
+  const datesInMonth = Object.keys(state.budgetCat).filter(d => d.startsWith(ym)).sort();
+  const allCatNames = new Set();
+  Object.values(state.budgetCat).forEach(data => {
+    if (data._categories) Object.keys(data._categories).forEach(c => allCatNames.add(c));
+  });
+
+  const result = {};
+  allCatNames.forEach(cat => {
+    let dailySumAll = 0; let lastMtd = null;
+    datesInMonth.forEach(d => {
+      const c = state.budgetCat[d]._categories[cat];
+      if (c) { dailySumAll += c.daily || 0; if (c.mtd !== null && c.mtd !== undefined) lastMtd = c.mtd; }
+    });
+    result[cat] = lastMtd !== null ? lastMtd : dailySumAll;
+  });
+  return result;
+}
+
+function getRemainingDaysInMonth(toISO) {
+  if (!toISO) return 0;
+  const [y, m, d] = toISO.split('-').map(Number);
+  const lastDayOfMonth = new Date(y, m, 0).getDate();
+  return Math.max(lastDayOfMonth - d, 0);
+}
+
+function renderRoadTable(rows, toISO) {
+  const tbody = document.getElementById('tblRoadBody');
+  if (!tbody) return;
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="no-data"><p>Tidak ada data</p></div></td></tr>`; return; }
+
+  const fullMonthBudgets = getCatBudgetFullMonth(toISO);
+  const remainingDays = getRemainingDaysInMonth(toISO);
+
+  const roadRows = rows.map(r => {
+    const budgetFull = fullMonthBudgets[r.cat] || 0;
+    const kurang = budgetFull - r.real;
+    const pctFull = budgetFull > 0 ? (r.real / budgetFull) * 100 : 0;
+    const avgDay = (kurang > 0 && remainingDays > 0) ? (kurang / remainingDays) : 0;
+    return { cat: r.cat, budgetFull, real: r.real, pctFull, kurang, avgDay };
+  });
+
+  let totalBudgetFull = 0, totalReal = 0, totalKurang = 0;
+  roadRows.forEach(r => { totalBudgetFull += r.budgetFull; totalReal += r.real; totalKurang += r.kurang; });
+  const totalPctFull = totalBudgetFull > 0 ? (totalReal / totalBudgetFull) * 100 : 0;
+  const totalAvgDay = (totalKurang > 0 && remainingDays > 0) ? (totalKurang / remainingDays) : 0;
+
+  const avgDayCell = (kurang, avgDay) => {
+    if (kurang <= 0) return '<span class="badge-pct good">✅ Tercapai</span>';
+    if (remainingDays <= 0) return '<span class="badge-pct bad">Hari Habis</span>';
+    return `${formatJustNumber(avgDay)} /hari`;
+  };
+
+  let html = roadRows.map(r => `
+    <tr>
+      <td>${r.cat}</td>
+      <td>${formatJustNumber(r.budgetFull)}</td>
+      <td><strong>${formatJustNumber(r.real)}</strong></td>
+      <td>${pctBadge(r.pctFull)}</td>
+      <td style="color:${r.kurang <= 0 ? 'var(--accent2)' : 'var(--danger)'}">${formatJustNumber(Math.abs(r.kurang))}${r.kurang <= 0 ? ' ✅' : ''}</td>
+      <td>${avgDayCell(r.kurang, r.avgDay)}</td>
+    </tr>`).join('');
+
+  html += `
+    <tr class="total-row">
+      <td>TOTAL</td>
+      <td>${formatJustNumber(totalBudgetFull)}</td>
+      <td>${formatJustNumber(totalReal)}</td>
+      <td>${pctBadge(totalPctFull)}</td>
+      <td style="color:${totalKurang <= 0 ? 'var(--accent2)' : 'var(--danger)'}">${formatJustNumber(Math.abs(totalKurang))}${totalKurang <= 0 ? ' ✅' : ''}</td>
+      <td>${avgDayCell(totalKurang, totalAvgDay)}</td>
+    </tr>`;
+
+  tbody.innerHTML = html;
+}
+
+function canvasWithFooter(canvas, align = 'right') {
+  return canvas;
+}
+
+function getCaptureHeaderHeight(element) {
+  const firstBodyRow = element.querySelector('tbody tr'); if (!firstBodyRow) return 0;
+  return Math.max(0, Math.ceil(firstBodyRow.getBoundingClientRect().top - element.getBoundingClientRect().top));
+}
+
+function downloadTableAsPNG(containerId, filename) {
+  const element = document.getElementById(containerId); const btn = element.querySelector('.btn-table-action');
+  const timestampEl = element.querySelector('.download-timestamp'); const wrap = element.querySelector('.tbl-wrap');
+  if(btn) btn.style.visibility = 'hidden';
+
+  let wrapOriginal = null;
+  if (wrap) { wrapOriginal = { overflow: wrap.style.overflow, width: wrap.style.width, maxWidth: wrap.style.maxWidth }; wrap.style.overflow = 'visible'; wrap.style.width = 'max-content'; wrap.style.maxWidth = 'none'; }
+  const elOriginal = { width: element.style.width, maxWidth: element.style.maxWidth, overflow: element.style.overflow };
+  element.style.width = 'max-content'; element.style.maxWidth = 'none'; element.style.overflow = 'visible';
+
+  if (timestampEl) {
+    const sekarang = new Date();
+    timestampEl.innerHTML = `⏱️ ${sekarang.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })} | ${String(sekarang.getHours()).padStart(2, '0')}:${String(sekarang.getMinutes()).padStart(2, '0')} WITA`;
+    timestampEl.style.display = 'block';
+  }
+
+  requestAnimationFrame(() => {
+    html2canvas(element, { scale: 2, backgroundColor: "#ffffff", width: element.scrollWidth, height: element.scrollHeight, windowWidth: element.scrollWidth, windowHeight: element.scrollHeight }).then(canvas => {
+      const outputCanvas = canvasWithFooter(canvas, 'right'); const link = document.createElement('a');
+      link.download = `${filename}_${new Date().toISOString().slice(0,10)}.png`; link.href = outputCanvas.toDataURL(); link.click();
+      if (wrap && wrapOriginal) { wrap.style.overflow = wrapOriginal.overflow; wrap.style.width = wrapOriginal.width; wrap.style.maxWidth = wrapOriginal.maxWidth; }
+      element.style.width = elOriginal.width; element.style.maxWidth = elOriginal.maxWidth; element.style.overflow = elOriginal.overflow;
+      if(btn) btn.style.visibility = 'visible'; if(timestampEl) timestampEl.style.display = 'none';
+      showToast('📸 Gambar PNG berhasil didownload!');
+    }).catch(() => {
+      if (wrap && wrapOriginal) { wrap.style.overflow = wrapOriginal.overflow; wrap.style.width = wrapOriginal.width; wrap.style.maxWidth = wrapOriginal.maxWidth; }
+      element.style.width = elOriginal.width; element.style.maxWidth = elOriginal.maxWidth; element.style.overflow = elOriginal.overflow;
+      if(btn) btn.style.visibility = 'visible'; if(timestampEl) timestampEl.style.display = 'none';
+      showToast('Gagal membuat gambar PNG', true);
+    });
+  });
+}
+
+function downloadTableAsPNGPaged(containerId, filename) {
+  const element = document.getElementById(containerId); if (!element) return;
+  const buttons = element.querySelectorAll('.btn-table-action'); const timestampEl = element.querySelector('.download-timestamp');
+  const wrap = element.querySelector('.tbl-wrap'); buttons.forEach(btn => btn.style.visibility = 'hidden');
+
+  let wrapOriginal = null;
+  if (wrap) { wrapOriginal = { overflow: wrap.style.overflow, width: wrap.style.width, maxWidth: wrap.style.maxWidth }; wrap.style.overflow = 'visible'; wrap.style.width = 'max-content'; wrap.style.maxWidth = 'none'; }
+  const elOriginal = { width: element.style.width, maxWidth: element.style.maxWidth, overflow: element.style.overflow };
+  element.style.width = 'max-content'; element.style.maxWidth = 'none'; element.style.overflow = 'visible';
+
+  if (timestampEl) {
+    const sekarang = new Date();
+    timestampEl.innerHTML = `⏱️ ${sekarang.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })} | ${String(sekarang.getHours()).padStart(2, '0')}:${String(sekarang.getMinutes()).padStart(2, '0')} WITA`;
+    timestampEl.style.display = 'block';
+  }
+
+  const restore = () => {
+    if (wrap && wrapOriginal) { wrap.style.overflow = wrapOriginal.overflow; wrap.style.width = wrapOriginal.width; wrap.style.maxWidth = wrapOriginal.maxWidth; }
+    element.style.width = elOriginal.width; element.style.maxWidth = elOriginal.maxWidth; element.style.overflow = elOriginal.overflow;
+    buttons.forEach(btn => btn.style.visibility = 'visible'); if (timestampEl) timestampEl.style.display = 'none';
+  };
+
+  requestAnimationFrame(() => {
+    html2canvas(element, { scale: 2, backgroundColor: "#ffffff", width: element.scrollWidth, height: element.scrollHeight, windowWidth: element.scrollWidth, windowHeight: element.scrollHeight }).then(canvas => {
+      const pageHeight = 3600; const totalPages = Math.ceil(canvas.height / pageHeight); const headerHeight = getCaptureHeaderHeight(element);
+      for (let page = 0; page < totalPages; page++) {
+        const sourceY = page * pageHeight; const sliceHeight = Math.min(pageHeight, canvas.height - sourceY);
+        const pageCanvas = document.createElement('canvas'); pageCanvas.width = canvas.width;
+        pageCanvas.height = totalPages > 1 && page > 0 ? sliceHeight + headerHeight * 2 : sliceHeight;
+        const ctx = pageCanvas.getContext('2d'); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        if (totalPages > 1 && page > 0 && headerHeight > 0) {
+          ctx.drawImage(canvas, 0, 0, canvas.width, headerHeight * 2, 0, 0, canvas.width, headerHeight * 2);
+          ctx.drawImage(canvas, 0, sourceY, canvas.width, sliceHeight, 0, headerHeight * 2, canvas.width, sliceHeight);
+        } else { ctx.drawImage(canvas, 0, sourceY, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight); }
+        const outputCanvas = canvasWithFooter(pageCanvas, 'left'); const link = document.createElement('a');
+        link.download = totalPages > 1 ? `${filename}_Halaman_${page + 1}_dari_${totalPages}.png` : `${filename}.png`;
+        link.href = outputCanvas.toDataURL(); link.click();
+      }
+      restore(); showToast('📸 Gambar PNG berhasil didownload!');
+    }).catch(() => { restore(); showToast('Gagal membuat gambar PNG', true); });
+  });
+}
+
+let spTableData = [];
+function renderSPTable(sales, salesLY, from, to) {
+  const bySP = {}; const dayCount = countDaysInclusive(from, to);
+  
+  // Hitung TY Data
+  sales.forEach(r => {
+    const key = r.salespersonId || r.salespersonName; if (!key) return;
+    if (!bySP[key]) bySP[key] = { id: r.salespersonId, name: r.salespersonName, real: 0, realPB: 0, qty: 0, receipts: new Set(), receiptsLY: new Set(), realLY: 0 };
+    bySP[key].real += r.amount; bySP[key].qty += r.qty || 0; if (r.receiptNo) bySP[key].receipts.add(r.receiptNo);
+    if (isPrivateOrExclusiveBrand(r)) bySP[key].realPB += r.amount;
+  });
+
+  // Hitung LY Data
+  salesLY.forEach(r => {
+    const key = r.salespersonId || r.salespersonName; if (!key) return;
+    if (!bySP[key]) bySP[key] = { id: r.salespersonId, name: r.salespersonName, real: 0, realPB: 0, qty: 0, receipts: new Set(), receiptsLY: new Set(), realLY: 0 };
+    bySP[key].realLY += r.amount; if (r.receiptNo) bySP[key].receiptsLY.add(r.receiptNo);
+  });
+
+  const getBudgetSP = (id) => {
+    const entry = state.budgetSP[id]; if (!entry) return 0;
+    if (entry.budgets[to]) return parseFloat(entry.budgets[to]) || 0;
+    const keys = Object.keys(entry.budgets).sort(); const match = keys.filter(k => k <= to).pop();
+    return match ? parseFloat(entry.budgets[match]) : parseFloat(Object.values(entry.budgets)[0] || 0);
+  };
+
+  // Budget PB Salper: akan diambil dari sheet BUDGET_SALPER setelah kolom Budget PB
+  // ditambahkan ke file import tersebut. Untuk saat ini dikosongkan (0) karena
+  // sumber datanya belum tersedia.
+  const getBudgetPBSP = (id) => {
+    const entry = state.budgetSP[id]; if (!entry || !entry.budgetsPB) return 0;
+    if (entry.budgetsPB[to]) return parseFloat(entry.budgetsPB[to]) || 0;
+    const keys = Object.keys(entry.budgetsPB).sort(); const match = keys.filter(k => k <= to).pop();
+    return match ? parseFloat(entry.budgetsPB[match]) : parseFloat(Object.values(entry.budgetsPB)[0] || 0);
+  };
+
+  spTableData = Object.values(bySP)
+    .filter(sp => sp.real > 0)
+    .map(sp => ({
+    ...sp, 
+    receiptsCount: sp.receipts.size,
+    receiptsCountLY: sp.receiptsLY.size,
+    budget: getBudgetSP(sp.id),
+    pct: getBudgetSP(sp.id) > 0 ? (sp.real / getBudgetSP(sp.id) * 100) : 0,
+    budgetPB: getBudgetPBSP(sp.id),
+    pctPB: getBudgetPBSP(sp.id) > 0 ? (sp.realPB / getBudgetPBSP(sp.id) * 100) : 0,
+    avg: sp.receipts.size > 0 ? sp.real / sp.receipts.size : 0,
+    avgLY: sp.receiptsLY.size > 0 ? sp.realLY / sp.receiptsLY.size : 0,
+    utp: sp.qty > 0 ? sp.real / sp.qty : 0,
+    ipd: dayCount > 0 ? sp.receipts.size / dayCount : 0
+  }));
+
+  const top10 = [...spTableData].sort((a,b) => b.real - a.real).slice(0, 10);
+  const topSPBody = document.getElementById('tblTopSPBody');
+  if(top10.length) {
+    topSPBody.innerHTML = top10.map((sp, i) => `<tr><td>${i+1}</td><td style="font-family:monospace;">${sp.id || '—'}</td><td><strong>${sp.name || '—'}</strong></td><td><strong>${formatRp(sp.real)}</strong></td></tr>`).join('');
+  } else { topSPBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:20px;">Belum ada data</td></tr>`; }
+  sortSPData();
+}
+
+function renderSPTableDOM(data) {
+  const tbody = document.getElementById('tblSPBody'); if (!data.length) { tbody.innerHTML = '<tr><td colspan="15"><div class="no-data"><p>Tidak ada data</p></div></td></tr>'; return; }
+  tbody.innerHTML = data.map((sp, i) => `<tr><td style="color:var(--muted);font-weight:600">${i+1}</td><td style="font-family:monospace;font-size:11px;">${sp.id || '—'}</td><td><strong>${sp.name || '—'}</strong></td><td>${formatNum(sp.budget)}</td><td><strong>${formatNum(sp.real)}</strong></td><td>${pctBadge(sp.pct)}</td><td>${formatNum(sp.budgetPB)}</td><td><strong>${formatNum(sp.realPB)}</strong></td><td>${pctBadge(sp.pctPB)}</td><td>${sp.receiptsCount.toLocaleString('id')}</td><td>${sp.receiptsCountLY.toLocaleString('id')}</td><td>${formatNum(sp.avg)}</td><td>${formatNum(sp.avgLY)}</td><td>${formatNum(sp.utp)}</td><td>${formatDecimal(sp.ipd)}</td></tr>`).join('');
+}
+
+function filterSPTable(q) { renderSPTableDOM(q ? spTableData.filter(sp => (sp.name||'').toLowerCase().includes(q.toLowerCase()) || (sp.id||'').toLowerCase().includes(q.toLowerCase())) : spTableData); }
+function sortSPTable(colName) { if (state.spSort.col === colName) state.spSort.asc = !state.spSort.asc; else { state.spSort.col = colName; state.spSort.asc = false; } sortSPData(); }
+function sortSPData() { const col = state.spSort.col; const isAsc = state.spSort.asc; spTableData.sort((a, b) => { let valA = col === 'index' ? 0 : a[col]; let valB = col === 'index' ? 0 : b[col]; if (typeof valA === 'string') return isAsc ? valA.localeCompare(valB) : valB.localeCompare(valA); return isAsc ? (valA - valB) : (valB - valA); }); filterSPTable(document.querySelector('.table-search').value); }
+
+function renderProductTable(sales) {
+  const byItem = {};
+  sales.forEach(r => {
+    if (!r.itemName) return;
+    if (!byItem[r.itemName]) byItem[r.itemName] = { name: r.itemName, cat: r.category, brand: r.brand, qty: 0, val: 0 };
+    byItem[r.itemName].qty += r.qty; byItem[r.itemName].val += r.amount;
+  });
+  const tbody = document.getElementById('tblProdBody');
+  tbody.innerHTML = Object.values(byItem).sort((a,b) => b.val - a.val).slice(0, 30).map((p, i) => `<tr><td style="color:var(--muted)">${i+1}</td><td style="max-width:280px;white-space:normal;line-height:1.3">${p.name}</td><td><span class="pill blue">${p.cat}</span></td><td>${p.brand || '—'}</td><td>${Math.abs(p.qty).toLocaleString('id')}</td><td><strong>${formatRp(p.val)}</strong></td></tr>`).join('') || '<tr><td colspan="6"><div class="no-data"><p>Tidak ada data</p></div></td></tr>';
+}
+
+function chartOpts() {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#fff', borderColor: '#e0e0e0', borderWidth: 1, titleColor: '#212121', bodyColor: '#666', callbacks: { label: ctx => ' ' + formatRp(ctx.parsed.y ?? ctx.parsed.x) } } },
+    scales: { x: { ticks: { color: '#757575', font: { size: 10 } }, grid: { color: '#f5f5f5' } }, y: { ticks: { color: '#757575', font: { size: 10 }, callback: v => formatRpShort(v) }, grid: { color: '#f5f5f5' } } }
+  };
+}
+function formatRp(v) { if (!v && v !== 0) return '—'; return Math.abs(v) >= 1e9 ? 'Rp ' + (v/1e9).toFixed(2) + ' M' : Math.abs(v) >= 1e6 ? 'Rp ' + (v/1e6).toFixed(1) + ' jt' : 'Rp ' + Math.round(v).toLocaleString('id'); }
+function formatNum(v) { if (!v && v !== 0) return '—'; return Math.round(v).toLocaleString('id'); }
+function formatRpShort(v) { return Math.abs(v) >= 1e9 ? (v/1e9).toFixed(1)+'M' : Math.abs(v) >= 1e6 ? (v/1e6).toFixed(0)+'jt' : Math.abs(v) >= 1e3 ? (v/1e3).toFixed(0)+'rb' : v; }
+function formatDecimal(v) { return (Number(v) || 0).toLocaleString('id', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function formatDateShort(iso) { if (!iso) return ''; const [y, m, d] = iso.split('-'); return d + '/' + m; }
+function pctBadge(pct) { const cls = pct >= 100 ? 'good' : pct >= 50 ? 'mid' : 'bad'; return `<span class="badge-pct ${cls}">${pct.toFixed(1)}%</span>`; }
+function barColor(pct) { return pct >= 100 ? 'var(--accent2)' : pct >= 50 ? 'var(--warn)' : 'var(--danger)'; }
+
+function handleRefresh() {
+  if (!state.sales.length) { showToast('⚠️ Belum ada data diimport', true); return; }
+  const icon = document.getElementById('refreshIcon'); icon.classList.add('spinning');
+  setTimeout(() => { renderAll(); icon.classList.remove('spinning'); showToast('✅ Dashboard berhasil direfresh'); }, 600);
+}
+function showToast(msg, isError = false) { const t = document.createElement('div'); t.className = 'toast' + (isError ? ' error' : ''); t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3500); }
+
+function getExportData() {
+  const sales = getFilteredSales(); const from = document.getElementById('dateFrom').value; const to = document.getElementById('dateTo').value;
+  if (!sales.length || !from || !to) return null;
+
+  const totalTo = state.sales.filter(r => r.date === to).reduce((s, r) => s + r.amount, 0);
+  const budgetObj = state.budgetCat[to] || { _total: 0, _totalMtd: 0 };
+  const budgetTo = budgetObj._total;
+  const invTo = new Set(state.sales.filter(r => r.date === to).map(r => r.receiptNo)).size;
+
+  const monthStart = to.slice(0, 7) + '-01';
+  const totalMTD = state.sales.filter(r => r.date >= monthStart && r.date <= to).reduce((s, r) => s + r.amount, 0);
+  
+  const budgetCategoryRange = getBudgetCategoryTotalRange(monthStart, to);
+  const budgetMTD = budgetCategoryRange.mtd || budgetCategoryRange.daily;
+  
+  const invMTD = new Set(state.sales.filter(r => r.date >= monthStart && r.date <= to).map(r => r.receiptNo)).size;
+  const ffc = parseInt(document.getElementById('expFFC').value) || 0;
+  const ffcManual = parseInt(document.getElementById('expFFCManual').value) || 0;
+  const toDate = new Date(to + 'T00:00:00');
+  const bulanNames = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
+  const monthEnd = new Date(toDate.getFullYear(), toDate.getMonth() + 1, 0);
+  
+  const fullMonthObj = getBudgetCategoryTotalRange(monthStart, `${monthEnd.getFullYear()}-${String(monthEnd.getMonth()+1).padStart(2,'0')}-${String(monthEnd.getDate()).padStart(2,'0')}`);
+  const budgetFullMonth = fullMonthObj.mtd || fullMonthObj.daily;
+
+  const deliveryCharge = parseInt(document.getElementById('expDeliveryCharge').value) || 0;
+  const salesStore = totalTo;
+
+  return {
+    storeName: document.getElementById('expStoreName').value || "Store Mitra10 Tallasa City Makassar", jam: document.getElementById('expJam').value || '—',
+    tanggal: toDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }), bulan: bulanNames[toDate.getMonth()], tahun: toDate.getFullYear(), budgetFullMonth,
+    budgetTo, totalTo, invTo, budgetMTD, total: totalMTD, invMTD, bsz: invMTD > 0 ? Math.round(totalMTD / invMTD) : 0, ffc, ffcManual,
+    eft: ffc > 0 ? (invTo/ffc*100) : 0, eftManual: ffcManual > 0 ? (invTo/ffcManual*100) : 0,
+    salesLY: parseInt(document.getElementById('expSalesLY').value) || 0, mtdLY: parseInt(document.getElementById('expMTDLY').value) || 0,
+    achT: budgetFullMonth > 0 ? (budgetMTD/budgetFullMonth*100) : 0, achA: budgetFullMonth > 0 ? (totalMTD/budgetFullMonth*100) : 0,
+    growth: (parseInt(document.getElementById('expMTDLY').value) || 0) > 0 ? ((totalMTD - parseInt(document.getElementById('expMTDLY').value)) / parseInt(document.getElementById('expMTDLY').value) * 100) : 0,
+    growthVal: totalMTD - (parseInt(document.getElementById('expMTDLY').value) || 0),
+    protection: Math.abs(state.sales.filter(r => r.date === to && (r.masterBrand || '').toUpperCase() === 'BCA').reduce((s, r) => s + Math.abs(r.qty || 0), 0)),
+    newMember: parseInt(document.getElementById('expNewMember').value) || 0, voucher: parseInt(document.getElementById('expVoucher').value) || 0,
+    omsetFullMonthLY: parseInt(document.getElementById('expOmsetFullMonthLY').value) || 0,
+    deliveryCharge, salesStore, deliveryChargePct: salesStore > 0 ? (deliveryCharge/salesStore*100) : 0
+  };
+}
+
+function buildTXTReport(d) {
+  const pct = (n) => n.toFixed(2) + '%'; const s = (n) => Math.round(n/1e6).toLocaleString('id');
+  return [
+    `${d.storeName}`, `Tanggal : ${d.tanggal}`, `s/d Jam : ${d.jam}`, `Target ${d.bulan} ${d.tahun} : ${d.budgetFullMonth.toLocaleString('id')}`, ``,
+    `T/A	: ${s(d.budgetTo)} / ${s(d.totalTo)} ( ${pct(d.budgetTo > 0 ? d.totalTo/d.budgetTo*100 : 0)})`, `SEL	: ${s(d.totalTo - d.budgetTo)}`,
+    `MTD T/A	: ${s(d.budgetMTD)} / ${s(d.total)} ( ${pct(d.budgetMTD > 0 ? d.total/d.budgetMTD*100 : 0)} )`, `SEL	: ${s(d.total - d.budgetMTD)}`,
+    `BSZ	: ${d.bsz.toLocaleString('id')}`, `FFC 	: ${d.ffc.toLocaleString('id')}`, `FFC Manual : ${d.ffcManual.toLocaleString('id')}`,
+    `INV 	: ${d.invTo.toLocaleString('id')}`, `EFT 	: ${pct(d.eft)}`, `EFT Manual : ${pct(d.eftManual)}`,
+    `Sales LY : ${d.salesLY.toLocaleString('id')}`, `MTD LY	: ${d.mtdLY.toLocaleString('id')}`,
+    `ACH T/A	: ${pct(d.achT)} /${pct(d.achA)}`, `GROWTH 	: ${pct(d.growth)} / ${s(d.growthVal)}`, ``,
+    `Omset Full Month LY :	${d.omsetFullMonthLY.toLocaleString('id')}`, ``,
+    `Delivery Charge	: ${d.deliveryCharge.toLocaleString('id')}`,
+    `Sales Store	: ${d.salesStore.toLocaleString('id')}`,
+    `Delivery Charge	: ${pct(d.deliveryChargePct)}`, ``,
+    `Mitra 10 Protection : ${d.protection.toLocaleString('id')}`,
+    `New Member	: ${d.newMember.toLocaleString('id')}`,
+    `Voucher CRM	: ${d.voucher.toLocaleString('id')}`
+  ].join('\r\n');
+}
+
+function updateExportPreview() {
+  const d = getExportData(); const el = document.getElementById('exportPreview');
+  if (!d) { el.textContent = 'Lengkapi data filter & input untuk melihat preview laporan...'; el.classList.add('empty'); return; }
+  document.getElementById('expINVDisplay').textContent = d.invTo.toLocaleString('id');
+  document.getElementById('expEFTDisplay').textContent = d.eft.toFixed(2) + '%';
+  document.getElementById('expEFTManualDisplay').textContent = d.eftManual.toFixed(2) + '%';
+  document.getElementById('expProtectionDisplay').textContent = d.protection.toLocaleString('id');
+  document.getElementById('expSalesStoreDisplay').textContent = d.salesStore.toLocaleString('id');
+  document.getElementById('expDeliveryChargePctDisplay').textContent = d.deliveryChargePct.toFixed(2) + '%';
+  el.classList.remove('empty'); el.textContent = buildTXTReport(d);
+}
+
+function copyExportPreview() {
+  const d = getExportData(); if (!d) { showToast('Data belum lengkap', true); return; }
+  copyTextToClipboard(buildTXTReport(d));
+}
+
+function copyTextToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+    navigator.clipboard.writeText(text)
+      .then(() => showToast('✅ Preview laporan disalin ke clipboard'))
+      .catch(() => fallbackCopyToClipboard(text));
+  } else {
+    fallbackCopyToClipboard(text);
+  }
+}
+
+function fallbackCopyToClipboard(text) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (ok) showToast('✅ Preview laporan disalin ke clipboard');
+    else showToast('Gagal menyalin ke clipboard', true);
+  } catch (err) {
+    showToast('Gagal menyalin ke clipboard', true);
+  }
+}
+
+function generateExportTXT() { const d = getExportData(); if (!d) { showToast('Data belum lengkap', true); return; } const blob = new Blob([buildTXTReport(d)], { type: 'text/plain;charset=utf-8' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${d.storeName.replace(/\s+/g, '_')}_Report.txt`; document.body.appendChild(a); a.click(); a.remove(); }
+
+// ──────────────────────────────────────────
+// LAPORAN SALES PROJECT & MEMBER (txt) — panel kedua di samping Laporan Utama
+// ──────────────────────────────────────────
+function getExportDataPM() {
+  const to = document.getElementById('dateTo').value;
+  if (!to) return null;
+
+  const budgetObj = state.budgetCat[to] || { _project: 0, _projectMtd: 0, _member: 0, _memberMtd: 0 };
+  const monthStart = to.slice(0, 7) + '-01';
+
+  // "Sales Project" diambil dari DATA_SALES, kolom Amount Exclude Sales,
+  // difilter Source Type Name = "Sales Project" (case-insensitive)
+  const isProjectSource = st => (st || '').trim().toUpperCase() === 'SALES PROJECT';
+  const salesProjectTo = state.sales.filter(r => r.date === to && isProjectSource(r.sourceType)).reduce((s, r) => s + r.amount, 0);
+  const salesProjectMTD = state.sales.filter(r => r.date >= monthStart && r.date <= to && isProjectSource(r.sourceType)).reduce((s, r) => s + r.amount, 0);
+
+  const totalTo = state.sales.filter(r => r.date === to).reduce((s, r) => s + r.amount, 0);
+  const totalMTD = state.sales.filter(r => r.date >= monthStart && r.date <= to).reduce((s, r) => s + r.amount, 0);
+
+  const toDate = new Date(to + 'T00:00:00');
+  const hariNames = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+  const bulanNames = ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'];
+  const tanggalFull = `${hariNames[toDate.getDay()]}, ${String(toDate.getDate()).padStart(2, '0')} ${bulanNames[toDate.getMonth()]} ${toDate.getFullYear()}`;
+
+  const budgetProjectTo = budgetObj._project || 0;
+  const budgetProjectMTD = budgetObj._projectMtd || 0;
+  const budgetMemberTo = budgetObj._member || 0;
+  const budgetMemberMTD = budgetObj._memberMtd || 0;
+
+  const qtyMember = parseInt(document.getElementById('expPMQtyMember').value) || 0;
+  const qtyNems = parseInt(document.getElementById('expPMQtyNems').value) || 0;
+  const valueNems = parseFloat(document.getElementById('expPMValueNems').value) || 0;
+  const qtyMemberMTD = parseInt(document.getElementById('expPMQtyMemberMTD').value) || 0;
+  const byValueMTD = parseFloat(document.getElementById('expPMByValueMTD').value) || 0;
+  const preRegistDaily = parseInt(document.getElementById('expPMPreRegistDaily').value) || 0;
+  const totalPreRegist = parseInt(document.getElementById('expPMTotalPreRegist').value) || 0;
+
+  return {
+    storeName: document.getElementById('expStoreName').value || "Store Mitra10 Tallasa City Makassar",
+    jam: document.getElementById('expJam').value || '—',
+    tanggalFull,
+    budgetProjectTo, salesProjectTo,
+    budgetProjectMTD, salesProjectMTD,
+    achProject: budgetProjectMTD > 0 ? (salesProjectMTD / budgetProjectMTD * 100) : 0,
+    budgetMemberTo, qtyMember, qtyNems, valueNems,
+    contToSales: totalTo > 0 ? (valueNems / totalTo * 100) : 0,
+    budgetMemberMTD, qtyMemberMTD,
+    achMember: budgetMemberMTD > 0 ? (qtyMemberMTD / budgetMemberMTD * 100) : 0,
+    byValueMTD, preRegistDaily, totalPreRegist,
+    salesMTDStore: totalMTD
+  };
+}
+
+function buildTXTReportPM(d) {
+  const num = n => Math.round(n || 0).toLocaleString('en-US');
+  const pct = n => (n || 0).toFixed(2) + '%';
+  return [
+    `${d.storeName}`,
+    `${d.tanggalFull}`,
+    `Jam : ${d.jam}`,
+    ``,
+    `Buget Sales Project	:	${num(d.budgetProjectTo)}`,
+    `Sales Project	:	${num(d.salesProjectTo)}`,
+    ``,
+    `Mtd Sales Project`,
+    `Budget	:	${num(d.budgetProjectMTD)}`,
+    `Mtd Sales Project	:	${num(d.salesProjectMTD)}`,
+    `Ach	:	${pct(d.achProject)}`,
+    ``,
+    `Report Member`,
+    `Budget Member	:	${num(d.budgetMemberTo)}`,
+    `Qty Member	:	${num(d.qtyMember)}`,
+    `Qty Nems	:	${num(d.qtyNems)}`,
+    `Value Nems	:	${num(d.valueNems)}`,
+    `Cont to sales	:	${pct(d.contToSales)}`,
+    ``,
+    `MTD MEMBER`,
+    `Budget Member	:	${num(d.budgetMemberMTD)}`,
+    `Qty Member	:	${num(d.qtyMemberMTD)}`,
+    `Ach	:	${pct(d.achMember)}`,
+    `MTD by Value	:	${num(d.byValueMTD)}`,
+    `Pre-regist Daily	:	${num(d.preRegistDaily)}`,
+    `Total Pre-regist	:	${num(d.totalPreRegist)}`,
+    `Sales MTD Store	:	${num(d.salesMTDStore)}`
+  ].join('\r\n');
+}
+
+function updateExportPreviewPM() {
+  const d = getExportDataPM(); const el = document.getElementById('exportPreviewPM');
+  if (!el) return;
+  if (!d) { el.textContent = 'Lengkapi data filter & input untuk melihat preview laporan...'; el.classList.add('empty'); return; }
+  const bp = document.getElementById('expPMBudgetProjectDisplay'); if (bp) bp.textContent = d.budgetProjectTo.toLocaleString('id');
+  const sp = document.getElementById('expPMSalesProjectDisplay'); if (sp) sp.textContent = d.salesProjectTo.toLocaleString('id');
+  const bm = document.getElementById('expPMBudgetMemberDisplay'); if (bm) bm.textContent = d.budgetMemberTo.toLocaleString('id');
+  el.classList.remove('empty'); el.textContent = buildTXTReportPM(d);
+}
+
+function copyExportPreviewPM() {
+  const d = getExportDataPM(); if (!d) { showToast('Data belum lengkap', true); return; }
+  copyTextToClipboard(buildTXTReportPM(d));
+}
+
+function generateExportTXTPM() {
+  const d = getExportDataPM(); if (!d) { showToast('Data belum lengkap', true); return; }
+  const blob = new Blob([buildTXTReportPM(d)], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `${d.storeName.replace(/\s+/g, '_')}_Project_Member_Report.txt`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+// ──────────────────────────────────────────
+// LAPORAN AWT (Average Waiting Time) — panel ketiga di samping Laporan Utama & Sales Project/Member
+// ──────────────────────────────────────────
+function getExportDataAWT() {
+  const to = document.getElementById('dateTo').value;
+  if (!to) return null;
+
+  const toDate = new Date(to + 'T00:00:00');
+  const bulanNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const tanggalFmt = `Tgl ${toDate.getDate()} ${bulanNames[toDate.getMonth()]} ${toDate.getFullYear()}`;
+
+  const totalDR = parseInt(document.getElementById('expAWTTotalDR').value) || 0;
+  const avgTime = document.getElementById('expAWTAvgTime').value || '00:00:00';
+  const gt10NoTinting = parseInt(document.getElementById('expAWTGt10NoTinting').value) || 0;
+  const avgTime1 = document.getElementById('expAWTAvgTime1').value || '00:00:00';
+  const finishTintingDR = parseInt(document.getElementById('expAWTFinishTintingDR').value) || 0;
+  const avgTime2 = document.getElementById('expAWTAvgTime2').value || '00:00:00';
+  const dr30Tinting = parseInt(document.getElementById('expAWTDr30Tinting').value) || 0;
+  const avgTime3 = document.getElementById('expAWTAvgTime3').value || '00:00:00';
+  const lt10Menit = parseInt(document.getElementById('expAWTLt10Menit').value) || 0;
+  const gt10Menit = Math.max(totalDR - lt10Menit, 0);
+
+  return {
+    tanggalFmt, totalDR, avgTime,
+    gt10NoTinting, contGt10NoTinting: totalDR > 0 ? (gt10NoTinting / totalDR * 100) : 0, avgTime1,
+    finishTintingDR, contFinishTinting: totalDR > 0 ? (finishTintingDR / totalDR * 100) : 0, avgTime2,
+    dr30Tinting, contDr30Tinting: totalDR > 0 ? (dr30Tinting / totalDR * 100) : 0, avgTime3,
+    lt10Menit, contLt10: totalDR > 0 ? (lt10Menit / totalDR * 100) : 0,
+    gt10Menit, contGt10: totalDR > 0 ? (gt10Menit / totalDR * 100) : 0
+  };
+}
+
+function buildTXTReportAWT(d) {
+  const pct = n => (n || 0).toFixed(2) + '%';
+  return [
+    `${d.tanggalFmt}`,
+    ``,
+    `Total DR	:	${d.totalDR}`,
+    `Avg Time	:	${d.avgTime}`,
+    ``,
+    `> 10 menit DR tanpa proses tinting Total DR	:	${d.gt10NoTinting}`,
+    `Cont	:	${pct(d.contGt10NoTinting)}`,
+    `Avg time	:	${d.avgTime1}`,
+    ``,
+    `Finish time barang tinting`,
+    `Total DR	:	${d.finishTintingDR}`,
+    `Cont	:	${pct(d.contFinishTinting)}`,
+    `Avg time	:	${d.avgTime2}`,
+    ``,
+    `30 menit DR proses tinting Total DR	:	${d.dr30Tinting}`,
+    `Cont	:	${pct(d.contDr30Tinting)}`,
+    `Avg time	:	${d.avgTime3}`,
+    ``,
+    `< 10 Menit	:	${d.lt10Menit}	${pct(d.contLt10)}`,
+    `> 10 Menit	:	${d.gt10Menit}	${pct(d.contGt10)}`,
+    `Terimakasih🙏🏻`
+  ].join('\r\n');
+}
+
+function updateExportPreviewAWT() {
+  const d = getExportDataAWT(); const el = document.getElementById('exportPreviewAWT');
+  if (!el) return;
+  if (!d) { el.textContent = 'Lengkapi data filter & input untuk melihat preview laporan...'; el.classList.add('empty'); return; }
+  const gt10 = document.getElementById('expAWTGt10MenitDisplay'); if (gt10) gt10.textContent = d.gt10Menit.toLocaleString('id');
+  el.classList.remove('empty'); el.textContent = buildTXTReportAWT(d);
+}
+
+function copyExportPreviewAWT() {
+  const d = getExportDataAWT(); if (!d) { showToast('Data belum lengkap', true); return; }
+  copyTextToClipboard(buildTXTReportAWT(d));
+}
+
+function generateExportTXTAWT() {
+  const d = getExportDataAWT(); if (!d) { showToast('Data belum lengkap', true); return; }
+  const blob = new Blob([buildTXTReportAWT(d)], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  const to = document.getElementById('dateTo').value;
+  a.download = `AWT_Report_${to}.txt`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+
+// ──────────────────────────────────────────
+// GOOGLE DRIVE IMPORT — via Drive Bridge (Google Apps Script)
+// Browser TIDAK BISA fetch langsung ke drive.google.com (CORS-blocked
+// oleh Google sendiri), jadi dipakai jembatan Apps Script kecil yang
+// dideploy sendiri oleh pengguna (gratis, 100% milik sendiri).
+//
+// Link Google Drive disimpan TERPUSAT di server (Apps Script
+// PropertiesService) — sekali setting di device manapun, otomatis
+// kepakai di HP/komputer lain juga, tanpa perlu input ulang.
+// Hanya "Drive Bridge URL" sendiri yang masih disimpan per-device
+// (di localStorage), karena itu cuma alamat jembatannya, bukan data.
+// ──────────────────────────────────────────
+
+// URL Web App Apps Script (Drive Bridge) — sudah di-deploy dan di-fix
+// langsung di sini, supaya device manapun (HP/laptop baru) otomatis bisa
+// pakai fitur Drive tanpa perlu setting Bridge URL sendiri.
+// Kalau suatu saat bridge di-deploy ulang dengan URL BARU (bukan "New version"
+// dari deployment yang sama), update baris ini.
+const DRIVE_BRIDGE_URL = 'https://script.google.com/macros/s/AKfycbyjVRDa_GooDqNk1E-rFJc3IGd7Fe7pVxYOZLxCfk56OfLwD-qSq7z_BLht3A1DtXeY/exec';
+const DRIVE_LABELS = {
+  sales_ly: 'DATA_SALES_2025 (LY)',
+  budget_category: 'BUDGET_CATEGORY'
+};
+let driveModalCurrentType = null;
+
+// Cache di-memory dari link yang tersimpan di server, diisi saat halaman
+// dimuat (lewat getAllLinks) supaya tombol ☁️ langsung tahu statusnya
+// tanpa harus fetch dulu setiap kali render.
+const driveLinkCache = {};
+
+/**
+ * Ambil file ID dari berbagai format link share Google Drive:
+ *  - https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+ *  - https://drive.google.com/open?id=FILE_ID
+ *  - https://docs.google.com/spreadsheets/d/FILE_ID/edit#gid=0
+ *  - atau FILE_ID polos
+ */
+function extractDriveFileId(input) {
+  if (!input) return null;
+  const str = input.trim();
+  let m = str.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+  if (m) return m[1];
+  m = str.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]{10,}$/.test(str)) return str;
+  return null;
+}
+
+function getBridgeURL() {
+  return DRIVE_BRIDGE_URL;
+}
+
+/**
+ * Ambil semua link Drive tersimpan di server sekaligus (1 request),
+ * lalu isi cache + update tampilan semua tombol ☁️.
+ * Dipanggil otomatis saat halaman dimuat.
+ */
+async function refreshDriveLinksFromServer() {
+  const bridgeURL = getBridgeURL();
+  if (!bridgeURL) { Object.keys(DRIVE_LABELS).forEach(updateDriveButtonState); return; }
+  try {
+    const resp = await fetch(bridgeURL + '?action=getAllLinks');
+    const data = await resp.json();
+    if (data.ok && data.links) {
+      Object.keys(DRIVE_LABELS).forEach(type => {
+        driveLinkCache[type] = data.links[type] || '';
+        updateDriveButtonState(type);
+      });
+    }
+  } catch (err) {
+    // Gagal ambil dari server (offline / bridge belum valid) — tombol
+    // tetap tampil sebagai "belum linked", tidak mengganggu pemakaian lain.
+    Object.keys(DRIVE_LABELS).forEach(updateDriveButtonState);
+  }
+}
+
+/**
+ * Ambil link untuk satu key dari server (selalu fresh, tidak pakai cache),
+ * dipakai saat benar-benar mau load data — supaya kalau diubah dari device
+ * lain, device ini langsung dapat versi terbaru.
+ */
+async function fetchDriveLinkFromServer(type) {
+  const bridgeURL = getBridgeURL();
+  if (!bridgeURL) return '';
+  const resp = await fetch(bridgeURL + '?action=getLink&key=' + encodeURIComponent(type));
+  const data = await resp.json();
+  if (!data.ok) throw new Error(data.error || 'Gagal mengambil link dari server');
+  driveLinkCache[type] = data.link || '';
+  return driveLinkCache[type];
+}
+
+async function saveDriveLinkToServer(type, link) {
+  const bridgeURL = getBridgeURL();
+  const resp = await fetch(bridgeURL + '?action=setLink&key=' + encodeURIComponent(type) + '&link=' + encodeURIComponent(link));
+  const data = await resp.json();
+  if (!data.ok) throw new Error(data.error || 'Gagal menyimpan link ke server');
+  driveLinkCache[type] = link;
+}
+
+async function deleteDriveLinkFromServer(type) {
+  const bridgeURL = getBridgeURL();
+  const resp = await fetch(bridgeURL + '?action=deleteLink&key=' + encodeURIComponent(type));
+  const data = await resp.json();
+  if (!data.ok) throw new Error(data.error || 'Gagal menghapus link di server');
+  driveLinkCache[type] = '';
+}
+
+/**
+ * Klik tombol ☁️ Drive:
+ *  - Belum ada link tersimpan (cache) → buka modal (setting awal).
+ *  - Sudah ada link → langsung load data, tanpa modal.
+ * Untuk ubah/ganti link yang sudah ada: tahan (long-press) tombolnya.
+ */
+function driveButtonClick(type) {
+  if (driveLinkCache[type] && getBridgeURL()) {
+    loadFromDrive(type);
+  } else {
+    openDriveModal(type);
+  }
+}
+
+function openDriveModal(type) {
+  driveModalCurrentType = type;
+  const label = DRIVE_LABELS[type] || type;
+  document.getElementById('driveModalTitle').textContent = `Load ${label} dari Google Drive`;
+
+  const input = document.getElementById('driveLinkInput');
+  const statusRow = document.getElementById('driveStatusRow');
+  const statusText = document.getElementById('driveStatusText');
+  const removeBtn = document.getElementById('driveBtnRemove');
+
+  input.value = '';
+  statusRow.classList.remove('show');
+  removeBtn.style.display = 'none';
+  document.getElementById('driveModalOverlay').classList.add('show');
+  setTimeout(() => input.focus(), 50);
+
+  // Ambil link terbaru dari server (bisa beda dari cache kalau baru diubah
+  // dari device lain), lalu isi form begitu datanya sampai.
+  statusText.textContent = 'Memeriksa link tersimpan di server…';
+  statusRow.classList.add('show');
+  fetchDriveLinkFromServer(type).then(link => {
+    if (driveModalCurrentType !== type) return; // modal sudah ditutup/ganti
+    input.value = link;
+    if (link) {
+      statusText.textContent = 'Link tersimpan di server (kepakai di semua device) — klik "Simpan & Load" untuk ambil data terbaru';
+      removeBtn.style.display = 'inline-block';
+    } else {
+      statusRow.classList.remove('show');
+    }
+  }).catch(() => {
+    statusText.textContent = 'Gagal memeriksa server, link di bawah mungkin belum terbaru';
+  });
+}
+
+function closeDriveModal() {
+  document.getElementById('driveModalOverlay').classList.remove('show');
+  driveModalCurrentType = null;
+}
+
+async function saveDriveLink() {
+  const type = driveModalCurrentType;
+  if (!type) return;
+
+  const raw = document.getElementById('driveLinkInput').value.trim();
+  if (!raw) { showToast('⚠️ Masukkan link Google Drive terlebih dahulu', true); return; }
+  const fileId = extractDriveFileId(raw);
+  if (!fileId) { showToast('❌ Link Google Drive tidak valid', true); return; }
+
+  try {
+    showToast('⏳ Menyimpan link ke server...');
+    await saveDriveLinkToServer(type, raw);
+    updateDriveButtonState(type);
+    closeDriveModal();
+    loadFromDrive(type);
+  } catch (err) {
+    showToast('❌ Gagal menyimpan link ke server: ' + err.message, true);
+  }
+}
+
+async function removeDriveLink() {
+  const type = driveModalCurrentType;
+  if (!type) return;
+  try {
+    await deleteDriveLinkFromServer(type);
+    updateDriveButtonState(type);
+    closeDriveModal();
+    showToast('🗑️ Link Google Drive dihapus dari server');
+  } catch (err) {
+    showToast('❌ Gagal menghapus link: ' + err.message, true);
+  }
+}
+
+const DRIVE_BTN_ID = {
+  sales_ly: 'driveSalesLY',
+  budget_category: 'driveBudgetCat'
+};
+
+function updateDriveButtonState(type) {
+  const btnId = DRIVE_BTN_ID[type];
+  if (!btnId) return;
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  const linked = !!driveLinkCache[type];
+  btn.classList.toggle('linked', linked);
+  btn.title = linked ? 'Link Google Drive aktif — klik untuk load / tahan untuk ubah' : 'Load dari Google Drive';
+}
+
+/**
+ * Ambil file dari Google Drive lewat Drive Bridge (Apps Script),
+ * lalu proses sama seperti file yang diupload manual (lewat processFile).
+ * Selalu minta link terbaru dari server dulu, supaya kalau link baru
+ * saja diubah dari device lain, device ini ikut dapat versi terbaru.
+ */
+async function loadFromDrive(type, silent) {
+  const bridgeURL = getBridgeURL();
+  if (!bridgeURL) { if (!silent) showToast('⚠️ Drive Bridge URL belum disetting. Klik ☁️ untuk setting.', true); return; }
+
+  const label = DRIVE_LABELS[type] || type;
+  showToast('⏳ Mengambil ' + label + ' dari Google Drive...');
+
+  try {
+    const link = await fetchDriveLinkFromServer(type);
+    if (!link) { showToast('⚠️ Belum ada link Google Drive untuk ' + label + ' di server', true); updateDriveButtonState(type); return; }
+    const fileId = extractDriveFileId(link);
+    if (!fileId) throw new Error('Link tersimpan di server tidak valid');
+
+    const resp = await fetch(bridgeURL + '?id=' + encodeURIComponent(fileId));
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Bridge mengembalikan error');
+
+    const byteChars = atob(data.base64);
+    const bytes = new Uint8Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+    const blob = new Blob([bytes], { type: data.mimeType || 'application/octet-stream' });
+
+    const fname = data.name || (label + (type === 'sales_ly' ? '.csv' : '.xlsx'));
+    const file = new File([blob], fname, { type: blob.type });
+    processFile(type, file);
+    showToast('✅ ' + label + ' berhasil dimuat dari Google Drive (' + fname + ')');
+  } catch (err) {
+    showToast('❌ Gagal mengambil dari Google Drive: ' + err.message, true);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  refreshDriveLinksFromServer();
+  setupDriveLongPress();
+});
+
+/**
+ * Mengatur interaksi tombol ☁️ Drive:
+ *  - Tap singkat → driveButtonClick(type): load langsung jika link sudah
+ *    ada, atau buka modal jika belum ada link sama sekali.
+ *  - Tahan (long-press, ±550ms) → selalu buka modal, untuk ubah/ganti link
+ *    yang sudah tersimpan.
+ * Satu-satunya pemilik event klik tombol ini (tidak ada onclick inline di HTML),
+ * supaya short-tap dan long-press tidak saling tabrak.
+ */
+function setupDriveLongPress() {
+  Object.entries(DRIVE_BTN_ID).forEach(([type, btnId]) => {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    let pressTimer = null;
+    let longPressFired = false;
+    let moved = false;
+    let startX = 0, startY = 0;
+
+    const startPress = (x, y) => {
+      longPressFired = false;
+      moved = false;
+      startX = x; startY = y;
+      pressTimer = setTimeout(() => {
+        longPressFired = true;
+        openDriveModal(type);
+      }, 550);
+    };
+    const checkMove = (x, y) => {
+      if (Math.abs(x - startX) > 10 || Math.abs(y - startY) > 10) moved = true;
+      if (moved) clearTimeout(pressTimer);
+    };
+    const endPress = () => {
+      clearTimeout(pressTimer);
+      if (!longPressFired && !moved) driveButtonClick(type);
+    };
+    const cancelPress = () => { clearTimeout(pressTimer); };
+
+    btn.addEventListener('touchstart', (e) => startPress(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+    btn.addEventListener('touchmove', (e) => checkMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+    btn.addEventListener('touchend', (e) => { e.preventDefault(); endPress(); });
+    btn.addEventListener('touchcancel', cancelPress);
+
+    btn.addEventListener('mousedown', (e) => startPress(e.clientX, e.clientY));
+    btn.addEventListener('mousemove', (e) => { if (pressTimer) checkMove(e.clientX, e.clientY); });
+    btn.addEventListener('mouseup', endPress);
+    btn.addEventListener('mouseleave', cancelPress);
+
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('driveModalOverlay').classList.contains('show')) closeDriveModal();
+});
+document.getElementById('driveModalOverlay')?.addEventListener('click', (e) => {
+  if (e.target.id === 'driveModalOverlay') closeDriveModal();
+});
+
+
+// ──────────────────────────────────────────
+// FILE SYSTEM ACCESS API — Auto-reload dari disk
+// Support: Chrome/Edge desktop (PC Windows) ✅
+// Fallback: Android & iOS → input file biasa ✅
+// ──────────────────────────────────────────
+
+const FSAPI_SUPPORTED = typeof window.showOpenFilePicker === 'function';
+
+// Simpan FileSystemFileHandle per tipe (hanya di-memory, tidak bisa disimpan ke localStorage)
+const fileHandles = {
+  sales: null,
+  sales_ly: null,
+  budget_category: null,
+  budget_salesperson: null
+};
+
+// Map tipe ke elemen UI
+const FILE_META = {
+  sales:              { btn: 'btnSales',     tag: 'tagSales',     reload: 'reloadSales',     accept: ['.csv'], mime: ['text/csv','application/csv'] },
+  sales_ly:           { btn: 'btnSalesLY',   tag: 'tagSalesLY',   reload: 'reloadSalesLY',   accept: ['.csv'], mime: ['text/csv','application/csv'] },
+  budget_category:    { btn: 'btnBudgetCat', tag: 'tagBudgetCat', reload: 'reloadBudgetCat', accept: ['.xlsx','.xls'], mime: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.ms-excel'] },
+  budget_salesperson: { btn: 'btnBudgetSP',  tag: 'tagBudgetSP',  reload: 'reloadBudgetSP',  accept: ['.xlsx','.xls'], mime: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.ms-excel'] }
+};
+
+// Saat halaman dimuat: tampilkan info dukungan FSAPI
+window.addEventListener('DOMContentLoaded', () => {
+  if (FSAPI_SUPPORTED) {
+    // Tambahkan badge "AUTO" di import-bar title
+    const span = document.querySelector('.import-bar > span');
+    if (span) span.innerHTML = 'Import Data: <span class="fsapi-badge">🖥️ Auto-reload aktif (PC)</span>';
+  }
+});
+
+/**
+ * Klik tombol import: jika FSAPI tersedia → pakai showOpenFilePicker
+ * Browser lain → fallback ke input[type=file] biasa
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  Object.keys(FILE_META).forEach(type => {
+    const meta = FILE_META[type];
+    const btn = document.getElementById(meta.btn);
+    if (!btn) return;
+
+    if (FSAPI_SUPPORTED) {
+      // Intercept klik label — gunakan FSAPI
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault(); // cegah input file biasa
+        await openFileWithFSAPI(type);
+      });
+      // Disable native file input (sudah dicegah lewat click)
+      const nativeInput = btn.querySelector('input[type=file]');
+      if (nativeInput) nativeInput.style.pointerEvents = 'none';
+    }
+    // Jika tidak ada FSAPI → input[type=file] bawaan tetap jalan normal
+  });
+});
+
+/**
+ * Buka file picker via File System Access API, simpan handle
+ */
+async function openFileWithFSAPI(type) {
+  const meta = FILE_META[type];
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      types: [{
+        description: type.includes('budget') ? 'Excel Files' : 'CSV Files',
+        accept: Object.fromEntries(meta.mime.map(m => [m, meta.accept]))
+      }],
+      multiple: false
+    });
+
+    fileHandles[type] = handle;
+    const file = await handle.getFile();
+    processFile(type, file);
+
+    // Tampilkan tombol reload
+    showReloadButton(type, true);
+    checkReloadAllButton();
+
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      showToast('❌ Gagal membuka file: ' + err.message, true);
+    }
+  }
+}
+
+/**
+ * Proses file (dari input biasa maupun FSAPI handle)
+ */
+function processFile(type, file) {
+  const isCSV = file.name.toLowerCase().endsWith('.csv');
+  const reader = new FileReader();
+
+  if (isCSV && (type === 'sales' || type === 'sales_ly')) {
+    reader.onload = (e) => {
+      try { parseCSVSales(e.target.result, file.name, type); }
+      catch (err) { showToast('Gagal membaca CSV: ' + err.message, true); }
+    };
+    reader.readAsText(file, 'latin-1');
+  } else {
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        parseAndStore(type, wb, file.name);
+      } catch (err) { showToast('Gagal membaca file: ' + err.message, true); }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+/**
+ * Reload file dari disk (hanya FSAPI — PC Windows/Chrome/Edge)
+ * Di Android/iOS: tampilkan dialog pilih file lagi
+ */
+async function reloadFile(type) {
+  if (FSAPI_SUPPORTED && fileHandles[type]) {
+    // Cek permission masih aktif
+    try {
+      const perm = await fileHandles[type].queryPermission({ mode: 'read' });
+      if (perm !== 'granted') {
+        const req = await fileHandles[type].requestPermission({ mode: 'read' });
+        if (req !== 'granted') { showToast('⚠️ Izin baca file ditolak', true); return; }
+      }
+      const file = await fileHandles[type].getFile();
+      showToast('⏳ Membaca ulang ' + file.name + '...');
+      processFile(type, file);
+    } catch (err) {
+      showToast('❌ Gagal reload: ' + err.message, true);
+      // Handle mungkin kadaluarsa — reset
+      fileHandles[type] = null;
+      showReloadButton(type, false);
+    }
+  } else {
+    // Fallback: trigger input file biasa (Android/iOS)
+    const meta = FILE_META[type];
+    const btn = document.getElementById(meta.btn);
+    const input = btn ? btn.querySelector('input[type=file]') : null;
+    if (input) input.click();
+  }
+}
+
+/**
+ * Reload semua file yang sudah di-pin
+ */
+async function reloadAllFiles() {
+  const types = Object.keys(fileHandles).filter(t => fileHandles[t]);
+  if (!types.length) { showToast('⚠️ Belum ada file yang di-pin', true); return; }
+
+  showToast('⏳ Memuat ulang ' + types.length + ' file...');
+  const icon = document.getElementById('refreshIcon');
+  if (icon) icon.classList.add('spinning');
+
+  for (const type of types) {
+    try {
+      const file = await fileHandles[type].getFile();
+      await new Promise((resolve) => {
+        const isCSV = file.name.toLowerCase().endsWith('.csv');
+        const reader = new FileReader();
+        if (isCSV && (type === 'sales' || type === 'sales_ly')) {
+          reader.onload = (e) => { try { parseCSVSales(e.target.result, file.name, type); } catch(e){} resolve(); };
+          reader.readAsText(file, 'latin-1');
+        } else {
+          reader.onload = (e) => { try { const wb = XLSX.read(e.target.result, { type: 'array' }); parseAndStore(type, wb, file.name); } catch(e){} resolve(); };
+          reader.readAsArrayBuffer(file);
+        }
+      });
+    } catch (err) {
+      showToast('❌ Gagal reload ' + type + ': ' + err.message, true);
+    }
+  }
+
+  setTimeout(() => {
+    if (icon) icon.classList.remove('spinning');
+    showToast('✅ Semua file berhasil dimuat ulang');
+  }, 500);
+}
+
+/**
+ * Tampilkan/sembunyikan tombol reload per tipe
+ */
+function showReloadButton(type, show) {
+  const meta = FILE_META[type];
+  const btn = document.getElementById(meta.reload);
+  if (!btn) return;
+  btn.style.display = show ? 'flex' : 'none';
+  if (show) btn.classList.add('active');
+  else btn.classList.remove('active');
+}
+
+/**
+ * Tampilkan tombol "Reload Semua" jika ada ≥1 handle aktif
+ */
+function checkReloadAllButton() {
+  const hasAny = Object.values(fileHandles).some(h => h !== null);
+  const btn = document.getElementById('btnReloadAll');
+  if (btn) btn.style.display = (FSAPI_SUPPORTED && hasAny) ? 'inline-flex' : 'none';
+}
+
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch((err) => console.warn('Gagal mendaftarkan service worker:', err)); }); }
+
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstallPrompt = e; const btn = document.getElementById('btnInstallPWA'); if (btn) btn.style.display = 'inline-flex'; });
+
+function installPWA() { if (!deferredInstallPrompt) return; deferredInstallPrompt.prompt(); deferredInstallPrompt.userChoice.finally(() => { deferredInstallPrompt = null; const btn = document.getElementById('btnInstallPWA'); if (btn) btn.style.display = 'none'; }); }
+window.addEventListener('appinstalled', () => { const btn = document.getElementById('btnInstallPWA'); if (btn) btn.style.display = 'none'; showToast('✅ Aplikasi berhasil diinstall ke perangkat!'); });
+</script>
+</body>
+</html>

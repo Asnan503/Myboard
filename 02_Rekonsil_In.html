@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Reconcile Inbound - MITRA10</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root{
+    --navy:#0f2540;
+    --navy-2:#15335a;
+    --steel:#3d6b9e;
+    --accent:#d4711f;
+    --bg:#eef1f5;
+    --card:#ffffff;
+    --line:#d8dee6;
+    --text:#1c2733;
+    --muted:#5c6b7a;
+    --ok-bg:#e3f3e8; --ok-tx:#1a6b3c;
+    --warn-bg:#fdecd9; --warn-tx:#9a5a0c;
+    --bad-bg:#fbe3e3; --bad-tx:#a32424;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',Arial,Helvetica,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding:0 0 60px 0;
+  }
+  .topbar{
+    background:linear-gradient(135deg,var(--navy) 0%, var(--navy-2) 60%, var(--steel) 100%);
+    color:#fff;
+    padding:16px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    position:sticky;
+    top:0;
+    z-index:500;
+    box-shadow:0 2px 12px rgba(15,37,64,.25);
+  }
+  .topbar .brand{display:flex; align-items:center; gap:14px;}
+  .brand h1{font-size:18px; margin:0; font-weight:700; letter-spacing:.2px;}
+  .brand .sub{font-size:12px; color:#c9d6e6; margin-top:2px;}
+  .topbar .meta{font-size:12px; color:#dbe5f1; text-align:right;}
+  .topbar .meta b{color:#fff; display:block; font-size:13px;}
+
+  .wrap{max-width:1280px; margin:0 auto; padding:24px;}
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:0 1px 2px rgba(15,37,64,.04);
+    padding:20px 22px;
+    margin-bottom:22px;
+  }
+  .panel-title{
+    display:flex; align-items:center; gap:10px;
+    margin:0 0 16px 0;
+  }
+  .panel-title .num{
+    width:26px;height:26px;border-radius:50%;
+    background:var(--navy); color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px; font-weight:700; flex-shrink:0;
+  }
+  .panel-title h2{font-size:15px; margin:0; color:var(--navy); letter-spacing:.2px; text-transform:uppercase;}
+
+  /* SEARCH BAR */
+  .search-row{
+    display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;
+  }
+  .field{display:flex; flex-direction:column; gap:6px;}
+  .field label{font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.4px;}
+  .field input[type=text]{
+    border:1.5px solid var(--line);
+    border-radius:8px;
+    padding:11px 14px;
+    font-size:15px;
+    width:260px;
+    letter-spacing:1px;
+    font-family:'Consolas',monospace;
+    transition:border-color .15s;
+  }
+  .field input[type=text]:focus{outline:none; border-color:var(--steel); box-shadow:0 0 0 3px rgba(61,107,158,.15);}
+  .field input[type=file]{
+    border:1.5px solid var(--line);
+    border-radius:8px;
+    padding:9px 12px;
+    font-size:13.5px;
+    width:100%;
+    background:#fff;
+    cursor:pointer;
+  }
+  .field input[type=file]::-webkit-file-upload-button{
+    border:none; background:var(--steel); color:#fff; padding:7px 14px;
+    border-radius:6px; font-size:12.5px; font-weight:600; margin-right:10px; cursor:pointer;
+  }
+  .field .hint{font-size:11px; color:var(--muted); margin-top:2px;}
+
+  .btn{
+    border:none; border-radius:8px; padding:11px 20px;
+    font-size:14px; font-weight:600; cursor:pointer;
+    display:inline-flex; align-items:center; gap:8px;
+    transition:transform .08s, box-shadow .15s, opacity .15s;
+    white-space:nowrap;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--navy); color:#fff;}
+  .btn-primary:hover{background:var(--navy-2);}
+  .btn-save{background:var(--accent); color:#fff;}
+  .btn-save:hover{opacity:.92;}
+  .btn-save:disabled{background:#c9c2b8; cursor:not-allowed;}
+  .btn-ghost{background:#fff; color:var(--navy); border:1.5px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--steel); color:var(--steel);}
+  .btn-outline-pdf{background:#fff; color:#a32424; border:1.5px solid #e6a9a9;}
+  .btn-outline-pdf:hover{background:#fbe3e3;}
+
+  .status-msg{
+    margin-top:10px; font-size:13px; padding:9px 12px; border-radius:7px; display:none;
+  }
+  .status-msg.show{display:block;}
+  .status-msg.error{background:var(--bad-bg); color:var(--bad-tx);}
+  .status-msg.success{background:var(--ok-bg); color:var(--ok-tx);}
+
+  .storage-info{
+    margin-top:12px; font-size:12px; color:var(--muted);
+    background:#f3f6fa; border:1px dashed var(--line); border-radius:7px;
+    padding:8px 12px; display:flex; align-items:center; gap:6px;
+  }
+  .backup-row{
+    margin-top:10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .backup-label{font-size:12px; color:var(--muted); font-weight:600;}
+  .btn-sm{padding:7px 13px; font-size:12.5px;}
+
+  /* TABLE */
+  .table-scroll{overflow-x:auto; overflow-y:auto; max-height:560px; border:1px solid var(--line); border-radius:8px;}
+  .table-scroll thead th{position:sticky; top:0; z-index:2;}
+  table{
+    width:100%; border-collapse:collapse; font-size:12.5px; min-width:1700px;
+  }
+  thead th{
+    background:var(--navy);
+    color:#fff;
+    font-weight:600;
+    text-align:left;
+    padding:10px 10px;
+    position:sticky; top:0;
+    white-space:nowrap;
+    font-size:11.5px;
+    letter-spacing:.2px;
+    cursor:pointer;
+  }
+  thead th:hover{ background:var(--navy-2); }
+  tbody td{
+    padding:9px 10px;
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  tbody tr:nth-child(even){background:#f7f9fb;}
+  tbody tr:hover{background:#eaf1fb;}
+  tbody tr.saved-row{background:#fff7e8;}
+  tbody tr.saved-row:hover{background:#fdecc9;}
+  tbody tr.match-row{background:#dbe9fb !important; box-shadow:inset 3px 0 0 var(--steel);}
+  tbody tr.match-row:hover{background:#c7defa !important;}
+  td.num{ text-align:right; font-family:'Consolas',monospace; }
+  td.mono{ font-family:'Consolas',monospace; font-size:11.5px; }
+  td.itex-cell{ font-family:'Consolas',monospace; font-weight:700; color:var(--steel); cursor:pointer; }
+  td.itex-cell:hover{ text-decoration:underline; }
+
+  .badge{
+    display:inline-block; padding:3px 9px; border-radius:20px;
+    font-size:11px; font-weight:600; white-space:nowrap;
+  }
+  .badge-ok{background:var(--ok-bg); color:var(--ok-tx);}
+  .badge-warn{background:var(--warn-bg); color:var(--warn-tx);}
+  .badge-bad{background:var(--bad-bg); color:var(--bad-tx);}
+  .badge-neutral{background:#e8ecf1; color:var(--muted);}
+
+  .table-footer{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:10px; font-size:12px; color:var(--muted); flex-wrap:wrap; gap:8px;
+  }
+  .table-footer .cetak-actions{display:flex; gap:10px;}
+
+  /* MODAL */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(15,25,40,.55);
+    display:none; align-items:center; justify-content:center;
+    z-index:1000; padding:20px;
+    backdrop-filter:blur(2px);
+  }
+  .modal-overlay.open{display:flex;}
+  .modal-box{
+    background:#fff; border-radius:14px; max-width:760px; width:100%;
+    max-height:88vh; overflow-y:auto;
+    box-shadow:0 20px 60px rgba(0,0,0,.3);
+    animation:pop .18s ease-out;
+  }
+  @keyframes pop{from{transform:scale(.96); opacity:0;} to{transform:scale(1); opacity:1;}}
+  .modal-head{
+    background:linear-gradient(135deg,var(--navy),var(--navy-2));
+    color:#fff; padding:18px 24px; border-radius:14px 14px 0 0;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .modal-head h3{margin:0; font-size:16px; font-weight:700;}
+  .modal-head .close-x{
+    background:rgba(255,255,255,.15); border:none; color:#fff;
+    width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modal-head .close-x:hover{background:rgba(255,255,255,.28);}
+  .modal-body{padding:22px 24px;}
+  .info-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px 18px;}
+  .info-item{display:flex; flex-direction:column; gap:4px;}
+  .info-item.full{grid-column:1 / -1;}
+  .info-item label{font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); font-weight:700;}
+  .info-item .val{font-size:14.5px; font-weight:500; color:var(--text);}
+  .info-item .val.mono{font-family:'Consolas',monospace; font-size:13.5px;}
+  .info-item select, .info-item input[type=text]{
+    border:1.5px solid var(--line); border-radius:7px; padding:9px 11px; font-size:14px; font-family:inherit;
+  }
+  .info-item select:focus, .info-item input[type=text]:focus{outline:none; border-color:var(--steel);}
+  .modal-foot{
+    padding:16px 24px 22px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid var(--line); margin-top:6px;
+  }
+
+  .items-block{ margin-top:18px; }
+  .items-block .items-head{ font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); font-weight:700; margin-bottom:8px;}
+  table.item-table{ width:100%; min-width:0; border-collapse:collapse; font-size:13px; }
+  table.item-table thead th{
+    position:static; cursor:default; background:#f3f6fa; color:var(--navy);
+    border:1px solid var(--line); font-size:11px; text-transform:uppercase; letter-spacing:.2px;
+  }
+  table.item-table tbody td{ border:1px solid var(--line); white-space:normal; }
+  table.item-table td.num{ text-align:right; font-family:'Consolas',monospace; }
+  table.item-table td.ket-cell input[type=text]{
+    width:100%; border:1.5px solid var(--line); border-radius:6px; padding:6px 8px;
+    font-size:12.5px; font-family:inherit;
+  }
+  table.item-table td.ket-cell input[type=text]:focus{ outline:none; border-color:var(--steel); }
+  .outstanding-badge{
+    display:inline-block; margin-top:4px; font-size:10.5px; font-weight:700;
+    color:var(--bad-tx); background:var(--bad-bg); padding:2px 7px; border-radius:5px;
+  }
+
+  @media (max-width:700px){
+    .info-grid{grid-template-columns:1fr;}
+    .field input[type=text]{width:180px;}
+    .search-row{align-items:stretch;}
+  }
+
+  .pill-count{
+    background:var(--navy); color:#fff; font-size:11px; padding:2px 9px; border-radius:20px; margin-left:6px;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div>
+      <h1>Reconcile Inbound</h1>
+      <div class="sub">Reconcile Control Admin TLC</div>
+    </div>
+  </div>
+  <div class="meta">
+    <b id="todayLabel">-</b>
+    Cocokkan fisik barang masuk dengan dokumen ASN/PO
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- IMPORT PANEL -->
+  <div class="panel">
+    <div class="panel-title"><div class="num">1</div><h2>Import Data (Report Reconcile Inbound)</h2></div>
+    <div class="search-row" style="align-items:flex-start;">
+      <div class="field" style="flex:1; min-width:240px;">
+        <label for="fileReconcile">Report Reconcile Inbound (.xlsx)</label>
+        <input type="file" id="fileReconcile" accept=".xlsx,.xls">
+        <span class="hint" id="nameReconcile">Belum ada file. Sumber utama data ledger.</span>
+      </div>
+      <button class="btn btn-ghost" id="btnResetData">↺ Reset ke Data Awal</button>
+    </div>
+    <div class="status-msg" id="importMsg"></div>
+
+    <div style="margin-top:14px; padding:14px 16px; background:#f3f6fa; border:1px solid var(--line); border-radius:8px;">
+      <div style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px;">JENIS RECONCILE</div>
+      <div style="display:flex; flex-wrap:wrap; gap:14px 28px;">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13.5px; font-weight:600; color:var(--text); user-select:none;">
+          <input type="radio" name="reconcileType" id="rcTransfer" value="Transfer" style="width:16px;height:16px;accent-color:var(--steel);cursor:pointer;">
+          Transfer Reconcile
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13.5px; font-weight:600; color:var(--text); user-select:none;">
+          <input type="radio" name="reconcileType" id="rcNormal" value="Normal" checked style="width:16px;height:16px;accent-color:var(--steel);cursor:pointer;">
+          Normal Reconcile
+        </label>
+      </div>
+    </div>
+
+    <div class="storage-info" id="storageInfo">💾 Memuat status penyimpanan lokal...</div>
+
+    <div class="backup-row">
+      <span class="backup-label">Cadangan data (opsional):</span>
+      <button class="btn btn-ghost btn-sm" id="btnExportBackup">⬇️ Export Backup (.json)</button>
+      <label class="btn btn-ghost btn-sm" id="btnImportBackupLabel" style="cursor:pointer;">
+        ⬆️ Import Backup (.json)
+        <input type="file" id="importBackupFile" accept=".json" style="display:none;">
+      </label>
+    </div>
+  </div>
+
+  <!-- SEARCH PANEL -->
+  <div class="panel">
+    <div class="panel-title"><div class="num">2</div><h2>Cari Dokumen</h2></div>
+    <div class="search-row">
+      <div class="field">
+        <label for="searchInput">6 Digit Terakhir Ext Po Number</label>
+        <input type="text" id="searchInput" maxlength="6" placeholder="cth. 002880" inputmode="numeric">
+        <span class="hint">Masukkan 6 digit terakhir dari Ext Po Number lalu tekan Search</span>
+      </div>
+      <button class="btn btn-primary" id="btnSearch">🔍 Search</button>
+      <button class="btn btn-save" id="btnSave" disabled>💾 Simpan Data</button>
+    </div>
+    <div class="status-msg" id="searchMsg"></div>
+  </div>
+
+  <!-- DATA TABLE PANEL -->
+  <div class="panel">
+    <div class="panel-title" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="num">3</div>
+        <h2>Data Report Reconcile Inbound</h2>
+        <span class="pill-count" id="rowCountPill">0 baris</span>
+      </div>
+      <div class="search-row" style="gap:8px;">
+        <input type="search" id="tableFilter" placeholder="Cari supplier, PO, item, ITEX…" style="font-size:12.5px; padding:8px 12px; border:1.5px solid var(--line); border-radius:8px; min-width:200px; background:#fff;">
+        <select id="filterStatus" style="font-size:12.5px; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; background:#fff;">
+          <option value="">Semua status ADA &amp; Lengkap</option>
+          <option value="yes">✓ ADA &amp; Lengkap</option>
+          <option value="no">Belum dikonfirmasi</option>
+          <option value="outstanding">Outstanding qty &gt; 0</option>
+        </select>
+        <button class="btn btn-outline-pdf" id="btnCetakPdf">📄 Cetak PDF (A4)</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table id="mainTable">
+        <thead>
+          <tr>
+            <th>Site Id</th>
+            <th>Site Name</th>
+            <th>Receive Date</th>
+            <th>Supplier Name</th>
+            <th>Delivery Order No</th>
+            <th>Ext Po Number</th>
+            <th>Slip PO Number</th>
+            <th>ASN Number</th>
+            <th>ASN Type</th>
+            <th>Remarks</th>
+            <th>PO Number</th>
+            <th>Status</th>
+            <th>Item No</th>
+            <th>Item Name</th>
+            <th>UOM</th>
+            <th>Qty Rec</th>
+            <th>Qty PO</th>
+            <th>Outstanding Qty</th>
+            <th>User Received</th>
+            <th>Booking VMS</th>
+            <th>Keterangan</th>
+            <th>Noted</th>
+            <th>ADA &amp; Lengkap</th>
+          </tr>
+        </thead>
+        <tbody id="mainTableBody"></tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span></span>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL DETAIL / SAVE -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalTitle">Detail Reconcile Dokumen</h3>
+      <button class="close-x" id="btnCloseModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-grid">
+        <div class="info-item"><label>No</label><div class="val mono" id="mNo">-</div></div>
+        <div class="info-item"><label>ITEX Number (ASN)</label><div class="val mono" id="mAsn">-</div></div>
+        <div class="info-item"><label>Ext Po Number</label><div class="val mono" id="mExtPo">-</div></div>
+        <div class="info-item"><label>PO Number</label><div class="val mono" id="mPo">-</div></div>
+        <div class="info-item"><label>Delivery Order No</label><div class="val mono" id="mVendorInv">-</div></div>
+        <div class="info-item full"><label>Supplier Name</label><div class="val" id="mSupplier">-</div></div>
+        <div class="info-item"><label>Receive Date</label><div class="val" id="mReceiveDate">-</div></div>
+        <div class="info-item"><label>User Received</label><div class="val" id="mUserReceived">-</div></div>
+      </div>
+
+      <div class="items-block">
+        <div class="items-head">Item Detail — periksa fisik barang per item</div>
+        <table class="item-table">
+          <thead>
+            <tr>
+              <th>Item No</th>
+              <th>Item Name</th>
+              <th class="num">Qty Rec</th>
+              <th class="num">Qty PO</th>
+              <th>Keterangan</th>
+            </tr>
+          </thead>
+          <tbody id="modalItemsBody"></tbody>
+        </table>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px; padding:16px 0 0;">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:15px; font-weight:600; color:var(--text);">
+          <input type="checkbox" id="mAdaLengkapCheck" style="width:20px;height:20px;cursor:pointer;accent-color:var(--steel);">
+          <span>ADA &amp; LENGKAP <span style="font-size:11px;color:#c0392b;font-weight:500;">(cek &amp; pastikan inputan sesuai dan TTD dokumen lengkap)</span></span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="btnModalClose2">Tutup</button>
+      <button class="btn btn-save" id="btnModalSave">💾 Simpan Data</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   xlsxlite — minimal, dependency-free XLSX reader (offline-safe)
+   Reads the ZIP container natively and inflates DEFLATE entries
+   with the browser's built-in DecompressionStream — no library
+   download required, so this file works with no internet access.
+   ============================================================ */
+(function(){
+  async function inflateRaw(bytes){
+    const ds = new DecompressionStream('deflate-raw');
+    const stream = new Blob([bytes]).stream().pipeThrough(ds);
+    const buf = await new Response(stream).arrayBuffer();
+    return new Uint8Array(buf);
+  }
+  function readU16(b,o){ return b[o] | (b[o+1]<<8); }
+  function readU32(b,o){ return (b[o] | (b[o+1]<<8) | (b[o+2]<<16) | (b[o+3]<<24)) >>> 0; }
+
+  async function unzip(arrayBuffer){
+    const bytes = new Uint8Array(arrayBuffer);
+    let eocdOffset = -1;
+    for (let i = bytes.length - 22; i >= 0 && i >= bytes.length - 22 - 65557; i--){
+      if (readU32(bytes,i) === 0x06054b50){ eocdOffset = i; break; }
+    }
+    if (eocdOffset === -1) throw new Error('Bukan file ZIP/XLSX yang valid (EOCD tidak ditemukan).');
+    const totalEntries = readU16(bytes, eocdOffset+10);
+    let cdOffset = readU32(bytes, eocdOffset+16);
+    const files = {};
+    for (let i=0;i<totalEntries;i++){
+      const sig = readU32(bytes, cdOffset);
+      if (sig !== 0x02014b50) break;
+      const compMethod = readU16(bytes, cdOffset+10);
+      const compSize = readU32(bytes, cdOffset+20);
+      const nameLen = readU16(bytes, cdOffset+28);
+      const extraLen = readU16(bytes, cdOffset+30);
+      const commentLen = readU16(bytes, cdOffset+32);
+      const localHeaderOffset = readU32(bytes, cdOffset+42);
+      const nameBytes = bytes.subarray(cdOffset+46, cdOffset+46+nameLen);
+      const name = new TextDecoder('utf-8').decode(nameBytes);
+      files[name] = { compMethod, compSize, localHeaderOffset };
+      cdOffset += 46 + nameLen + extraLen + commentLen;
+    }
+    const out = {};
+    for (const name of Object.keys(files)){
+      const f = files[name];
+      const lh = f.localHeaderOffset;
+      if (readU32(bytes, lh) !== 0x04034b50) continue;
+      const lhNameLen = readU16(bytes, lh+26);
+      const lhExtraLen = readU16(bytes, lh+28);
+      const dataStart = lh + 30 + lhNameLen + lhExtraLen;
+      const compressed = bytes.subarray(dataStart, dataStart + f.compSize);
+      let data;
+      if (f.compMethod === 0) data = compressed;
+      else if (f.compMethod === 8) data = await inflateRaw(compressed);
+      else continue;
+      out[name] = data;
+    }
+    return out;
+  }
+
+  function colLettersToIndex(letters){
+    let idx = 0;
+    for (let i=0;i<letters.length;i++) idx = idx*26 + (letters.charCodeAt(i)-64);
+    return idx - 1;
+  }
+  function splitCellRef(ref){
+    const m = /^([A-Z]+)(\d+)$/.exec(ref);
+    return { col: colLettersToIndex(m[1]) };
+  }
+  function decodeXmlEntities(s){
+    return s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
+  }
+  function excelSerialToDate(serial){
+    const utcDays = Math.floor(serial - 25569);
+    return new Date(utcDays * 86400000);
+  }
+  function parseSharedStrings(xmlText){
+    if (!xmlText) return [];
+    const strings = [];
+    const siRegex = /<si>([\s\S]*?)<\/si>/g;
+    let m;
+    while ((m = siRegex.exec(xmlText))){
+      const inner = m[1];
+      let text=''; let found=false;
+      const tRegex = /<t[^>]*>([\s\S]*?)<\/t>/g;
+      let tm;
+      while ((tm = tRegex.exec(inner))){ found=true; text += decodeXmlEntities(tm[1]); }
+      strings.push(found?text:'');
+    }
+    return strings;
+  }
+  function parseSheetXml(xmlText, sharedStrings){
+    const rows = [];
+    const rowRegex = /<row\b[^>]*\br="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
+    let rm;
+    while ((rm = rowRegex.exec(xmlText))){
+      const rowNum = parseInt(rm[1],10);
+      const rowContent = rm[2];
+      const rowArr = [];
+      const cellRegex = /<c\b([^>]*?)\/>|<c\b([^>]*?)>([\s\S]*?)<\/c>/g;
+      let cm;
+      while ((cm = cellRegex.exec(rowContent))){
+        const attrs = cm[1] !== undefined ? cm[1] : cm[2];
+        const content = cm[3] !== undefined ? cm[3] : '';
+        const refMatch = /\br="([A-Z]+\d+)"/.exec(attrs);
+        if (!refMatch) continue;
+        const { col } = splitCellRef(refMatch[1]);
+        const typeMatch = /\bt="([^"]+)"/.exec(attrs);
+        const type = typeMatch ? typeMatch[1] : 'n';
+        let value = null;
+        if (type === 'inlineStr'){
+          let text=''; const tRegex=/<t[^>]*>([\s\S]*?)<\/t>/g; let tm2;
+          while((tm2=tRegex.exec(content))) text += decodeXmlEntities(tm2[1]);
+          value = text;
+        } else if (type === 's'){
+          const vMatch = /<v>([\s\S]*?)<\/v>/.exec(content);
+          const idx = vMatch ? parseInt(vMatch[1],10) : -1;
+          value = sharedStrings[idx] !== undefined ? sharedStrings[idx] : '';
+        } else if (type === 'str' || type === 'e'){
+          const vMatch = /<v>([\s\S]*?)<\/v>/.exec(content);
+          value = vMatch ? decodeXmlEntities(vMatch[1]) : '';
+        } else if (type === 'b'){
+          const vMatch = /<v>([\s\S]*?)<\/v>/.exec(content);
+          value = vMatch ? vMatch[1]==='1' : false;
+        } else {
+          const vMatch = /<v>([\s\S]*?)<\/v>/.exec(content);
+          value = (vMatch && vMatch[1] !== '') ? parseFloat(vMatch[1]) : null;
+        }
+        rowArr[col] = value;
+      }
+      rows[rowNum] = rowArr;
+    }
+    return rows;
+  }
+  async function readWorkbook(arrayBuffer){
+    const files = await unzip(arrayBuffer);
+    const dec = new TextDecoder('utf-8');
+    const workbookXml = files['xl/workbook.xml'] ? dec.decode(files['xl/workbook.xml']) : '';
+    const relsXml = files['xl/_rels/workbook.xml.rels'] ? dec.decode(files['xl/_rels/workbook.xml.rels']) : '';
+    const sharedStringsXml = files['xl/sharedStrings.xml'] ? dec.decode(files['xl/sharedStrings.xml']) : '';
+    const sharedStrings = parseSharedStrings(sharedStringsXml);
+
+    const sheetEntries = [];
+    const sheetTagRegex = /<sheet\b[^>]*\/>|<sheet\b[^>]*>(?:<\/sheet>)?/g;
+    let stm;
+    while ((stm = sheetTagRegex.exec(workbookXml))){
+      const tag = stm[0];
+      const nameMatch = /\bname="([^"]*)"/.exec(tag);
+      const ridMatch = /\br:id="([^"]*)"/.exec(tag);
+      if (nameMatch && ridMatch) sheetEntries.push({ name: decodeXmlEntities(nameMatch[1]), rid: ridMatch[1] });
+    }
+    const ridToTarget = {};
+    const relTagRegex = /<Relationship\b[^>]*\/>/g;
+    let rtm;
+    while ((rtm = relTagRegex.exec(relsXml))){
+      const tag = rtm[0];
+      const idMatch = /\bId="([^"]*)"/.exec(tag);
+      const targetMatch = /\bTarget="([^"]*)"/.exec(tag);
+      if (idMatch && targetMatch) ridToTarget[idMatch[1]] = targetMatch[1];
+    }
+    const sheets = {}; const sheetNames = [];
+    for (const entry of sheetEntries){
+      let target = ridToTarget[entry.rid];
+      if (!target) continue;
+      if (target.startsWith('/')) target = target.slice(1);
+      else target = 'xl/' + target.replace(/^\.?\/?/, '');
+      const fileBytes = files[target];
+      if (!fileBytes) continue;
+      const xmlText = dec.decode(fileBytes);
+      sheets[entry.name] = parseSheetXml(xmlText, sharedStrings);
+      sheetNames.push(entry.name);
+    }
+    return { sheetNames, sheets };
+  }
+  function sheetToObjects(rows, headerRowNum){
+    const headerRow = rows[headerRowNum] || [];
+    const headers = headerRow.map(h => (h===null||h===undefined) ? '' : String(h).trim());
+    const result = [];
+    for (let r=headerRowNum+1; r<rows.length; r++){
+      const row = rows[r];
+      if (!row) continue;
+      const hasAny = row.some(v => v!==null && v!==undefined && v!=='');
+      if (!hasAny) continue;
+      const obj = {};
+      for (let c=0;c<headers.length;c++){
+        if (!headers[c]) continue;
+        obj[headers[c]] = row[c]!==undefined ? row[c] : null;
+      }
+      result.push(obj);
+    }
+    return { headers, rows: result };
+  }
+  // Auto-detect the header row: the first row containing several non-empty
+  // text cells. We scan the first 12 rows for the row with the most
+  // non-empty string cells.
+  function detectHeaderRow(rows){
+    let bestRow = 1, bestCount = -1;
+    for (let r=1; r<Math.min(rows.length, 12); r++){
+      const row = rows[r];
+      if (!row) continue;
+      const count = row.filter(v => typeof v === 'string' && v.trim() !== '').length;
+      if (count > bestCount){ bestCount = count; bestRow = r; }
+    }
+    return bestRow;
+  }
+
+  window.xlsxlite = { readWorkbook, sheetToObjects, excelSerialToDate, detectHeaderRow };
+})();
+</script>
+
+<script>
+/* ============================================================
+   Application logic — Reconcile Inbound Dashboard
+   ============================================================ */
+(function(){
+  'use strict';
+
+  const STORAGE_KEY = 'reconcile_inbound_dashboard_v1';
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+  // ---------- helpers ----------
+  function normalizeItemNo(v){
+    if (v === null || v === undefined) return '';
+    let s = String(v).trim();
+    s = s.replace(/^0+/, '');
+    return s === '' ? '0' : s;
+  }
+  function pad(n, len){ return String(n).padStart(len, '0'); }
+  function fmtDate(v){
+    if (v === null || v === undefined || v === '') return '';
+    let d;
+    if (v instanceof Date) d = v;
+    else if (typeof v === 'number') d = window.xlsxlite.excelSerialToDate(v);
+    else { d = new Date(v); if (isNaN(d.getTime())) return String(v); }
+    if (isNaN(d.getTime())) return String(v);
+    return pad(d.getUTCDate(),2) + '-' + pad(d.getUTCMonth()+1,2) + '-' + d.getUTCFullYear();
+  }
+  function fmtNum(v){
+    if (v === null || v === undefined || v === '') return '';
+    const n = Number(v);
+    if (isNaN(n)) return String(v);
+    return n.toLocaleString('id-ID');
+  }
+  function esc(s){
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function todayStr(){
+    const d = new Date();
+    return pad(d.getDate(),2) + '-' + pad(d.getMonth()+1,2) + '-' + d.getFullYear();
+  }
+  $('#todayLabel').textContent = todayStr();
+
+  function statusBadge(adaLengkap){
+    return adaLengkap
+      ? '<span class="badge badge-ok">✓ ADA &amp; Lengkap</span>'
+      : '<span class="badge badge-bad">Belum dikonfirmasi</span>';
+  }
+  function keteranganValue(adaLengkap){
+    return adaLengkap ? 'Ada' : '';
+  }
+
+  // ---------- data state ----------
+  // records: flat array of line-item rows, one per (ASN Number, Item No).
+  // annotations: { "ASN|ItemNo": { adaLengkap: bool, keterangan: string } } keyed
+  // by ASN+Item, so user edits survive re-import (matching the old dashboard).
+  let records = [];
+  let annotations = {};
+  let lastReconcileRows = null;
+
+  function annoKey(asn, itemNo){ return asn + '|' + normalizeItemNo(itemNo); }
+
+  function loadFromLocalStorage(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      const payload = JSON.parse(raw);
+      annotations = payload.annotations || {};
+      lastReconcileRows = payload.lastReconcileRows || null;
+      if (payload.reconcileType){
+        const radio = document.querySelector('input[name="reconcileType"][value="' + payload.reconcileType + '"]');
+        if (radio) radio.checked = true;
+      }
+      return payload.savedAt || true;
+    } catch(err){
+      console.error('Gagal memuat dari localStorage:', err);
+      return false;
+    }
+  }
+  function saveToLocalStorage(){
+    try{
+      const rcType = document.querySelector('input[name="reconcileType"]:checked');
+      const payload = {
+        annotations: annotations,
+        lastReconcileRows: lastReconcileRows,
+        reconcileType: rcType ? rcType.value : 'Normal',
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      updateStorageInfo();
+    } catch(err){
+      console.error('Gagal menyimpan ke localStorage:', err);
+    }
+  }
+  function formatTimestamp(iso){
+    if (!iso) return '-';
+    const d = new Date(iso);
+    return pad(d.getDate(),2) + '-' + pad(d.getMonth()+1,2) + '-' + d.getFullYear() + ' ' + pad(d.getHours(),2) + ':' + pad(d.getMinutes(),2);
+  }
+  function updateStorageInfo(){
+    const el = $('#storageInfo');
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw){
+        el.textContent = '💾 Belum ada data tersimpan di penyimpanan lokal browser ini.';
+        return;
+      }
+      const payload = JSON.parse(raw);
+      el.textContent = '💾 Data tersimpan otomatis di browser ini — terakhir disimpan ' + formatTimestamp(payload.savedAt) + ' (' + records.length + ' baris).';
+    } catch(err){
+      el.textContent = '💾 Status penyimpanan lokal tidak diketahui.';
+    }
+  }
+
+  // ---------- file import + parse (xlsx) ----------
+  async function parseXlsxFile(file){
+    const buf = await file.arrayBuffer();
+    const wb = await window.xlsxlite.readWorkbook(buf);
+    const sheetName = wb.sheetNames[0];
+    const rows = wb.sheets[sheetName];
+    const headerRow = window.xlsxlite.detectHeaderRow(rows);
+    return window.xlsxlite.sheetToObjects(rows, headerRow).rows;
+  }
+
+  function getField(obj, ...candidates){
+    for (const c of candidates){
+      if (Object.prototype.hasOwnProperty.call(obj, c)) return obj[c];
+      const found = Object.keys(obj).find(k => k.trim() === c.trim());
+      if (found) return obj[found];
+    }
+    return null;
+  }
+
+  function rebuildRecords(){
+    if (!lastReconcileRows){
+      records = [];
+      renderAll();
+      return;
+    }
+
+    const out = [];
+    let counter = 0;
+    for (const r of lastReconcileRows){
+      const asn = getField(r, 'ASN Number');
+      if (!asn) continue;
+      const asnStr = String(asn).trim();
+      const itemNoRaw = getField(r, 'Item No');
+
+      const key = annoKey(asnStr, itemNoRaw);
+      const anno = annotations[key] || {};
+      counter++;
+
+      out.push({
+        no: counter,
+        key,
+        siteId: getField(r, 'Site Id') || '',
+        siteName: getField(r, 'Site Name') || '',
+        receiveDate: getField(r, 'Receive Date'),
+        supplierName: getField(r, 'Supplier Name') || '',
+        deliveryOrderNo: getField(r, 'Delivery Order No') || '',
+        asnNumber: asnStr,
+        extPoNumber: getField(r, 'Ext Po Number') || '',
+        slipPoNumber: getField(r, 'Slip PO Number') || '',
+        asnType: getField(r, 'ASN Type') || '',
+        remarks: getField(r, 'Remarks') || '',
+        poNumber: getField(r, 'PO Number') || '',
+        status: getField(r, 'Status') || '',
+        itemNo: itemNoRaw,
+        itemName: getField(r, 'Item Name') || '',
+        uom: getField(r, 'UOM') || '',
+        qtyRec: getField(r, 'Qty Rec'),
+        qtyPo: getField(r, 'Qty PO'),
+        outstandingQty: getField(r, 'Outstanding Qty'),
+        userReceived: getField(r, 'User Received') || '',
+        bookingVms: getField(r, 'Booking VMS') || '',
+        noted: (anno.noted !== undefined) ? anno.noted : '',
+        adaLengkap: !!anno.adaLengkap
+      });
+    }
+    records = out;
+    renderAll();
+    saveToLocalStorage();
+  }
+
+  function handleFileInput(inputEl){
+    inputEl.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const nameEl = $('#nameReconcile');
+      const msg = $('#importMsg');
+      msg.className = 'status-msg';
+      nameEl.textContent = 'Memuat…';
+      try{
+        const rows = await parseXlsxFile(file);
+        lastReconcileRows = rows;
+        nameEl.textContent = file.name + ' (' + rows.length + ' baris)';
+        rebuildRecords();
+        msg.textContent = 'Berhasil mengimport ' + rows.length + ' baris dari "' + file.name + '". Data dashboard telah diperbarui dan disimpan otomatis di browser ini.';
+        msg.classList.add('show','success');
+      } catch(err){
+        nameEl.textContent = 'Gagal memuat file';
+        console.error(err);
+        msg.textContent = 'Gagal membaca file: ' + err.message;
+        msg.classList.add('show','error');
+      }
+    });
+  }
+  handleFileInput($('#fileReconcile'));
+
+  $('#btnResetData').addEventListener('click', () => {
+    if (!confirm('Reset dan kosongkan semua data? Data hasil import, anotasi, dan data lokal tersimpan akan dihapus.')) return;
+    records = [];
+    annotations = {};
+    lastReconcileRows = null;
+    currentAsn = null;
+    $('#btnSave').disabled = true;
+    $('#searchInput').value = '';
+    $('#fileReconcile').value = '';
+    $('#nameReconcile').textContent = 'Belum ada file. Sumber utama data ledger.';
+    renderAll();
+    saveToLocalStorage();
+    const msg = $('#importMsg');
+    msg.className = 'status-msg show success';
+    msg.textContent = 'Data dashboard telah dikosongkan dan disimpan otomatis.';
+  });
+
+  // ---------- backup export/import ----------
+  $('#btnExportBackup').addEventListener('click', () => {
+    const rcType = document.querySelector('input[name="reconcileType"]:checked');
+    const payload = {
+      annotations, lastReconcileRows,
+      reconcileType: rcType ? rcType.value : 'Normal',
+      savedAt: new Date().toISOString(),
+      source: 'Dashboard Reconcile Inbound - MITRA10'
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const now = new Date();
+    link.download = 'Backup_Reconcile_Inbound_' + pad(now.getDate(),2) + '-' + pad(now.getMonth()+1,2) + '-' + now.getFullYear() + '-' + pad(now.getHours(),2) + '-' + pad(now.getMinutes(),2) + '.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    const msg = $('#importMsg');
+    msg.className = 'status-msg show success';
+    msg.textContent = 'Backup berhasil diunduh (' + records.length + ' baris). Simpan file ini di tempat aman.';
+  });
+
+  $('#importBackupFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    const msg = $('#importMsg');
+    msg.className = 'status-msg';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try{
+        const payload = JSON.parse(ev.target.result);
+        annotations = payload.annotations || {};
+        lastReconcileRows = payload.lastReconcileRows || null;
+        if (payload.reconcileType){
+          const radio = document.querySelector('input[name="reconcileType"][value="' + payload.reconcileType + '"]');
+          if (radio) radio.checked = true;
+        }
+        rebuildRecords();
+        msg.textContent = 'Backup berhasil dimuat (dibuat ' + formatTimestamp(payload.savedAt) + ').';
+        msg.classList.add('show','success');
+      } catch(err){
+        msg.textContent = 'Gagal memuat backup: ' + err.message;
+        msg.classList.add('show','error');
+      } finally {
+        e.target.value = '';
+      }
+    };
+    reader.onerror = () => {
+      msg.textContent = 'Gagal membaca file backup.';
+      msg.classList.add('show','error');
+    };
+    reader.readAsText(file);
+  });
+
+  // ---------- grouping by ITEX (ASN Number) ----------
+  function groupByAsn(rows){
+    const groups = {};
+    for (const rec of rows){
+      if (!groups[rec.asnNumber]) groups[rec.asnNumber] = [];
+      groups[rec.asnNumber].push(rec);
+    }
+    return groups;
+  }
+
+  // ---------- table filter / sort ----------
+  let sortState = { col: 'receiveDate', dir: 'desc' };
+  const SORT_COLS = ['siteId','siteName','receiveDate','supplierName','deliveryOrderNo','extPoNumber','slipPoNumber',
+                      'asnNumber','asnType','remarks','poNumber','status','itemNo','itemName','uom','qtyRec','qtyPo',
+                      'outstandingQty','userReceived','bookingVms','keterangan','noted','adaLengkap'];
+
+  function getFilteredSortedRecords(){
+    const q = $('#tableFilter').value.trim().toLowerCase();
+    const statusFilter = $('#filterStatus').value;
+    let rows = records;
+    if (q){
+      rows = rows.filter(r => {
+        const hay = [r.asnNumber, r.deliveryOrderNo, r.extPoNumber, r.supplierName, r.poNumber,
+                     r.itemNo, r.itemName, r.userReceived, r.noted].join(' ').toLowerCase();
+        return hay.includes(q);
+      });
+    }
+    if (statusFilter === 'yes') rows = rows.filter(r => r.adaLengkap);
+    else if (statusFilter === 'no') rows = rows.filter(r => !r.adaLengkap);
+    else if (statusFilter === 'outstanding') rows = rows.filter(r => Number(r.outstandingQty) > 0);
+
+    const col = sortState.col, dir = sortState.dir === 'asc' ? 1 : -1;
+    rows = rows.slice().sort((a,b) => {
+      let av = (col === 'keterangan') ? keteranganValue(a.adaLengkap) : a[col];
+      let bv = (col === 'keterangan') ? keteranganValue(b.adaLengkap) : b[col];
+      if (col === 'receiveDate'){ av = Number(av)||0; bv = Number(bv)||0; }
+      if (typeof av === 'number' && typeof bv === 'number') return (av-bv)*dir;
+      av = (av===null||av===undefined) ? '' : String(av);
+      bv = (bv===null||bv===undefined) ? '' : String(bv);
+      return av.localeCompare(bv) * dir;
+    });
+    return rows;
+  }
+
+  // ---------- render main table ----------
+  function renderMainTable(highlightSet){
+    const tbody = $('#mainTableBody');
+    const rows = getFilteredSortedRecords();
+    if (records.length === 0){
+      tbody.innerHTML = '<tr><td colspan="23" style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13.5px;">' +
+        '<div style="font-size:28px;margin-bottom:10px;">📂</div>' +
+        '<div style="font-weight:600;margin-bottom:4px;">Belum ada data</div>' +
+        '<div style="font-size:12px;">Import file Report Reconcile Inbound pada panel di atas untuk memulai.</div>' +
+        '</td></tr>';
+      $('#rowCountPill').textContent = '0 baris';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => {
+      const isSaved = r.adaLengkap;
+      const isMatch = highlightSet && highlightSet.has(r.asnNumber);
+      const cls = [isSaved ? 'saved-row' : '', isMatch ? 'match-row' : ''].filter(Boolean).join(' ');
+      return '<tr class="' + cls + '">' +
+        '<td class="mono">' + esc(r.siteId) + '</td>' +
+        '<td>' + esc(r.siteName) + '</td>' +
+        '<td>' + esc(fmtDate(r.receiveDate)) + '</td>' +
+        '<td>' + esc(r.supplierName) + '</td>' +
+        '<td class="mono">' + esc(r.deliveryOrderNo) + '</td>' +
+        '<td class="mono">' + esc(r.extPoNumber) + '</td>' +
+        '<td class="mono">' + esc(r.slipPoNumber) + '</td>' +
+        '<td class="itex-cell" data-asn="' + esc(r.asnNumber) + '">' + esc(r.asnNumber) + '</td>' +
+        '<td>' + esc(r.asnType) + '</td>' +
+        '<td>' + esc(r.remarks) + '</td>' +
+        '<td class="mono">' + esc(r.poNumber) + '</td>' +
+        '<td>' + esc(r.status) + '</td>' +
+        '<td class="mono">' + esc(r.itemNo) + '</td>' +
+        '<td>' + esc(r.itemName) + '</td>' +
+        '<td>' + esc(r.uom) + '</td>' +
+        '<td class="num">' + fmtNum(r.qtyRec) + '</td>' +
+        '<td class="num">' + fmtNum(r.qtyPo) + '</td>' +
+        '<td class="num">' + fmtNum(r.outstandingQty) + '</td>' +
+        '<td>' + esc(r.userReceived) + '</td>' +
+        '<td>' + esc(r.bookingVms) + '</td>' +
+        '<td>' + esc(keteranganValue(r.adaLengkap)) + '</td>' +
+        '<td>' + esc(r.noted) + '</td>' +
+        '<td>' + statusBadge(r.adaLengkap) + '</td>' +
+      '</tr>';
+    }).join('');
+    $('#rowCountPill').textContent = rows.length + ' dari ' + records.length + ' baris';
+
+    $$('#mainTableBody .itex-cell').forEach(cell => {
+      cell.addEventListener('click', () => openModalByAsn(cell.getAttribute('data-asn')));
+    });
+  }
+
+  function renderAll(){
+    renderMainTable();
+  }
+  renderAll();
+
+  $('#tableFilter').addEventListener('input', () => renderMainTable());
+  $('#filterStatus').addEventListener('change', () => renderMainTable());
+
+  $$('table#mainTable thead th').forEach((th, idx) => {
+    th.title = 'Klik untuk urutkan';
+    th.addEventListener('click', () => {
+      const col = SORT_COLS[idx];
+      if (sortState.col === col) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+      else { sortState.col = col; sortState.dir = 'asc'; }
+      renderMainTable();
+    });
+  });
+
+  // ---------- restore from localStorage on load ----------
+  const restored = loadFromLocalStorage();
+  if (lastReconcileRows){
+    rebuildRecords();
+  }
+  updateStorageInfo();
+  if (restored){
+    const msg = $('#importMsg');
+    msg.className = 'status-msg show success';
+    msg.textContent = 'Data sebelumnya berhasil dimuat otomatis dari penyimpanan lokal browser (' + records.length + ' baris).';
+  }
+  if (lastReconcileRows) $('#nameReconcile').textContent = 'Data tersimpan (' + lastReconcileRows.length + ' baris)';
+
+  // ---------- search ----------
+  let currentAsn = null;
+
+  function extPo6(extPo){ return (extPo || '').slice(-6); }
+
+  function doSearch(){
+    const msg = $('#searchMsg');
+    msg.className = 'status-msg';
+    const input = $('#searchInput').value.trim();
+
+    if (!/^\d{1,6}$/.test(input)){
+      msg.textContent = 'Masukkan hanya digit angka (maksimal 6 digit) dari Ext Po Number.';
+      msg.classList.add('show','error');
+      return;
+    }
+    if (records.length === 0){
+      msg.textContent = 'Belum ada data. Import file Report Reconcile Inbound terlebih dahulu.';
+      msg.classList.add('show','error');
+      return;
+    }
+
+    const matchRecords = records.filter(r => extPo6(r.extPoNumber).includes(input));
+    const matchAsns = Array.from(new Set(matchRecords.map(r => r.asnNumber))).sort();
+    const groups = groupByAsn(records);
+
+    renderMainTable(new Set(matchAsns));
+
+    if (matchAsns.length === 0){
+      msg.textContent = 'Ext Po Number dengan akhiran "' + esc(input) + '" tidak ditemukan.';
+      msg.classList.add('show','error');
+      $('#btnSave').disabled = true;
+      currentAsn = null;
+      return;
+    }
+
+    if (matchAsns.length === 1){
+      msg.textContent = 'Ditemukan 1 dokumen. Membuka detail...';
+      msg.classList.add('show','success');
+      openModalByAsn(matchAsns[0]);
+    } else {
+      msg.textContent = 'Ditemukan ' + matchAsns.length + ' dokumen dengan akhiran Ext Po Number "' + esc(input) + '". Pilih salah satu dari daftar berikut.';
+      msg.classList.add('show','success');
+      showSearchResultsPopup(matchAsns, groups, input);
+    }
+  }
+  $('#btnSearch').addEventListener('click', doSearch);
+  $('#searchInput').addEventListener('keyup', (e) => {
+    $('#searchInput').value = $('#searchInput').value.replace(/\D/g,'');
+    if (e.key === 'Enter') doSearch();
+  });
+  $('#btnSave').addEventListener('click', () => {
+    if (currentAsn) openModalByAsn(currentAsn);
+  });
+
+  // ---------- search results popup (multiple matches) ----------
+  function showSearchResultsPopup(matchAsns, groups, keyword){
+    const existing = document.getElementById('searchResultsOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'searchResultsOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,25,40,.6);display:flex;align-items:center;justify-content:center;z-index:1500;padding:20px;backdrop-filter:blur(2px);';
+
+    overlay.innerHTML =
+      '<div style="background:#fff;border-radius:14px;max-width:960px;width:100%;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35);animation:pop .18s ease-out;">' +
+        '<div style="background:linear-gradient(135deg,var(--navy),var(--navy-2));color:#fff;padding:16px 22px;border-radius:14px 14px 0 0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">' +
+          '<div>' +
+            '<div style="font-size:15px;font-weight:700;">🔍 Hasil Pencarian: "' + esc(keyword) + '"</div>' +
+            '<div style="font-size:12px;opacity:.8;margin-top:2px;">Ditemukan <b>' + matchAsns.length + '</b> dokumen — klik baris untuk membuka detail reconcile</div>' +
+          '</div>' +
+          '<button onclick="document.getElementById(\'searchResultsOverlay\').remove()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>' +
+        '</div>' +
+        '<div style="overflow-y:auto;flex:1;">' +
+          '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">' +
+            '<thead style="position:sticky;top:0;z-index:1;">' +
+              '<tr style="background:#1c2733;color:#fff;">' +
+                '<th style="padding:9px 12px;text-align:left;white-space:nowrap;font-size:11.5px;font-weight:600;">Ext Po Number</th>' +
+                '<th style="padding:9px 12px;text-align:left;white-space:nowrap;font-size:11.5px;font-weight:600;">ASN Number</th>' +
+                '<th style="padding:9px 12px;text-align:left;white-space:nowrap;font-size:11.5px;font-weight:600;">Supplier Name</th>' +
+                '<th style="padding:9px 12px;text-align:left;white-space:nowrap;font-size:11.5px;font-weight:600;">PO Number</th>' +
+                '<th style="padding:9px 12px;text-align:left;white-space:nowrap;font-size:11.5px;font-weight:600;">Receive Date</th>' +
+                '<th style="padding:9px 12px;text-align:left;white-space:nowrap;font-size:11.5px;font-weight:600;">Item</th>' +
+                '<th style="padding:9px 12px;text-align:left;white-space:nowrap;font-size:11.5px;font-weight:600;">ADA &amp; Lengkap</th>' +
+              '</tr>' +
+            '</thead>' +
+            '<tbody id="searchResultsTbody"></tbody>' +
+          '</table>' +
+        '</div>' +
+        '<div style="padding:12px 22px;border-top:1px solid #d8dee6;display:flex;justify-content:flex-end;flex-shrink:0;">' +
+          '<button onclick="document.getElementById(\'searchResultsOverlay\').remove()" style="border:1.5px solid #d8dee6;background:#fff;color:#1c2733;border-radius:8px;padding:9px 18px;font-size:13.5px;font-weight:600;cursor:pointer;">Tutup</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    const tbody = document.getElementById('searchResultsTbody');
+    matchAsns.forEach((asn, i) => {
+      const items = groups[asn];
+      const first = items[0];
+      const allComplete = items.every(it => it.adaLengkap);
+      const isSaved = allComplete;
+
+      const tr = document.createElement('tr');
+      tr.style.cssText = 'cursor:pointer;border-bottom:1px solid #eef1f5;background:' + (isSaved ? '#fff7e8' : (i%2===0 ? '#fff' : '#f7f9fb')) + ';transition:background .1s;';
+      tr.onmouseover = () => tr.style.background = '#dbe9fb';
+      tr.onmouseout  = () => tr.style.background = isSaved ? '#fff7e8' : (i%2===0 ? '#fff' : '#f7f9fb');
+      tr.innerHTML =
+        '<td style="padding:10px 12px;font-weight:700;color:var(--navy);font-family:Consolas,monospace;">' + esc(first.extPoNumber || '-') + '</td>' +
+        '<td style="padding:10px 12px;font-family:monospace;font-size:11.5px;">' + esc(asn) + '</td>' +
+        '<td style="padding:10px 12px;">' + esc(first.supplierName || '-') + '</td>' +
+        '<td style="padding:10px 12px;font-family:monospace;font-size:11.5px;">' + esc(first.poNumber || '-') + '</td>' +
+        '<td style="padding:10px 12px;">' + esc(fmtDate(first.receiveDate) || '-') + '</td>' +
+        '<td style="padding:10px 12px;">' + items.length + ' item</td>' +
+        '<td style="padding:10px 12px;">' + statusBadge(allComplete) + '</td>';
+      tr.addEventListener('click', () => {
+        document.getElementById('searchResultsOverlay').remove();
+        openModalByAsn(asn);
+      });
+      tbody.appendChild(tr);
+    });
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+  }
+
+  // ---------- modal ----------
+  function openModalByAsn(asn){
+    const groups = groupByAsn(records);
+    const items = groups[asn];
+    if (!items || !items.length) return;
+    currentAsn = asn;
+    const first = items[0];
+
+    $('#modalTitle').textContent = 'ITEX ' + asn;
+    $('#mNo').textContent = first.no || '-';
+    $('#mAsn').textContent = asn;
+    $('#mExtPo').textContent = first.extPoNumber || '-';
+    $('#mPo').textContent = first.poNumber || '-';
+    $('#mVendorInv').textContent = first.deliveryOrderNo || '-';
+    $('#mSupplier').textContent = first.supplierName || '-';
+    $('#mReceiveDate').textContent = fmtDate(first.receiveDate) || '-';
+    $('#mUserReceived').textContent = first.userReceived || '-';
+
+    const allComplete = items.every(it => it.adaLengkap);
+    $('#mAdaLengkapCheck').checked = allComplete;
+
+    const body = $('#modalItemsBody');
+    body.innerHTML = items.map((it) => {
+      const outBadge = Number(it.outstandingQty) > 0
+        ? '<div class="outstanding-badge">Outstanding ' + fmtNum(it.outstandingQty) + '</div>' : '';
+      return '<tr>' +
+        '<td class="mono">' + esc(it.itemNo) + '</td>' +
+        '<td>' + esc(it.itemName) + outBadge + '</td>' +
+        '<td class="num">' + fmtNum(it.qtyRec) + '</td>' +
+        '<td class="num">' + fmtNum(it.qtyPo) + '</td>' +
+        '<td class="ket-cell"><input type="text" data-key="' + esc(it.key) + '" value="' + esc(it.noted || '') + '" placeholder="Catatan…"></td>' +
+      '</tr>';
+    }).join('');
+
+    $('#btnSave').disabled = false;
+    $('#modalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal(){
+    $('#modalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  $('#btnCloseModal').addEventListener('click', closeModal);
+  $('#btnModalClose2').addEventListener('click', closeModal);
+  $('#modalOverlay').addEventListener('click', (e) => { if (e.target.id === 'modalOverlay') closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#modalOverlay').classList.contains('open')) closeModal(); });
+
+  $('#btnModalSave').addEventListener('click', () => {
+    if (!currentAsn) return;
+    const groups = groupByAsn(records);
+    const items = groups[currentAsn];
+    if (!items) return;
+    const isChecked = $('#mAdaLengkapCheck').checked;
+    const notedInputs = $$('#modalItemsBody input[type=text]');
+    const notedByKey = {};
+    notedInputs.forEach(inp => { notedByKey[inp.getAttribute('data-key')] = inp.value; });
+
+    items.forEach(it => {
+      const noted = notedByKey[it.key] !== undefined ? notedByKey[it.key] : (it.noted || '');
+      it.adaLengkap = isChecked;
+      it.noted = noted;
+      if (!annotations[it.key]) annotations[it.key] = {};
+      annotations[it.key].adaLengkap = isChecked;
+      annotations[it.key].noted = noted;
+    });
+
+    saveToLocalStorage();
+    closeModal();
+    renderMainTable();
+
+    $('#searchInput').value = '';
+    const msg = $('#searchMsg');
+    msg.className = 'status-msg show success';
+    msg.textContent = 'Data ITEX ' + currentAsn + ' berhasil diupdate dan disimpan otomatis.';
+  });
+
+  // ====== CETAK PDF dengan reminder data kosong ======
+  $('#btnCetakPdf').addEventListener('click', async () => {
+    const emptyRows = records.filter(r => !r.adaLengkap);
+    if (emptyRows.length > 0){
+      showPdfReminderDialog(emptyRows);
+      return;
+    }
+    await doCetakPdf(records);
+  });
+
+  function showPdfReminderDialog(emptyRows){
+    const overlay = document.createElement('div');
+    overlay.id = 'pdfReminderOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,25,40,.65);display:flex;align-items:center;justify-content:center;z-index:2000;padding:20px;backdrop-filter:blur(2px);';
+
+    overlay.innerHTML =
+      '<div style="background:#fff;border-radius:14px;max-width:860px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);animation:pop .18s ease-out;">' +
+        '<div style="background:linear-gradient(135deg,#a32424,#c0392b);color:#fff;padding:18px 24px;border-radius:14px 14px 0 0;display:flex;justify-content:space-between;align-items:center;">' +
+          '<div>' +
+            '<div style="font-size:16px;font-weight:700;">⚠️ Ada Data Belum Direconcile</div>' +
+            '<div style="font-size:12px;opacity:.85;margin-top:3px;">Status <b>ADA &amp; Lengkap</b> belum dikonfirmasi pada <b>' + emptyRows.length + ' baris</b> berikut:</div>' +
+          '</div>' +
+          '<button onclick="document.getElementById(\'pdfReminderOverlay\').remove()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>' +
+        '</div>' +
+        '<div style="padding:18px 22px;">' +
+          '<div style="overflow-x:auto;border:1px solid #d8dee6;border-radius:8px;margin-bottom:18px;">' +
+            '<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:700px;">' +
+              '<thead><tr style="background:#0f2540;color:#fff;">' +
+                '<th style="padding:8px 10px;text-align:left;white-space:nowrap;">NO</th>' +
+                '<th style="padding:8px 10px;text-align:left;white-space:nowrap;">Supplier Name</th>' +
+                '<th style="padding:8px 10px;text-align:left;white-space:nowrap;">ASN Number</th>' +
+                '<th style="padding:8px 10px;text-align:left;white-space:nowrap;">Receive Date</th>' +
+                '<th style="padding:8px 10px;text-align:left;white-space:nowrap;">Status</th>' +
+                '<th style="padding:8px 10px;text-align:left;white-space:nowrap;">ADA &amp; Lengkap</th>' +
+              '</tr></thead>' +
+              '<tbody id="reminderEmptyTbody"></tbody>' +
+            '</table>' +
+          '</div>' +
+          '<div style="display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;">' +
+            '<button id="btnReminderCetakKosong" class="btn btn-outline-pdf">📄 Cetak Data Yang Belum Reconcile</button>' +
+            '<button id="btnReminderAbaikan" class="btn btn-save">📄 Abaikan &amp; Cetak Semua Data</button>' +
+            '<button id="btnReminderBatal" class="btn btn-ghost">Batal</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    const tbody = document.getElementById('reminderEmptyTbody');
+    emptyRows.forEach((r, i) => {
+      const tr = document.createElement('tr');
+      tr.style.cssText = i%2===0?'background:#fbe3e3;':'background:#fdf0f0;';
+      tr.innerHTML =
+        '<td style="padding:7px 10px;border-bottom:1px solid #f5c6c6;">' + (i+1) + '</td>' +
+        '<td style="padding:7px 10px;border-bottom:1px solid #f5c6c6;">' + esc(r.supplierName) + '</td>' +
+        '<td style="padding:7px 10px;border-bottom:1px solid #f5c6c6;font-family:monospace;font-size:11px;">' + esc(r.asnNumber) + '</td>' +
+        '<td style="padding:7px 10px;border-bottom:1px solid #f5c6c6;">' + esc(fmtDate(r.receiveDate)) + '</td>' +
+        '<td style="padding:7px 10px;border-bottom:1px solid #f5c6c6;">' + esc(r.status) + '</td>' +
+        '<td style="padding:7px 10px;border-bottom:1px solid #f5c6c6;color:#a32424;font-weight:700;">— belum —</td>';
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('btnReminderBatal').addEventListener('click', () => overlay.remove());
+    document.getElementById('btnReminderAbaikan').addEventListener('click', async () => {
+      overlay.remove();
+      await doCetakPdf(records);
+    });
+    document.getElementById('btnReminderCetakKosong').addEventListener('click', async () => {
+      overlay.remove();
+      await doCetakPdf(emptyRows, true);
+    });
+  }
+
+  // ====== CETAK PDF (A4 Landscape) — kolom mengikuti header Report Reconcile Inbound ======
+  async function doCetakPdf(dataArr, onlyEmpty){
+    const btn = $('#btnCetakPdf');
+    const origText = btn.textContent;
+    btn.textContent = '⏳ Memproses...';
+    btn.disabled = true;
+    try{
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 8;
+
+      pdf.setFont('helvetica','bold');
+      pdf.setFontSize(11);
+      pdf.setTextColor(0,0,0);
+      pdf.text('11000 - MITRA10 TALLASA CITY MAKASSAR', margin, margin + 4);
+      pdf.setFontSize(13);
+      const rcType = document.querySelector('input[name="reconcileType"]:checked');
+      const rcTitles = { 'Transfer': 'TRANSFER RECONCILE', 'Normal': 'NORMAL RECONCILE' };
+      const baseTitle = rcType ? (rcTitles[rcType.value] || 'NORMAL RECONCILE') : 'NORMAL RECONCILE';
+      pdf.text('RECONCILE INBOUND — ' + baseTitle + (onlyEmpty ? ' — BELUM DIRECONCILE' : ''), margin, margin + 11);
+      pdf.setFont('helvetica','normal');
+      pdf.setFontSize(9);
+      pdf.text('Tanggal : ' + todayStr(), margin, margin + 17);
+
+      pdf.setFontSize(8.5);
+      pdf.text('Dibuat Oleh', pageWidth - margin - 70, margin + 4, {align:'left'});
+      pdf.text('Mengetahui', pageWidth - margin - 25, margin + 4, {align:'left'});
+      pdf.setFont('helvetica','bold');
+      pdf.text('ADMIN', pageWidth - margin - 70, margin + 17, {align:'left'});
+      pdf.text('MOD', pageWidth - margin - 25, margin + 17, {align:'left'});
+
+      // Kolom PDF mengikuti seluruh header Report Reconcile Inbound (Keterangan & Noted tetap di belakang)
+      const head = [[
+        'NO','Site Id','Site Name','Receive Date','Supplier Name','Delivery Order No','Ext Po Number',
+        'Slip PO Number','ASN Number','ASN Type','Remarks','PO Number','Status','Item No','Item Name',
+        'UOM','Qty Rec','Qty PO','Outstanding Qty','User Received','Booking VMS','Keterangan','Noted'
+      ]];
+      const body = dataArr.map((r, idx) => [
+        idx+1, r.siteId || '', r.siteName || '', fmtDate(r.receiveDate), r.supplierName || '',
+        r.deliveryOrderNo || '', r.extPoNumber || '', r.slipPoNumber || '', r.asnNumber || '',
+        r.asnType || '', r.remarks || '', r.poNumber || '', r.status || '', r.itemNo || '', r.itemName || '',
+        r.uom || '', fmtNum(r.qtyRec), fmtNum(r.qtyPo), fmtNum(r.outstandingQty), r.userReceived || '',
+        r.bookingVms || '', keteranganValue(r.adaLengkap), r.noted || ''
+      ]);
+
+      pdf.autoTable({
+        head: head,
+        body: body,
+        startY: margin + 21,
+        margin: {left: margin, right: margin, bottom: margin},
+        tableWidth: pageWidth - margin*2,
+        styles:{
+          fontSize: 6.3,
+          cellPadding: 1.3,
+          lineColor: [0,0,0],
+          lineWidth: 0.1,
+          textColor: [0,0,0],
+          fillColor: [255,255,255],
+          overflow: 'linebreak',
+          valign: 'middle'
+        },
+        headStyles:{
+          fillColor: [255,255,255],
+          textColor: [0,0,0],
+          fontStyle: 'bold',
+          lineColor: [0,0,0],
+          lineWidth: 0.1
+        },
+        bodyStyles:{ fillColor: [255,255,255] },
+        alternateRowStyles:{ fillColor: [255,255,255] },
+        theme: 'grid',
+        tableLineColor: [0,0,0],
+        tableLineWidth: 0.1,
+        didDrawPage: function(){
+          const str = 'Halaman ' + pdf.internal.getCurrentPageInfo().pageNumber;
+          pdf.setFontSize(7.5);
+          pdf.setTextColor(0,0,0);
+          pdf.text(str, pageWidth - margin - 18, pageHeight - 3);
+        }
+      });
+
+      const suffix = onlyEmpty ? '_belum_reconcile_' + todayStr() : '_' + todayStr();
+      pdf.save('Reconcile_Inbound' + suffix + '.pdf');
+    } catch(err){
+      alert('Gagal membuat PDF: ' + err.message);
+    } finally {
+      btn.textContent = origText;
+      btn.disabled = false;
+    }
+  }
+
+})();
+</script>
+<div style="text-align:center; padding:22px 0 18px 0; font-size:13.5px; font-weight:700; color:var(--muted); border-top:1px solid var(--line); margin-top:10px; background:var(--bg);">
+  &copy;<span id="footerYear"></span> Powered by Support Back TLC
+</div>
+<script>document.getElementById('footerYear').textContent = new Date().getFullYear();</script>
+
+</body>
+</html>

@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Class Stock & Stockout — TallasaCity</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root {
+    --navy:       #0D2545;
+    --navy-mid:   #163A6A;
+    --navy-light: #1E4D8C;
+    --accent:     #2D78C8;
+    --sky:        #4D9FD6;
+    --white:      #FFFFFF;
+    --off-white:  #F4F7FB;
+    --border:     #D5E3F5;
+    --text-main:  #0D2545;
+    --text-sub:   #4A6080;
+    --success:    #1A8A4A;
+    --warning:    #D97706;
+    --danger:     #C0392B;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--off-white);
+    color: var(--text-main);
+    min-height: 100vh;
+  }
+
+  /* ─── TOPBAR ─── */
+  .topbar {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 60%, var(--navy-light) 100%);
+    color: var(--white);
+    padding: 0 16px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 12px rgba(13,37,69,.35);
+  }
+  .topbar-inner {
+    max-width: 1280px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px; gap: 12px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .brand-icon {
+    width: 34px; height: 34px;
+    background: rgba(255,255,255,.15);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .brand-name { font-size: 15px; font-weight: 700; line-height: 1.1; }
+  .brand-sub  { font-size: 10px; opacity: .65; letter-spacing: .5px; }
+  .topbar-date { font-size: 11px; opacity: .7; flex-shrink: 0; }
+
+  /* ─── LAYOUT ─── */
+  .main { max-width: 1280px; margin: 0 auto; padding: 16px; }
+
+  /* ─── IMPORT PANEL ─── */
+  .import-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px; margin-bottom: 20px;
+  }
+  .import-card {
+    background: var(--white);
+    border: 1.5px dashed var(--border);
+    border-radius: 12px; padding: 14px;
+    transition: border-color .2s;
+  }
+  .import-card:hover { border-color: var(--accent); }
+  .import-card.loaded { border-style: solid; border-color: var(--success); background: #F0FFF6; }
+  .import-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--text-sub); margin-bottom: 6px;
+  }
+  .import-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+  .import-card input[type=file] { display: none; }
+  .import-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px;
+    background: var(--navy);
+    color: var(--white);
+    border: none; border-radius: 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: background .15s;
+  }
+  .import-btn:hover { background: var(--navy-light); }
+  .import-btn.loaded { background: var(--success); }
+  .import-status { font-size: 11px; margin-top: 8px; color: var(--text-sub); }
+  .import-status.ok { color: var(--success); }
+  .import-status.err { color: var(--danger); }
+
+  /* ─── SUMMARY CHIPS ─── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin-bottom: 20px;
+  }
+  .kpi-card {
+    background: var(--white);
+    border-radius: 12px; padding: 14px 16px;
+    border-left: 4px solid var(--accent);
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .kpi-card.navy { border-left-color: var(--navy); }
+  .kpi-card.green { border-left-color: var(--success); }
+  .kpi-card.warn  { border-left-color: var(--warning); }
+  .kpi-card.red   { border-left-color: var(--danger); }
+  .kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-sub); margin-bottom: 4px; }
+  .kpi-val   { font-size: 22px; font-weight: 800; color: var(--text-main); line-height: 1; }
+  .kpi-sub   { font-size: 10px; color: var(--text-sub); margin-top: 3px; }
+
+  /* ─── SECTION TITLE ─── */
+  .section-title {
+    font-size: 13px; font-weight: 700;
+    color: var(--navy);
+    border-left: 4px solid var(--accent);
+    padding-left: 10px;
+    margin-bottom: 12px; margin-top: 28px;
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .section-title:first-of-type { margin-top: 8px; }
+
+  /* ─── TABLE ─── */
+  .table-wrap { overflow-x: auto; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+  table {
+    width: 100%; border-collapse: collapse;
+    background: var(--white);
+    font-size: 12px;
+  }
+  thead tr { background: var(--navy); }
+  thead th {
+    color: var(--white);
+    padding: 10px 12px; text-align: left;
+    font-size: 11px; font-weight: 600; letter-spacing: .3px;
+    white-space: nowrap;
+  }
+  thead th.right { text-align: right; }
+  thead th.center { text-align: center; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:hover { background: var(--off-white); }
+  tbody tr.total-row { background: #E8F0F9; font-weight: 700; }
+  tbody td { padding: 9px 12px; white-space: nowrap; }
+  tbody td.right { text-align: right; }
+  tbody td.center { text-align: center; }
+
+  /* ─── CONT % PROGRESS ─── */
+  .pct-bar { display: flex; align-items: center; gap: 6px; }
+  .bar-track { flex: 1; height: 6px; background: #E4EAF5; border-radius: 3px; min-width: 50px; }
+  .bar-fill  { height: 100%; border-radius: 3px; background: var(--accent); }
+
+  /* ─── CHART GRID ─── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 14px; margin-bottom: 20px;
+  }
+  .chart-card {
+    background: var(--white); border-radius: 12px;
+    padding: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.07);
+  }
+  .chart-card h3 { font-size: 12px; font-weight: 700; color: var(--text-sub); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .4px; }
+  .chart-card canvas { max-height: 220px; }
+
+  /* ─── FILTERS ─── */
+  .filter-row {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 12px; align-items: center;
+  }
+  .filter-row select, .filter-row input {
+    padding: 7px 10px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 12px; color: var(--text-main);
+    background: var(--white); outline: none;
+  }
+  .filter-row select:focus, .filter-row input:focus { border-color: var(--accent); }
+  .search-box { min-width: 180px; flex: 1; }
+
+  /* ─── PAGINATION ─── */
+  .pag { display: flex; align-items: center; gap: 6px; margin-top: 12px; justify-content: flex-end; flex-wrap: wrap; }
+  .pag-btn {
+    padding: 5px 12px; border-radius: 7px;
+    border: 1.5px solid var(--border);
+    background: var(--white); cursor: pointer;
+    font-size: 12px; transition: all .15s;
+  }
+  .pag-btn.active { background: var(--navy); color: var(--white); border-color: var(--navy); }
+  .pag-btn:disabled { opacity: .4; cursor: default; }
+  .pag-info { font-size: 11px; color: var(--text-sub); margin-right: auto; }
+
+  /* ─── BADGES ─── */
+  .badge {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 20px; font-size: 10px; font-weight: 700;
+  }
+  .badge-fu  { background: #E8F5E9; color: #1A8A4A; }
+  .badge-cek { background: #FFE0E0; color: #C0392B; }
+  .badge-ext { background: #FFF3E0; color: #E65100; }
+  .badge-int { background: #E3F0FF; color: #1565C0; }
+
+  /* ─── EMPTY STATE ─── */
+  .empty-state {
+    text-align: center; padding: 48px 20px;
+    color: var(--text-sub); background: var(--white);
+    border-radius: 12px; border: 1.5px dashed var(--border);
+  }
+  .empty-state .icon { font-size: 40px; margin-bottom: 10px; }
+  .empty-state p { font-size: 13px; }
+
+  /* ─── EXPORT BUTTONS ─── */
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+    margin-bottom: 12px; margin-top: 28px;
+  }
+  .section-head:first-of-type { margin-top: 8px; }
+  .section-head .section-title { margin: 0; }
+  .export-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .export-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 11px; border-radius: 7px;
+    border: 1.5px solid var(--border);
+    background: var(--white); color: var(--text-sub);
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    transition: all .15s; white-space: nowrap;
+  }
+  .export-btn:hover { border-color: var(--accent); color: var(--accent); background: #F0F6FD; }
+  .export-btn.png  { border-color: #8E44AD33; }
+  .export-btn.png:hover  { border-color: #8E44AD; color: #8E44AD; background: #FBF3FF; }
+  .export-btn.pdf  { border-color: #C0392B33; }
+  .export-btn.pdf:hover  { border-color: var(--danger); color: var(--danger); background: #FFF3F2; }
+  .export-btn.csv  { border-color: #1A8A4A33; }
+  .export-btn.csv:hover  { border-color: var(--success); color: var(--success); background: #F0FFF6; }
+
+  /* ─── FOOTER ─── */
+  .page-footer {
+    text-align: center;
+    padding: 18px 16px 24px;
+    font-size: 11px;
+    color: var(--text-sub);
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 600px) {
+    .topbar-inner { height: 50px; }
+    .brand-name   { font-size: 13px; }
+    .kpi-val      { font-size: 18px; }
+    .main         { padding: 10px; }
+    thead th, tbody td { padding: 7px 8px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-icon">📦</div>
+      <div>
+        <div class="brand-name">Class Stock & Stockout</div>
+        <div class="brand-sub">MITRA10 TALLASA CITY MAKASSAR</div>
+      </div>
+    </div>
+    <div class="topbar-date" id="topbarDate"></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ══════════════════════════════════════
+       IMPORT PANEL
+  ══════════════════════════════════════ -->
+  <div class="import-grid" style="margin-top:16px">
+
+    <!-- File 1: Replenishment (sumber data Stockout) -->
+    <div class="import-card" id="card-replen">
+      <div class="import-label">File 1</div>
+      <div class="import-title">Replenishment Calculation by Date</div>
+      <input type="file" id="file-replen" accept=".xlsx,.xls" onchange="handleFile(this,'replen')" style="display:none">
+      <div class="import-btn" id="btn-replen" onclick="document.getElementById('file-replen').click()">
+        <span>📂</span> Pilih File XLSX
+      </div>
+      <div class="import-status" id="status-replen">Belum ada file dipilih</div>
+    </div>
+
+    <!-- File 2: Stock Qty & Value (sumber data Class A-Cont) -->
+    <div class="import-card" id="card-sqv">
+      <div class="import-label">File 2</div>
+      <div class="import-title">Stock Qty and Value</div>
+      <input type="file" id="file-sqv" accept=".xlsx,.xls" onchange="handleFile(this,'sqv')" style="display:none">
+      <div class="import-btn" id="btn-sqv" onclick="document.getElementById('file-sqv').click()">
+        <span>📂</span> Pilih File XLSX
+      </div>
+      <div class="import-status" id="status-sqv">Belum ada file dipilih</div>
+    </div>
+
+    <!-- File 3: Stock Warehouse by Location (sumber data Avail DC Balben) -->
+    <div class="import-card" id="card-loc">
+      <div class="import-label">File 3</div>
+      <div class="import-title">Stock Warehouse by Location (SCALE)</div>
+      <input type="file" id="file-loc" accept=".xlsx,.xls" onchange="handleFile(this,'loc')" style="display:none">
+      <div class="import-btn" id="btn-loc" onclick="document.getElementById('file-loc').click()">
+        <span>📂</span> Pilih File XLSX
+      </div>
+      <div class="import-status" id="status-loc">Belum ada file dipilih</div>
+    </div>
+
+    <!-- File 4: Transfer Request Status Detail (sumber data Original TR No & Outstanding TO Qty) -->
+    <div class="import-card" id="card-tr">
+      <div class="import-label">File 4</div>
+      <div class="import-title">Transfer Request Status Detail</div>
+      <input type="file" id="file-tr" accept=".xlsx,.xls" onchange="handleFile(this,'tr')" style="display:none">
+      <div class="import-btn" id="btn-tr" onclick="document.getElementById('file-tr').click()">
+        <span>📂</span> Pilih File XLSX
+      </div>
+      <div class="import-status" id="status-tr">Belum ada file dipilih</div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════
+       STOCKOUT SECTION
+  ══════════════════════════════════════ -->
+  <div id="stockout-empty" class="empty-state">
+    <div class="icon">📊</div>
+    <p>Import File 1 (Replenishment) untuk melihat Report Stock Out.</p>
+  </div>
+
+  <div id="stockout-content" style="display:none">
+    <!-- KPI Row -->
+    <div class="kpi-row">
+      <div class="kpi-card navy"><div class="kpi-label">Total SKU</div><div class="kpi-val" id="k-sku">–</div><div class="kpi-sub">semua kategori</div></div>
+      <div class="kpi-card red"><div class="kpi-label">Total Stockout</div><div class="kpi-val" id="k-so">–</div><div class="kpi-sub">item habis</div></div>
+      <div class="kpi-card warn"><div class="kpi-label">Stockout %</div><div class="kpi-val" id="k-pct">–</div><div class="kpi-sub">dari total SKU</div></div>
+      <div class="kpi-card"><div class="kpi-label">OTS TR</div><div class="kpi-val" id="k-tr">–</div><div class="kpi-sub">outstanding transfer</div></div>
+      <div class="kpi-card green"><div class="kpi-label">OTS PO</div><div class="kpi-val" id="k-po">–</div><div class="kpi-sub">outstanding PO</div></div>
+    </div>
+
+    <!-- Chart row -->
+    <div class="chart-grid">
+      <div class="chart-card"><h3>Stockout % per Kategori</h3><canvas id="chartSoPct"></canvas></div>
+      <div class="chart-card"><h3>Stockout vs OTS TR per Kategori</h3><canvas id="chartSoVsTr"></canvas></div>
+    </div>
+
+    <!-- Table: Stockout All -->
+    <div class="section-head">
+      <div class="section-title">Report Stock Out — Semua Kategori</div>
+      <div class="export-btns">
+        <button class="export-btn png" onclick="exportStockoutPng('all','Report_Stockout_Semua_Kategori')">🖼️ PNG</button>
+      </div>
+    </div>
+    <div class="table-wrap" id="tw-stockout-all">
+      <table>
+        <thead>
+          <tr>
+            <th>Item Category</th>
+            <th class="right">SKU</th>
+            <th class="right">Stockout</th>
+            <th class="right">External</th>
+            <th class="right">OTS PO</th>
+            <th class="right">Internal</th>
+            <th class="right">OTS TR</th>
+            <th class="right">%</th>
+            <th class="right">Avail DC Balben</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-stockout-all"></tbody>
+      </table>
+    </div>
+
+    <!-- Table: Stockout Class A -->
+    <div class="section-head">
+      <div class="section-title">Report Stock Out — Class A</div>
+      <div class="export-btns">
+        <button class="export-btn png" onclick="exportStockoutPng('a','Report_Stockout_Class_A')">🖼️ PNG</button>
+      </div>
+    </div>
+    <div class="table-wrap" id="tw-stockout-a">
+      <table>
+        <thead>
+          <tr>
+            <th>Item Category</th>
+            <th class="right">SKU</th>
+            <th class="right">Stockout</th>
+            <th class="right">External</th>
+            <th class="right">OTS PO</th>
+            <th class="right">Internal</th>
+            <th class="right">OTS TR</th>
+            <th class="right">%</th>
+            <th class="right">Avail DC Balben</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-stockout-a"></tbody>
+      </table>
+    </div>
+
+    <!-- Table: No Outstanding At All -->
+    <div class="section-head">
+      <div class="section-title">Stockout Tanpa Outstanding PO / TR / TO / TR Toko Lain</div>
+      <div class="export-btns">
+        <button class="export-btn pdf" onclick="exportTablePdf('noots','Stockout_Tanpa_OTS')">📄 PDF</button>
+        <button class="export-btn csv" onclick="exportTableCsv('noots','Stockout_Tanpa_OTS')">📊 CSV</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <select id="f-noots-cat" onchange="renderNoOts()"><option value="">Semua Kategori</option></select>
+      <select id="f-noots-vend" onchange="renderNoOts()"><option value="">Semua Vendor Type</option></select>
+      <select id="f-noots-class" onchange="renderNoOts()"><option value="">Semua Item Class by Location</option></select>
+      <input class="search-box" type="text" id="f-noots-search" placeholder="🔍 Cari item / item no…" oninput="renderNoOts()">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Item No</th>
+            <th>Item Name</th>
+            <th>Category</th>
+            <th class="center">Vendor Type</th>
+            <th class="center">Item Class</th>
+            <th class="right">Stock On Hand</th>
+            <th class="right">Sys. Suggest</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-noots"></tbody>
+      </table>
+    </div>
+    <div class="pag">
+      <span class="pag-info" id="pag-info-noots"></span>
+      <button class="pag-btn" id="pag-prev-noots" onclick="changePage('noots',-1)">‹ Prev</button>
+      <span id="pag-pages-noots"></span>
+      <button class="pag-btn" id="pag-next-noots" onclick="changePage('noots',1)">Next ›</button>
+    </div>
+
+    <!-- Table: Has OTS TR but no OTS TO -->
+    <div class="section-head">
+      <div class="section-title">Stockout Punya OTS TR Tapi Belum Ada OTS TO</div>
+      <div class="export-btns">
+        <button class="export-btn pdf" onclick="exportTablePdf('trnoto','Stockout_OTS_TR_Tanpa_TO')">📄 PDF</button>
+        <button class="export-btn csv" onclick="exportTableCsv('trnoto','Stockout_OTS_TR_Tanpa_TO')">📊 CSV</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <select id="f-trnoto-cat" onchange="renderTrNoTo()"><option value="">Semua Kategori</option></select>
+      <select id="f-trnoto-vend" onchange="renderTrNoTo()"><option value="">Semua Vendor Type</option></select>
+      <select id="f-trnoto-class" onchange="renderTrNoTo()"><option value="">Semua Item Class by Location</option></select>
+      <input class="search-box" type="text" id="f-trnoto-search" placeholder="🔍 Cari item / item no…" oninput="renderTrNoTo()">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Item No</th>
+            <th>Item Name</th>
+            <th>Category</th>
+            <th class="center">Vendor Type</th>
+            <th class="center">Item Class</th>
+            <th class="right">OTS TR</th>
+            <th>Original No TR</th>
+            <th class="right">Outstanding TO Qty</th>
+            <th>Transfer From Name</th>
+            <th class="right">Available DC</th>
+            <th class="center">Status</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-trnoto"></tbody>
+      </table>
+    </div>
+    <div class="pag">
+      <span class="pag-info" id="pag-info-trnoto"></span>
+      <button class="pag-btn" id="pag-prev-trnoto" onclick="changePage('trnoto',-1)">‹ Prev</button>
+      <span id="pag-pages-trnoto"></span>
+      <button class="pag-btn" id="pag-next-trnoto" onclick="changePage('trnoto',1)">Next ›</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       CLASS A — CONT. SECTION
+  ══════════════════════════════════════ -->
+  <div id="conta-empty" class="empty-state" style="margin-top:28px">
+    <div class="icon">🏆</div>
+    <p>Import File 2 (Stock Qty and Value) untuk melihat Class A — Cont.</p>
+  </div>
+
+  <div id="conta-content" style="display:none">
+    <div class="section-head">
+      <div class="section-title">Inventory — Available Cont. Class by Value</div>
+      <div class="export-btns">
+        <button class="export-btn png" onclick="exportContAPng('Inventory_Cont_Class_by_Value')">🖼️ PNG</button>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi-card navy"><div class="kpi-label">Total Qty</div><div class="kpi-val" id="k-cQty">–</div><div class="kpi-sub">semua stok</div></div>
+      <div class="kpi-card"><div class="kpi-label">Total Value</div><div class="kpi-val" id="k-cVal">–</div><div class="kpi-sub">Rp Milyar</div></div>
+      <div class="kpi-card"><div class="kpi-label">Class A — Cont.</div><div class="kpi-val" id="k-cA">–</div><div class="kpi-sub">% dari total value</div></div>
+      <div class="kpi-card warn"><div class="kpi-label">Class D — Cont.</div><div class="kpi-val" id="k-cD">–</div><div class="kpi-sub">% dari total value</div></div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card"><h3>Distribusi Nilai Stok per Kategori</h3><canvas id="chartContVal"></canvas></div>
+      <div class="chart-card"><h3>Contribution Class A vs D</h3><canvas id="chartContAD"></canvas></div>
+    </div>
+
+    <div class="table-wrap" id="tw-contA">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">Kategori</th>
+            <th class="right" colspan="2">Stock Total</th>
+            <th class="right center" colspan="3">Class A</th>
+            <th class="right center" colspan="3">Class D</th>
+            <th class="right center" colspan="3">DI/</th>
+            <th class="right center" colspan="3">STP</th>
+          </tr>
+          <tr>
+            <th class="right">Qty</th><th class="right">Value (Rp)</th>
+            <th class="right">Qty</th><th class="right">Value</th><th class="center">Cont.%</th>
+            <th class="right">Qty</th><th class="right">Value</th><th class="center">Cont.%</th>
+            <th class="right">Qty</th><th class="right">Value</th><th class="center">Cont.%</th>
+            <th class="right">Qty</th><th class="right">Value</th><th class="center">Cont.%</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-contA"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div class="page-footer" id="pageFooter"></div>
+
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+const state = {
+  replen: null,   // raw rows from Replenishment file
+  sqv:    null,   // raw rows from Stock Qty & Value file
+  loc:    null,   // raw rows from Stock Warehouse by Location file
+  tr:     null,   // cleaned rows from Transfer Request Status Detail file
+  stockoutAll: [], // computed per-category stockout rows (all class)
+  stockoutA:   [], // computed per-category stockout rows (class A items only)
+  contA:       [], // computed per-category class A/D/DI//STP rows
+
+  // Item-level stockout analysis tables
+  noots:  { all: [], filtered: [], page: 1, pageSize: 15 }, // no OTS PO/TR/TO/TR-other-store at all
+  trnoto: { all: [], filtered: [], page: 1, pageSize: 15 }, // has OTS TR but no OTS TO
+};
+
+let chartSoPct, chartSoVsTr, chartContVal, chartContAD;
+
+document.getElementById('topbarDate').textContent = new Date().toLocaleString('id-ID', {
+  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+});
+document.getElementById('pageFooter').textContent = `© ${new Date().getFullYear()} powered by Support Back TLC`;
+
+// ══════════════════════════════════════
+// FILE HANDLING
+// ══════════════════════════════════════
+function handleFile(input, kind) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('status-' + kind);
+  const btnEl    = document.getElementById('btn-' + kind);
+  const cardEl   = document.getElementById('card-' + kind);
+  statusEl.textContent = 'Membaca file…';
+  statusEl.classList.remove('ok','err');
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      let rows = findHeaderAndParse(sheet);
+      if (!rows.length) throw new Error('Tidak ada baris data terbaca.');
+
+      if (kind === 'tr') rows = cleanTrStatusDetail(rows);
+
+      state[kind] = rows;
+      statusEl.textContent = `✓ ${file.name} (${rows.length.toLocaleString('id-ID')} baris)`;
+      statusEl.classList.add('ok');
+      btnEl.classList.add('loaded');
+      cardEl.classList.add('loaded');
+
+      recompute();
+    } catch (err) {
+      statusEl.textContent = 'Gagal membaca file: ' + err.message;
+      statusEl.classList.add('err');
+      console.error(err);
+    }
+  };
+  reader.onerror = () => {
+    statusEl.textContent = 'Gagal membaca file.';
+    statusEl.classList.add('err');
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Reports export from Repsys/SCALE have a few title rows above the real
+// header row. Find the row that looks like a header (many non-empty text
+// cells, no long numeric run) and parse from there.
+function findHeaderAndParse(sheet) {
+  const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
+  let headerRowIdx = -1;
+  for (let i = 0; i < Math.min(matrix.length, 15); i++) {
+    const row = matrix[i] || [];
+    const nonEmpty = row.filter(c => c !== null && c !== '');
+    if (nonEmpty.length >= 5) { headerRowIdx = i; break; }
+  }
+  if (headerRowIdx === -1) return [];
+
+  const headers = matrix[headerRowIdx].map(h => (h === null ? '' : String(h).trim()));
+  const out = [];
+  for (let i = headerRowIdx + 1; i < matrix.length; i++) {
+    const row = matrix[i];
+    if (!row || row.every(c => c === null || c === '')) continue;
+    const obj = {};
+    headers.forEach((h, idx) => { if (h) obj[h] = row[idx] !== undefined ? row[idx] : null; });
+    out.push(obj);
+  }
+  return out;
+}
+
+// Cleans the "Transfer Request Status Detail" import:
+// - drop rows where Status is Cancel or Expired
+// - drop rows where TO No is filled (already has Transfer Order)
+// - drop rows where TI No is filled (already has Transfer In / received)
+// - drop exact duplicate rows (every column identical)
+function cleanTrStatusDetail(rows) {
+  const isEmpty = v => v === null || v === undefined || String(v).trim() === '';
+  const seen = new Set();
+  const out = [];
+  rows.forEach(r => {
+    const status = str(r['Status']).toLowerCase();
+    if (status === 'cancel' || status === 'cancelled' || status === 'expired') return;
+    if (!isEmpty(r['TO No'])) return;
+    if (!isEmpty(r['TI No'])) return;
+
+    // dedup key: all column values joined (every column identical = duplicate)
+    const key = JSON.stringify(r);
+    if (seen.has(key)) return;
+    seen.add(key);
+
+    out.push(r);
+  });
+  return out;
+}
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+function num(v) {
+  if (v === null || v === undefined || v === '') return 0;
+  const n = typeof v === 'number' ? v : parseFloat(String(v).replace(/,/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+function str(v) {
+  return v === null || v === undefined ? '' : String(v).trim();
+}
+function fmtNum(n) {
+  if (n === undefined || n === null || n === '') return '–';
+  return Math.round(num(n)).toLocaleString('id-ID');
+}
+function fmtPct(v) {
+  if (!isFinite(v)) return '–';
+  return (v * 100).toFixed(1) + '%';
+}
+function fmtValM(v) {
+  if (!v && v !== 0) return '–';
+  if (Math.abs(v) >= 1e9) return (v / 1e9).toFixed(2) + ' B';
+  if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(1) + ' jt';
+  return fmtNum(Math.round(v));
+}
+function pctBadge(v) {
+  if (!isFinite(v)) return '<span style="color:#999">–</span>';
+  const p = (v * 100).toFixed(1) + '%';
+  const color = v > 0.17 ? 'var(--danger)' : v > 0.13 ? 'var(--warning)' : 'var(--success)';
+  return `<span style="font-weight:700;color:${color}">${p}</span>`;
+}
+function barCell(v, color) {
+  const pct = Math.max(0, Math.min(1, v || 0));
+  return `<div class="pct-bar">
+    <div class="bar-track"><div class="bar-fill" style="width:${(pct*100).toFixed(0)}%;background:${color}"></div></div>
+    <span style="font-size:10px;font-weight:700;min-width:40px;color:${color}">${(pct*100).toFixed(1)}%</span>
+  </div>`;
+}
+function shortCat(c) {
+  const map = {
+    'APPLIANCES':'APPL','BATHROOM':'BATH','BUILDING MATERIAL':'BUILD',
+    'DOORS AND WINDOWS':'D&W','ELECTRICAL AND LIGHTING':'ELEC',
+    'FLOORING AND WALL':'F&W','HARDWARE':'HW','HOUSEWARE & HOBBIES':'HW&H',
+    'KITCHEN':'KITCH','PAINT AND SUNDRIES':'PAINT','PLUMBING':'PLUMB','TOOLS':'TOOLS',
+  };
+  return map[c] || c.slice(0,6);
+}
+function itemPrefix(name) {
+  const m = str(name).match(/^([A-Z]{1,4})\//);
+  return m ? m[1] + '/' : null;
+}
+
+// ══════════════════════════════════════
+// RECOMPUTE — runs whenever a file is (re)loaded
+// ══════════════════════════════════════
+function recompute() {
+  if (state.replen) computeStockout();
+  if (state.sqv)    computeContA();
+}
+
+// ── STOCKOUT (from Replenishment file, "Avail DC Balben" from Location file) ──
+function computeStockout() {
+  const rows = state.replen;
+
+  // Build available-qty lookup by Item No from the Location (DC) file, if loaded
+  const dcAvail = {};
+  if (state.loc) {
+    state.loc.forEach(r => {
+      const itemNo = str(r['Item No']);
+      const avail = num(r['Available Qty']);
+      dcAvail[itemNo] = (dcAvail[itemNo] || 0) + avail;
+    });
+  }
+
+  // Build Original TR No + Outstanding TO Qty + Transfer From Name lookup by
+  // Item Code, from the cleaned Transfer Request Status Detail file, if loaded.
+  // Each item code maps to an ARRAY of TR rows (not aggregated) so an item with
+  // multiple TR shows up as multiple lines later, each with its own qty/source.
+  const trLookup = {};
+  if (state.tr) {
+    state.tr.forEach(r => {
+      const itemNo = str(r['Item Code']);
+      if (!itemNo) return;
+      if (!trLookup[itemNo]) trLookup[itemNo] = [];
+      trLookup[itemNo].push({
+        trNo: str(r['Original TR No']),
+        otsTOQty: num(r['Outstanding TO Qty']),
+        fromName: str(r['Transfer From Name']),
+      });
+    });
+  }
+
+  function buildTable(filterFn) {
+    const byCat = {};
+    rows.forEach(r => {
+      const cat = str(r['Item Category']) || '(Tanpa Kategori)';
+      if (!filterFn(r)) {
+        // still count SKU for denominator even if not stockout
+      }
+      if (!byCat[cat]) byCat[cat] = { cat, sku: 0, so: 0, ext: 0, otsPO: 0, intl: 0, otsTR: 0, dcAvail: 0 };
+      byCat[cat].sku++;
+      const isSO = str(r['Stock Out']).toLowerCase() === 'yes';
+      if (isSO && filterFn(r)) {
+        byCat[cat].so++;
+        const vendType = str(r['Vendor Type']).toLowerCase();
+        if (vendType === 'external') byCat[cat].ext++;
+        if (vendType === 'internal') byCat[cat].intl++;
+        byCat[cat].otsPO += num(r['Outstanding PO']) > 0 ? 1 : 0;
+        byCat[cat].otsTR += num(r['Outstanding TR']) > 0 ? 1 : 0;
+        const itemNo = str(r['Item No']);
+        if ((dcAvail[itemNo] || 0) > 0) byCat[cat].dcAvail++;
+      }
+    });
+    const list = Object.values(byCat).map(d => ({ ...d, pct: d.sku ? d.so / d.sku : 0 }));
+    list.sort((a,b) => b.so - a.so);
+    return list;
+  }
+
+  state.stockoutAll = buildTable(() => true);
+  state.stockoutA   = buildTable(r => str(r['Is Pareto']).toLowerCase() === 'yes');
+
+  renderStockoutTable('tbody-stockout-all', state.stockoutAll);
+  renderStockoutTable('tbody-stockout-a', state.stockoutA);
+
+  // KPIs (based on all-category, all-class view)
+  const tot = state.stockoutAll.reduce((acc, d) => {
+    acc.sku += d.sku; acc.so += d.so; acc.otsPO += d.otsPO; acc.otsTR += d.otsTR;
+    return acc;
+  }, { sku: 0, so: 0, otsPO: 0, otsTR: 0 });
+
+  document.getElementById('k-sku').textContent = fmtNum(tot.sku);
+  document.getElementById('k-so').textContent  = fmtNum(tot.so);
+  document.getElementById('k-pct').textContent = fmtPct(tot.sku ? tot.so / tot.sku : 0);
+  document.getElementById('k-tr').textContent  = fmtNum(tot.otsTR);
+  document.getElementById('k-po').textContent  = fmtNum(tot.otsPO);
+
+  document.getElementById('stockout-empty').style.display = 'none';
+  document.getElementById('stockout-content').style.display = '';
+
+  buildChartsSo();
+
+  // ── Item-level analysis: stockout items with no outstanding anything ──
+  state.noots.all = rows.filter(r =>
+    str(r['Stock Out']).toLowerCase() === 'yes' &&
+    num(r['Outstanding PO']) === 0 &&
+    num(r['Outstanding TR']) === 0 &&
+    num(r['Outstanding TO']) === 0 &&
+    num(r['Outstanding TR from other Store']) === 0
+  ).map(r => ({
+    no: str(r['Item No']),
+    name: str(r['Item Name']),
+    cat: str(r['Item Category']) || '(Tanpa Kategori)',
+    vend: str(r['Vendor Type']),
+    cls: str(r['Item Class by Location']) || '(Tanpa Class)',
+    soh: num(r['Stock On Hand']),
+    sys: num(r['System Suggested Quantity']),
+  }));
+
+  // ── Item-level analysis: stockout items with OTS TR but no OTS TO ──
+  // An item with multiple TR rows in the Transfer Request file expands into
+  // multiple lines here — one per TR — each keeping its own Outstanding TO Qty
+  // and Transfer From Name (not aggregated/summed).
+  state.trnoto.all = rows.filter(r =>
+    str(r['Stock Out']).toLowerCase() === 'yes' &&
+    num(r['Outstanding TR']) > 0 &&
+    num(r['Outstanding TO']) === 0
+  ).flatMap(r => {
+    const itemNo = str(r['Item No']);
+    const otsTR = num(r['Outstanding TR']);
+    const avail = dcAvail[itemNo] || 0;
+    const base = {
+      no: itemNo,
+      name: str(r['Item Name']),
+      cat: str(r['Item Category']) || '(Tanpa Kategori)',
+      vend: str(r['Vendor Type']),
+      cls: str(r['Item Class by Location']) || '(Tanpa Class)',
+      otsTR,
+      avail,
+      status: avail > otsTR ? 'FU DC' : 'CEK DC/ SITE LAIN',
+    };
+    const trRows = trLookup[itemNo];
+    if (!trRows || !trRows.length) {
+      return [{ ...base, trNo: '', otsTOQty: 0, fromName: '' }];
+    }
+    return trRows.map(t => ({ ...base, trNo: t.trNo, otsTOQty: t.otsTOQty, fromName: t.fromName }));
+  });
+
+  populateFilterOptions('f-noots-cat', state.noots.all.map(d => d.cat));
+  populateFilterOptions('f-noots-vend', state.noots.all.map(d => d.vend));
+  populateFilterOptions('f-noots-class', state.noots.all.map(d => d.cls));
+  populateFilterOptions('f-trnoto-cat', state.trnoto.all.map(d => d.cat));
+  populateFilterOptions('f-trnoto-vend', state.trnoto.all.map(d => d.vend));
+  populateFilterOptions('f-trnoto-class', state.trnoto.all.map(d => d.cls));
+
+  state.noots.page = 1;
+  state.trnoto.page = 1;
+  renderNoOts();
+  renderTrNoTo();
+}
+
+function populateFilterOptions(selectId, values) {
+  const sel = document.getElementById(selectId);
+  const current = sel.value;
+  const unique = Array.from(new Set(values.filter(Boolean))).sort();
+  const placeholder = sel.options[0];
+  sel.innerHTML = '';
+  sel.appendChild(placeholder);
+  unique.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    sel.appendChild(opt);
+  });
+  if (unique.includes(current)) sel.value = current;
+}
+
+// ── RENDER: Stockout items with no outstanding anything ──
+function renderNoOts() {
+  const cat   = document.getElementById('f-noots-cat').value;
+  const vend  = document.getElementById('f-noots-vend').value;
+  const cls   = document.getElementById('f-noots-class').value;
+  const srch  = document.getElementById('f-noots-search').value.toLowerCase();
+
+  let data = state.noots.all.filter(d => {
+    if (cat  && d.cat  !== cat)  return false;
+    if (vend && d.vend !== vend) return false;
+    if (cls  && d.cls  !== cls)  return false;
+    if (srch && !d.no.toLowerCase().includes(srch) && !d.name.toLowerCase().includes(srch)) return false;
+    return true;
+  });
+
+  state.noots.filtered = data;
+  const ps = state.noots.pageSize;
+  const totalPages = Math.max(1, Math.ceil(data.length/ps));
+  if (state.noots.page > totalPages) state.noots.page = 1;
+  const p = state.noots.page;
+  const slice = data.slice((p-1)*ps, p*ps);
+
+  const tbody = document.getElementById('tbody-noots');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-sub)">Tidak ada item yang cocok dengan filter.</td></tr>';
+  } else {
+    tbody.innerHTML = slice.map(d => `<tr>
+      <td style="font-family:monospace;font-size:11px">${d.no}</td>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis" title="${d.name}">${d.name}</td>
+      <td>${d.cat}</td>
+      <td class="center"><span class="badge ${d.vend==='Internal'?'badge-int':'badge-ext'}">${d.vend||'–'}</span></td>
+      <td class="center">${d.cls}</td>
+      <td class="right">${fmtNum(d.soh)}</td>
+      <td class="right">${fmtNum(d.sys)}</td>
+    </tr>`).join('');
+  }
+
+  document.getElementById('pag-info-noots').textContent = `${data.length} item | Hal ${p}/${totalPages}`;
+  renderPagButtons('noots', p, totalPages);
+}
+
+// ── RENDER: Stockout items with OTS TR but no OTS TO ──
+function renderTrNoTo() {
+  const cat   = document.getElementById('f-trnoto-cat').value;
+  const vend  = document.getElementById('f-trnoto-vend').value;
+  const cls   = document.getElementById('f-trnoto-class').value;
+  const srch  = document.getElementById('f-trnoto-search').value.toLowerCase();
+
+  let data = state.trnoto.all.filter(d => {
+    if (cat  && d.cat  !== cat)  return false;
+    if (vend && d.vend !== vend) return false;
+    if (cls  && d.cls  !== cls)  return false;
+    if (srch && !d.no.toLowerCase().includes(srch) && !d.name.toLowerCase().includes(srch)) return false;
+    return true;
+  });
+
+  state.trnoto.filtered = data;
+  const ps = state.trnoto.pageSize;
+  const totalPages = Math.max(1, Math.ceil(data.length/ps));
+  if (state.trnoto.page > totalPages) state.trnoto.page = 1;
+  const p = state.trnoto.page;
+  const slice = data.slice((p-1)*ps, p*ps);
+
+  const tbody = document.getElementById('tbody-trnoto');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--text-sub)">Tidak ada item yang cocok dengan filter.</td></tr>';
+  } else {
+    tbody.innerHTML = slice.map(d => `<tr>
+      <td style="font-family:monospace;font-size:11px">${d.no}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${d.name}">${d.name}</td>
+      <td>${d.cat}</td>
+      <td class="center"><span class="badge ${d.vend==='Internal'?'badge-int':'badge-ext'}">${d.vend||'–'}</span></td>
+      <td class="center">${d.cls}</td>
+      <td class="right">${fmtNum(d.otsTR)}</td>
+      <td style="font-family:monospace;font-size:10.5px">${d.trNo || '–'}</td>
+      <td class="right">${d.trNo ? fmtNum(d.otsTOQty) : '–'}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${d.fromName}">${d.fromName || '–'}</td>
+      <td class="right">${fmtNum(d.avail)}</td>
+      <td class="center"><span class="badge ${d.status==='FU DC'?'badge-fu':'badge-cek'}">${d.status}</span></td>
+    </tr>`).join('');
+  }
+
+  document.getElementById('pag-info-trnoto').textContent = `${data.length} item | Hal ${p}/${totalPages}`;
+  renderPagButtons('trnoto', p, totalPages);
+}
+
+// ── PAGINATION (generic, used by noots & trnoto) ──
+function renderPagButtons(type, current, total) {
+  const container = document.getElementById('pag-pages-'+type);
+  let html = '';
+  const range = 2;
+  for (let i = 1; i <= total; i++) {
+    if (i===1 || i===total || (i>=current-range && i<=current+range)) {
+      html += '<button class="pag-btn ' + (i===current?'active':'') + '" onclick="goPage(\'' + type + '\',' + i + ')">' + i + '</button>';
+    } else if (i===current-range-1 || i===current+range+1) {
+      html += '<span style="padding:0 4px;font-size:12px;color:var(--text-sub)">...</span>';
+    }
+  }
+  container.innerHTML = html;
+  document.getElementById('pag-prev-'+type).disabled = current <= 1;
+  document.getElementById('pag-next-'+type).disabled = current >= total;
+}
+function changePage(type, delta) {
+  state[type].page += delta;
+  if (type==='noots')  renderNoOts();
+  if (type==='trnoto') renderTrNoTo();
+}
+function goPage(type, n) {
+  state[type].page = n;
+  if (type==='noots')  renderNoOts();
+  if (type==='trnoto') renderTrNoTo();
+}
+
+function renderStockoutTable(tbodyId, data) {
+  const tbody = document.getElementById(tbodyId);
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-sub)">Tidak ada data.</td></tr>';
+    return;
+  }
+  let rows = data.map(d => `<tr>
+      <td>${d.cat}</td>
+      <td class="right">${fmtNum(d.sku)}</td>
+      <td class="right">${fmtNum(d.so)}</td>
+      <td class="right">${fmtNum(d.ext)}</td>
+      <td class="right">${fmtNum(d.otsPO)}</td>
+      <td class="right">${fmtNum(d.intl)}</td>
+      <td class="right">${fmtNum(d.otsTR)}</td>
+      <td class="right">${pctBadge(d.pct)}</td>
+      <td class="right">${fmtNum(d.dcAvail)}</td>
+    </tr>`).join('');
+
+  const gt = data.reduce((acc, d) => {
+    acc.sku += d.sku; acc.so += d.so; acc.ext += d.ext; acc.otsPO += d.otsPO;
+    acc.intl += d.intl; acc.otsTR += d.otsTR; acc.dcAvail += d.dcAvail;
+    return acc;
+  }, { sku:0, so:0, ext:0, otsPO:0, intl:0, otsTR:0, dcAvail:0 });
+
+  rows += `<tr class="total-row">
+      <td>Grand Total</td>
+      <td class="right">${fmtNum(gt.sku)}</td>
+      <td class="right">${fmtNum(gt.so)}</td>
+      <td class="right">${fmtNum(gt.ext)}</td>
+      <td class="right">${fmtNum(gt.otsPO)}</td>
+      <td class="right">${fmtNum(gt.intl)}</td>
+      <td class="right">${fmtNum(gt.otsTR)}</td>
+      <td class="right">${pctBadge(gt.sku ? gt.so/gt.sku : 0)}</td>
+      <td class="right">${fmtNum(gt.dcAvail)}</td>
+    </tr>`;
+  tbody.innerHTML = rows;
+}
+
+// ── CLASS A — CONT. (from Stock Qty & Value file) ──
+function computeContA() {
+  const rows = state.sqv;
+  const byCat = {};
+
+  rows.forEach(r => {
+    const cat = str(r['Category Name']) || '(Tanpa Kategori)';
+    const qty = num(r['Quantity']);
+    const val = num(r['Value (Cost Amount Actual + Cost Amount Expected)']);
+    const cls = str(r['Item Class By Value']);
+    const prefix = itemPrefix(r['Item Name']);
+
+    if (!byCat[cat]) byCat[cat] = {
+      cat, qty:0, val:0,
+      aQty:0, aVal:0, dQty:0, dVal:0,
+      diQty:0, diVal:0, stpQty:0, stpVal:0
+    };
+    const d = byCat[cat];
+    d.qty += qty; d.val += val;
+    if (cls === 'A') { d.aQty += qty; d.aVal += val; }
+    if (cls === 'D') { d.dQty += qty; d.dVal += val; }
+    if (prefix === 'DI/') { d.diQty += qty; d.diVal += val; }
+    if (prefix === 'STP/') { d.stpQty += qty; d.stpVal += val; }
+  });
+
+  const list = Object.values(byCat).map(d => ({
+    ...d,
+    aCont: d.val ? d.aVal / d.val : 0,
+    dCont: d.val ? d.dVal / d.val : 0,
+    diCont: d.val ? d.diVal / d.val : 0,
+    stpCont: d.val ? d.stpVal / d.val : 0,
+  }));
+  list.sort((a,b) => b.val - a.val);
+  state.contA = list;
+
+  renderContA();
+  document.getElementById('conta-empty').style.display = 'none';
+  document.getElementById('conta-content').style.display = '';
+  buildChartsContA();
+}
+
+function renderContA() {
+  const data = state.contA;
+  const totQty = data.reduce((s,d)=>s+d.qty,0);
+  const totVal = data.reduce((s,d)=>s+d.val,0);
+  const gt = {qty:0,val:0,aQty:0,aVal:0,dQty:0,dVal:0,diQty:0,diVal:0,stpQty:0,stpVal:0};
+  data.forEach(d=>{ for(const k in gt) gt[k]+=d[k]||0; });
+
+  document.getElementById('k-cQty').textContent = fmtNum(totQty);
+  document.getElementById('k-cVal').textContent = (totVal/1e9).toFixed(1)+' B';
+  document.getElementById('k-cA').textContent   = fmtPct(gt.val ? gt.aVal/gt.val : 0);
+  document.getElementById('k-cD').textContent   = fmtPct(gt.val ? gt.dVal/gt.val : 0);
+
+  const tbody = document.getElementById('tbody-contA');
+  let rows = '';
+  data.forEach(d => {
+    rows += `<tr>
+      <td><strong>${d.cat}</strong></td>
+      <td class="right">${fmtNum(d.qty)}</td>
+      <td class="right">${fmtValM(d.val)}</td>
+      <td class="right">${fmtNum(d.aQty)}</td>
+      <td class="right">${fmtValM(d.aVal)}</td>
+      <td class="center">${barCell(d.aCont, '#2D78C8')}</td>
+      <td class="right">${fmtNum(d.dQty)}</td>
+      <td class="right">${fmtValM(d.dVal)}</td>
+      <td class="center">${barCell(d.dCont, '#F57C00')}</td>
+      <td class="right">${fmtNum(d.diQty)}</td>
+      <td class="right">${fmtValM(d.diVal)}</td>
+      <td class="center">${barCell(d.diCont, '#1A8A4A')}</td>
+      <td class="right">${fmtNum(d.stpQty)}</td>
+      <td class="right">${fmtValM(d.stpVal)}</td>
+      <td class="center">${barCell(d.stpCont, '#9E9E9E')}</td>
+    </tr>`;
+  });
+  rows += `<tr class="total-row">
+    <td>Grand Total</td>
+    <td class="right">${fmtNum(gt.qty)}</td>
+    <td class="right">${fmtValM(gt.val)}</td>
+    <td class="right">${fmtNum(gt.aQty)}</td>
+    <td class="right">${fmtValM(gt.aVal)}</td>
+    <td class="center">${fmtPct(gt.val ? gt.aVal/gt.val : 0)}</td>
+    <td class="right">${fmtNum(gt.dQty)}</td>
+    <td class="right">${fmtValM(gt.dVal)}</td>
+    <td class="center">${fmtPct(gt.val ? gt.dVal/gt.val : 0)}</td>
+    <td class="right">${fmtNum(gt.diQty)}</td>
+    <td class="right">${fmtValM(gt.diVal)}</td>
+    <td class="center">${fmtPct(gt.val ? gt.diVal/gt.val : 0)}</td>
+    <td class="right">${fmtNum(gt.stpQty)}</td>
+    <td class="right">${fmtValM(gt.stpVal)}</td>
+    <td class="center">${fmtPct(gt.val ? gt.stpVal/gt.val : 0)}</td>
+  </tr>`;
+  tbody.innerHTML = rows;
+}
+
+// ══════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════
+function buildChartsSo() {
+  const data   = state.stockoutAll.filter(d => d.so > 0);
+  const labels = data.map(d => shortCat(d.cat));
+  const pcts   = data.map(d => +(d.pct*100).toFixed(1));
+  const sos    = data.map(d => d.so);
+  const trs    = data.map(d => d.otsTR);
+
+  if (chartSoPct) chartSoPct.destroy();
+  chartSoPct = new Chart(document.getElementById('chartSoPct'), {
+    type:'bar',
+    data:{ labels, datasets:[{
+      label:'Stockout %',
+      data: pcts,
+      backgroundColor: pcts.map(p => p>17?'#C0392B':p>13?'#E67E22':'#2D78C8'),
+      borderRadius:4,
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>v.raw+'%'}}},
+      scales:{y:{ticks:{callback:v=>v+'%'},grid:{color:'#EEF2F9'}},x:{grid:{display:false}}}
+    }
+  });
+
+  if (chartSoVsTr) chartSoVsTr.destroy();
+  chartSoVsTr = new Chart(document.getElementById('chartSoVsTr'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      {label:'Stockout',data:sos,backgroundColor:'#C0392B',borderRadius:3},
+      {label:'OTS TR',  data:trs,backgroundColor:'#2D78C8',borderRadius:3}
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{legend:{position:'bottom'}},
+      scales:{x:{stacked:false,grid:{display:false}},y:{grid:{color:'#EEF2F9'}}}
+    }
+  });
+}
+
+// ══════════════════════════════════════
+// EXPORT — PNG (native canvas draw), PDF & CSV (item-level tables)
+// ══════════════════════════════════════
+//
+// NOTE: PNG export tidak lagi memakai html2canvas (screenshot DOM), karena
+// hasilnya sering pecah/blur dan terpotong pada tabel yang lebar/scrollable.
+// Sebagai gantinya, tabel digambar ulang langsung ke <canvas> dari DATA
+// (bukan dari elemen HTML), sehingga teks selalu tajam di resolusi berapa
+// pun dan tidak pernah terpotong. Setiap PNG otomatis diberi judul tabel,
+// tanggal cetak, dan footer yang sama dengan footer halaman.
+
+function getFooterText() {
+  const el = document.getElementById('pageFooter');
+  return el ? el.textContent.trim() : '';
+}
+function getPrintDateText() {
+  return 'Dicetak: ' + new Date().toLocaleString('id-ID', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+}
+
+// Generic canvas table renderer.
+// columns: [{ label, align: 'left'|'right'|'center' }]
+// rows:    array of arrays of strings (already formatted, plain text only)
+// totalRowIndex: optional index of a row to render bold/highlighted (grand total)
+function renderTableToCanvas(opts) {
+  const {
+    title,
+    subtitle = 'MITRA10 TALLASA CITY MAKASSAR',
+    columns,
+    rows,
+    totalRowIndex = -1,
+  } = opts;
+
+  const DPR = 2; // fixed high-res scale, independent of screen, for crisp PNG
+  const padX = 24;
+  const rowH = 30;
+  const headH = 34;
+  const footerBlockH = 40;
+  const fontRow = '13px Segoe UI, Arial, sans-serif';
+  const fontHead = 'bold 12px Segoe UI, Arial, sans-serif';
+  const fontTitle = 'bold 16px Segoe UI, Arial, sans-serif';
+  const fontSub = '11px Segoe UI, Arial, sans-serif';
+
+  // Measure with a scratch canvas to compute auto column widths
+  const measure = document.createElement('canvas').getContext('2d');
+  measure.font = fontRow;
+  const colWidths = columns.map((c, i) => {
+    let max = measure.measureText(c.label).width;
+    measure.font = fontHead;
+    max = Math.max(max, measure.measureText(c.label).width);
+    measure.font = fontRow;
+    rows.forEach(r => {
+      const w = measure.measureText(String(r[i] ?? '')).width;
+      if (w > max) max = w;
+    });
+    return Math.ceil(max) + padX;
+  });
+
+  const tableW = colWidths.reduce((a, b) => a + b, 0);
+  const W = Math.max(tableW, 480);
+  const titleBlockH = 64;
+  const H = titleBlockH + headH + rows.length * rowH + footerBlockH + 16;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+
+  // Background
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Title block: nama tabel + tanggal cetak ──
+  let y = 22;
+  ctx.fillStyle = '#0D2545';
+  ctx.font = fontTitle;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(title, 16, y);
+
+  y += 18;
+  ctx.font = fontSub;
+  ctx.fillStyle = '#4A6080';
+  ctx.fillText(subtitle, 16, y);
+
+  y += 16;
+  ctx.fillStyle = '#4A6080';
+  ctx.fillText(getPrintDateText(), 16, y);
+
+  // divider under title block
+  y += 10;
+  ctx.strokeStyle = '#D5E3F5';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, y);
+  ctx.lineTo(W, y);
+  ctx.stroke();
+
+  const tableTop = y;
+
+  // ── Header row ──
+  ctx.fillStyle = '#0D2545';
+  ctx.fillRect(0, tableTop, W, headH);
+  ctx.font = fontHead;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textBaseline = 'middle';
+  let x = 0;
+  columns.forEach((c, i) => {
+    const cw = colWidths[i];
+    drawCell(ctx, c.label, x, tableTop, cw, headH, c.align || 'left', padX);
+    x += cw;
+  });
+
+  // ── Body rows ──
+  ctx.font = fontRow;
+  let rowY = tableTop + headH;
+  rows.forEach((r, ri) => {
+    const isTotal = ri === totalRowIndex;
+    ctx.fillStyle = isTotal ? '#E8F0F9' : (ri % 2 === 1 ? '#F8FAFD' : '#FFFFFF');
+    ctx.fillRect(0, rowY, W, rowH);
+
+    ctx.fillStyle = '#0D2545';
+    ctx.font = isTotal ? 'bold 13px Segoe UI, Arial, sans-serif' : fontRow;
+    let cx = 0;
+    columns.forEach((c, ci) => {
+      const cw = colWidths[ci];
+      drawCell(ctx, String(r[ci] ?? ''), cx, rowY, cw, rowH, c.align || 'left', padX);
+      cx += cw;
+    });
+
+    // row bottom border
+    ctx.strokeStyle = '#E4EAF5';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, rowY + rowH);
+    ctx.lineTo(W, rowY + rowH);
+    ctx.stroke();
+
+    rowY += rowH;
+  });
+
+  // ── Footer (sama seperti footer halaman) ──
+  const footerY = rowY + 26;
+  ctx.strokeStyle = '#D5E3F5';
+  ctx.beginPath();
+  ctx.moveTo(0, rowY + 10);
+  ctx.lineTo(W, rowY + 10);
+  ctx.stroke();
+
+  ctx.font = '11px Segoe UI, Arial, sans-serif';
+  ctx.fillStyle = '#4A6080';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(getFooterText(), W / 2, footerY);
+  ctx.textAlign = 'left';
+
+  return canvas;
+}
+
+function drawCell(ctx, text, cellX, cellY, cellW, cellH, align, padX) {
+  const half = padX / 2;
+  let tx;
+  const prevAlign = ctx.textAlign;
+  if (align === 'right') {
+    ctx.textAlign = 'right';
+    tx = cellX + cellW - half;
+  } else if (align === 'center') {
+    ctx.textAlign = 'center';
+    tx = cellX + cellW / 2;
+  } else {
+    ctx.textAlign = 'left';
+    tx = cellX + half;
+  }
+  ctx.fillText(text, tx, cellY + cellH / 2);
+  ctx.textAlign = prevAlign;
+}
+
+function downloadCanvas(canvas, filename) {
+  const link = document.createElement('a');
+  link.download = filename + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// ── Export: Report Stock Out (Semua Kategori / Class A) ──
+function exportStockoutPng(which, filename) {
+  const data = which === 'a' ? state.stockoutA : state.stockoutAll;
+  const title = which === 'a'
+    ? 'Report Stock Out — Class A'
+    : 'Report Stock Out — Semua Kategori';
+
+  if (!data.length) { alert('Tidak ada data untuk diexport.'); return; }
+
+  const columns = [
+    { label: 'Item Category', align: 'left' },
+    { label: 'SKU', align: 'right' },
+    { label: 'Stockout', align: 'right' },
+    { label: 'External', align: 'right' },
+    { label: 'OTS PO', align: 'right' },
+    { label: 'Internal', align: 'right' },
+    { label: 'OTS TR', align: 'right' },
+    { label: '%', align: 'right' },
+    { label: 'Avail DC Balben', align: 'right' },
+  ];
+
+  const rows = data.map(d => [
+    d.cat, fmtNum(d.sku), fmtNum(d.so), fmtNum(d.ext), fmtNum(d.otsPO),
+    fmtNum(d.intl), fmtNum(d.otsTR), fmtPct(d.pct), fmtNum(d.dcAvail),
+  ]);
+
+  const gt = data.reduce((acc, d) => {
+    acc.sku += d.sku; acc.so += d.so; acc.ext += d.ext; acc.otsPO += d.otsPO;
+    acc.intl += d.intl; acc.otsTR += d.otsTR; acc.dcAvail += d.dcAvail;
+    return acc;
+  }, { sku:0, so:0, ext:0, otsPO:0, intl:0, otsTR:0, dcAvail:0 });
+
+  rows.push([
+    'Grand Total', fmtNum(gt.sku), fmtNum(gt.so), fmtNum(gt.ext), fmtNum(gt.otsPO),
+    fmtNum(gt.intl), fmtNum(gt.otsTR), fmtPct(gt.sku ? gt.so/gt.sku : 0), fmtNum(gt.dcAvail),
+  ]);
+
+  const canvas = renderTableToCanvas({ title, columns, rows, totalRowIndex: rows.length - 1 });
+  downloadCanvas(canvas, filename);
+}
+
+// ── Export: Inventory Available Cont. Class by Value ──
+function exportContAPng(filename) {
+  const data = state.contA;
+  if (!data.length) { alert('Tidak ada data untuk diexport.'); return; }
+
+  const columns = [
+    { label: 'Kategori', align: 'left' },
+    { label: 'Qty', align: 'right' },
+    { label: 'Value (Rp)', align: 'right' },
+    { label: 'A: Qty', align: 'right' },
+    { label: 'A: Value', align: 'right' },
+    { label: 'A: Cont.%', align: 'right' },
+    { label: 'D: Qty', align: 'right' },
+    { label: 'D: Value', align: 'right' },
+    { label: 'D: Cont.%', align: 'right' },
+    { label: 'DI/: Qty', align: 'right' },
+    { label: 'DI/: Value', align: 'right' },
+    { label: 'DI/: Cont.%', align: 'right' },
+    { label: 'STP: Qty', align: 'right' },
+    { label: 'STP: Value', align: 'right' },
+    { label: 'STP: Cont.%', align: 'right' },
+  ];
+
+  const rows = data.map(d => [
+    d.cat, fmtNum(d.qty), fmtValM(d.val),
+    fmtNum(d.aQty), fmtValM(d.aVal), fmtPct(d.aCont),
+    fmtNum(d.dQty), fmtValM(d.dVal), fmtPct(d.dCont),
+    fmtNum(d.diQty), fmtValM(d.diVal), fmtPct(d.diCont),
+    fmtNum(d.stpQty), fmtValM(d.stpVal), fmtPct(d.stpCont),
+  ]);
+
+  const gt = {qty:0,val:0,aQty:0,aVal:0,dQty:0,dVal:0,diQty:0,diVal:0,stpQty:0,stpVal:0};
+  data.forEach(d => { for (const k in gt) gt[k] += d[k] || 0; });
+
+  rows.push([
+    'Grand Total', fmtNum(gt.qty), fmtValM(gt.val),
+    fmtNum(gt.aQty), fmtValM(gt.aVal), fmtPct(gt.val ? gt.aVal/gt.val : 0),
+    fmtNum(gt.dQty), fmtValM(gt.dVal), fmtPct(gt.val ? gt.dVal/gt.val : 0),
+    fmtNum(gt.diQty), fmtValM(gt.diVal), fmtPct(gt.val ? gt.diVal/gt.val : 0),
+    fmtNum(gt.stpQty), fmtValM(gt.stpVal), fmtPct(gt.val ? gt.stpVal/gt.val : 0),
+  ]);
+
+  const canvas = renderTableToCanvas({
+    title: 'Inventory — Available Cont. Class by Value',
+    columns, rows, totalRowIndex: rows.length - 1,
+  });
+  downloadCanvas(canvas, filename);
+}
+
+// Returns { headers, rows } for the currently FILTERED dataset of an
+// item-level table (noots or trnoto), independent of pagination.
+function getExportData(type) {
+  if (type === 'noots') {
+    const headers = ['Item No','Item Name','Category','Vendor Type','Item Class','Stock On Hand','Sys. Suggest'];
+    const rows = state.noots.filtered.map(d => [d.no, d.name, d.cat, d.vend, d.cls, fmtNum(d.soh), fmtNum(d.sys)]);
+    return { headers, rows };
+  }
+  if (type === 'trnoto') {
+    const headers = ['Item No','Item Name','Category','Vendor Type','Item Class','OTS TR','Original No TR','Outstanding TO Qty','Transfer From Name','Available DC','Status'];
+    const rows = state.trnoto.filtered.map(d => [d.no, d.name, d.cat, d.vend, d.cls, fmtNum(d.otsTR), d.trNo || '–', d.trNo ? fmtNum(d.otsTOQty) : '–', d.fromName || '–', fmtNum(d.avail), d.status]);
+    return { headers, rows };
+  }
+  return { headers: [], rows: [] };
+}
+
+function exportTableCsv(type, filename) {
+  const { headers, rows } = getExportData(type);
+  if (!rows.length) { alert('Tidak ada data untuk diexport.'); return; }
+  const escCell = v => {
+    const s = String(v ?? '');
+    return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const csvLines = [headers.map(escCell).join(';')]
+    .concat(rows.map(r => r.map(escCell).join(';')));
+  const csvContent = '\uFEFF' + csvLines.join('\r\n'); // BOM for Excel/Indonesian locale
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename + '.csv';
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+function exportTablePdf(type, filename) {
+  const { headers, rows } = getExportData(type);
+  if (!rows.length) { alert('Tidak ada data untuk diexport.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  const title = type === 'noots'
+    ? 'Stockout Tanpa Outstanding PO / TR / TO / TR Toko Lain'
+    : 'Stockout Punya OTS TR Tapi Belum Ada OTS TO';
+
+  doc.setFontSize(13);
+  doc.setTextColor(13, 37, 69);
+  doc.text(title, 14, 12);
+  doc.setFontSize(9);
+  doc.setTextColor(74, 96, 128);
+  doc.text('MITRA10 TALLASA CITY MAKASSAR  •  ' + new Date().toLocaleString('id-ID', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  }) + '  •  ' + rows.length.toLocaleString('id-ID') + ' baris', 14, 18);
+
+  doc.autoTable({
+    head: [headers],
+    body: rows,
+    startY: 23,
+    styles: { fontSize: 8, cellPadding: 2.2 },
+    headStyles: { fillColor: [13, 37, 69], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [244, 247, 251] },
+    margin: { left: 10, right: 10 },
+  });
+
+  doc.save(filename + '.pdf');
+}
+
+function buildChartsContA() {
+  const data   = state.contA;
+  const labels = data.map(d=>shortCat(d.cat));
+  const vals   = data.map(d=>+(d.val/1e9).toFixed(2));
+  const aVals  = data.map(d=>+(d.aVal/1e9).toFixed(2));
+  const dVals  = data.map(d=>+(d.dVal/1e9).toFixed(2));
+
+  if (chartContVal) chartContVal.destroy();
+  chartContVal = new Chart(document.getElementById('chartContVal'), {
+    type:'bar',
+    data:{ labels, datasets:[{label:'Total Value (B)',data:vals,backgroundColor:'#163A6A',borderRadius:4}]},
+    options:{
+      responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'#EEF2F9'},ticks:{callback:v=>v+'B'}}}
+    }
+  });
+
+  if (chartContAD) chartContAD.destroy();
+  chartContAD = new Chart(document.getElementById('chartContAD'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      {label:'Class A',data:aVals,backgroundColor:'#2D78C8',borderRadius:3},
+      {label:'Class D',data:dVals,backgroundColor:'#F57C00',borderRadius:3}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{position:'bottom'}},
+      scales:{x:{grid:{display:false}},y:{ticks:{callback:v=>v+'B'},grid:{color:'#EEF2F9'}}}
+    }
+  });
+}
+</script>
+</body>
+</html>

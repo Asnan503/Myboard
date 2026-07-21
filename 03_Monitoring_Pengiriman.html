@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Manifest — Dashboard Pengiriman</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --ink:#1A2F4B;
+    --paper:#F2EFE9;
+    --card:#FFFFFF;
+    --line:#E0DCD3;
+    --muted:#7A8699;
+    --red:#C0392B;
+    --red-bg:#F8DCD7;
+    --amber:#C2790E;
+    --amber-bg:#E3920F;
+    --green:#3E7A52;
+    --green-bg:#E7F1EA;
+    --darkred:#7A1F17;
+    --slate-bg:#EEF0F2;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter','Segoe UI',Roboto,Arial,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:90px;
+  }
+  header{
+    background:var(--ink);
+    color:#fff;
+    padding:22px 18px 20px;
+  }
+  .brand-title{
+    font-family:'Georgia','Times New Roman',serif;
+    font-weight:700;
+    font-size:30px;
+    letter-spacing:0.01em;
+    margin:0;
+  }
+  .brand .clock{
+    font-size:13px;
+    font-weight:700;
+    color:#fff;
+    white-space:nowrap;
+  }
+  .brand-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .subline{
+    font-size:14px;
+    color:#A9B6C9;
+    margin-top:4px;
+  }
+  .updated-line{
+    font-size:11px;
+    color:#7E8FA8;
+    margin-top:10px;
+  }
+
+  /* Action buttons row (Pilih File / Refresh) */
+  .action-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin:16px 16px 0;
+  }
+  .action-btn{
+    font-family:'Inter','Segoe UI',Roboto,Arial,sans-serif;
+    font-weight:700;
+    font-size:14px;
+    padding:14px 10px;
+    border-radius:8px;
+    cursor:pointer;
+    text-align:center;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .action-btn.primary{
+    background:var(--ink);
+    color:#fff;
+    border:1px solid var(--ink);
+  }
+  .action-btn.secondary{
+    background:var(--card);
+    color:var(--ink);
+    border:1px solid var(--line);
+  }
+  .action-btn:disabled{
+    opacity:0.45;
+    cursor:default;
+  }
+  .upload-row input[type=file]{display:none;}
+  .filename-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin:8px 16px 0;
+  }
+  .filename{
+    font-size:12px;
+    color:var(--muted);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    margin:0;
+  }
+  .clear-link{
+    font-size:11px;
+    color:var(--muted);
+    text-decoration:underline;
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:0;
+    flex-shrink:0;
+    font-family:inherit;
+  }
+  .status-msg{
+    font-size:11.5px;
+    color:var(--muted);
+    margin:6px 16px 0;
+  }
+  .status-msg.err{color:var(--red); font-weight:600;}
+  .status-msg.ok{color:var(--green); font-weight:600;}
+
+  /* Stat tiles */
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:8px;
+    margin:14px 16px 0;
+  }
+  .tile{
+    border-radius:8px;
+    padding:14px 6px 12px;
+    text-align:center;
+    color:#fff;
+  }
+  .tile .num{
+    font-family:'Georgia','Times New Roman',serif;
+    font-weight:700;
+    font-size:30px;
+    line-height:1;
+  }
+  .tile .lbl{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.09em;
+    margin-top:5px;
+    font-weight:700;
+    opacity:0.92;
+  }
+  .tile.today{background:var(--red);}
+  .tile.next{background:var(--amber);}
+  .tile.far{background:var(--green);}
+  .tile.late{background:var(--darkred);}
+
+  /* Filter bar */
+  .filters{
+    margin:14px 16px 0;
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:8px;
+  }
+  select, .search-input{
+    font-family:inherit;
+    font-size:13px;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--ink);
+    border-radius:8px;
+    padding:12px 10px;
+    width:100%;
+    -webkit-appearance:none;
+    appearance:none;
+  }
+  select{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A8699' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 10px center;
+    padding-right:26px;
+  }
+  .search-input::placeholder{color:#A9A39A;}
+
+  input[type=date]{
+    -webkit-appearance:none;
+    appearance:none;
+    color:var(--ink);
+  }
+  input[type=date]::-webkit-calendar-picker-indicator{
+    filter:opacity(0.6);
+  }
+
+  @media (max-width:380px){
+    .filters{gap:6px;}
+    select, .search-input{font-size:12px; padding:11px 8px;}
+    select{padding-right:22px;}
+  }
+
+  /* result count */
+  .result-count{
+    margin:14px 16px 8px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:14px;
+    color:var(--ink);
+    gap:8px;
+  }
+  .result-count-left{
+    font-weight:600;
+    flex-shrink:0;
+  }
+  .result-count-actions{
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+  .result-count .reset-link{
+    color:#3B5BA9;
+    font-weight:700;
+    text-decoration:underline;
+    background:none;
+    border:none;
+    font-size:14px;
+    font-family:inherit;
+    cursor:pointer;
+    padding:0;
+    white-space:nowrap;
+  }
+  .download-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    background:var(--ink);
+    color:#fff;
+    font-family:inherit;
+    font-weight:700;
+    font-size:13px;
+    border:none;
+    border-radius:7px;
+    padding:7px 13px;
+    cursor:pointer;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .download-btn:disabled{
+    opacity:0.4;
+    cursor:default;
+  }
+  .download-btn svg{
+    flex-shrink:0;
+  }
+
+  /* cards */
+  .list{
+    margin:0 16px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .ship-card{
+    background:var(--card);
+    border-radius:8px;
+    padding:16px 16px 12px;
+    position:relative;
+    overflow:hidden;
+    border-left:6px solid var(--green);
+  }
+  .ship-card.prio-LATE{
+    border-left-color:var(--darkred);
+    background:var(--red-bg);
+  }
+  .ship-card.prio-TODAY{border-left-color:var(--red);}
+  .ship-card.prio-NEXTDAY{border-left-color:var(--amber);}
+  .ship-card.prio-FAR{border-left-color:var(--green);}
+
+  .card-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+  }
+  .card-customer{
+    font-family:'Georgia','Times New Roman',serif;
+    font-weight:700;
+    font-size:19px;
+    color:var(--ink);
+    line-height:1.25;
+  }
+  .card-id{
+    font-size:12.5px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .card-item{
+    font-size:11.5px;
+    color:var(--muted);
+    margin-top:1px;
+  }
+
+  .badge{
+    font-weight:700;
+    font-size:11px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    padding:6px 12px;
+    border-radius:16px;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .badge-LATE, .badge-TODAY{background:var(--darkred); color:#fff;}
+  .badge-NEXTDAY{background:var(--amber-bg); color:#fff;}
+  .badge-FAR{background:var(--green-bg); color:var(--green);}
+  .badge-Terkirim{background:var(--slate-bg); color:var(--muted);}
+  .badge-unknown{background:var(--slate-bg); color:var(--muted);}
+
+  .card-meta{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:6px 10px;
+    margin-top:14px;
+  }
+  .card-meta .meta-item .meta-lbl{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--muted);
+    font-weight:600;
+  }
+  .card-meta .meta-item .meta-val{
+    font-size:14px;
+    font-weight:700;
+    color:var(--ink);
+    margin-top:3px;
+  }
+
+  .card-footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:12px;
+    padding-top:10px;
+    border-top:1px solid rgba(0,0,0,0.08);
+  }
+  .footer-note{
+    font-size:13px;
+    font-weight:600;
+    color:var(--green);
+  }
+  .ship-card.prio-LATE .footer-note,
+  .ship-card.prio-TODAY .footer-note{
+    color:var(--red);
+  }
+  .footer-note.neutral{color:var(--muted); font-weight:500;}
+
+  .detail-link{
+    font-size:13px;
+    font-weight:700;
+    color:var(--muted);
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:0;
+    font-family:inherit;
+  }
+
+  /* expand */
+  .card-extra{
+    margin-top:8px;
+    padding-top:8px;
+    border-top:1px solid var(--line);
+    font-size:11.5px;
+    color:var(--muted);
+    display:none;
+  }
+  .ship-card.open .card-extra{display:block;}
+  .card-extra div{margin-bottom:3px;}
+  .card-extra b{color:var(--ink); font-weight:600;}
+
+  .empty{
+    margin:40px 16px;
+    text-align:center;
+    color:var(--muted);
+  }
+  .empty .stamp{
+    font-family:'Georgia','Times New Roman',serif;
+    font-weight:700;
+    font-size:18px;
+    border:2px solid var(--line);
+    border-radius:8px;
+    padding:18px;
+    color:var(--ink);
+    background:var(--card);
+  }
+  .empty p{font-size:13px; margin-top:14px; line-height:1.6;}
+
+
+
+  @media (min-width:600px){
+    .list{display:grid; grid-template-columns:1fr 1fr;}
+    .stats{grid-template-columns:repeat(4,1fr);}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important;}
+  }
+
+  /* View Tab Toggle */
+  .view-tabs{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:0;
+    margin:14px 16px 0;
+    border-radius:8px;
+    overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .view-tab{
+    font-family:'Inter','Segoe UI',Roboto,Arial,sans-serif;
+    font-weight:700;
+    font-size:13px;
+    padding:12px 10px;
+    text-align:center;
+    cursor:pointer;
+    background:var(--card);
+    color:var(--muted);
+    border:none;
+    border-right:1px solid var(--line);
+    transition:background 0.15s, color 0.15s;
+  }
+  .view-tab:last-child{border-right:none;}
+  .view-tab.active{
+    background:var(--ink);
+    color:#fff;
+  }
+  .view-tab.amsen-tab.active{
+    background:#7B2D8B;
+    color:#fff;
+  }
+  .view-tab.pengiriman-tab.active{
+    background:#1A6B3A;
+    color:#fff;
+  }
+  .amsen-badge{
+    display:inline-block;
+    background:rgba(255,255,255,0.25);
+    border-radius:10px;
+    padding:1px 7px;
+    font-size:11px;
+    margin-left:5px;
+    font-weight:700;
+  }
+  /* AMSEN highlight on card */
+  .ship-card.amsen-match{
+    border-left-color:#7B2D8B;
+    background:#F8F0FB;
+  }
+  .amsen-tag{
+    display:inline-block;
+    background:#7B2D8B;
+    color:#fff;
+    font-size:10px;
+    font-weight:700;
+    padding:2px 7px;
+    border-radius:10px;
+    letter-spacing:0.06em;
+    margin-left:6px;
+    vertical-align:middle;
+  }
+
+  /* MAKS JAM highlight on card */
+  .ship-card.maksjam-match{
+    border-left-color:#B85C00;
+    background:#FFF5EA;
+  }
+  .maksjam-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:3px;
+    background:#B85C00;
+    color:#fff;
+    font-size:10px;
+    font-weight:700;
+    padding:2px 7px;
+    border-radius:10px;
+    letter-spacing:0.06em;
+    margin-left:6px;
+    vertical-align:middle;
+  }
+  .maksjam-tag svg{
+    flex-shrink:0;
+  }
+  /* TERIMA MALAM tag */
+  .terimamalam-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:3px;
+    background:#1A4A6B;
+    color:#fff;
+    font-size:10px;
+    font-weight:700;
+    padding:2px 7px;
+    border-radius:10px;
+    letter-spacing:0.06em;
+    margin-left:6px;
+    vertical-align:middle;
+  }
+  .ship-card.terimamalam-match{
+    border-left-color:#1A4A6B;
+    background:#EAF2FB;
+  }
+  /* If AMSEN + MAKS JAM overlap, AMSEN border takes priority */
+  .ship-card.amsen-match.maksjam-match{
+    border-left-color:#7B2D8B;
+    background:#FDF0FF;
+  }
+
+  /* Daily totals table */
+  .daily-section{
+    margin:14px 16px 0;
+  }
+  .daily-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px 14px 12px;
+  }
+  .daily-card-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .daily-title{
+    font-family:'Georgia','Times New Roman',serif;
+    font-weight:700;
+    font-size:15px;
+    color:var(--ink);
+  }
+  .daily-sub{
+    font-size:10.5px;
+    color:var(--muted);
+    margin-top:1px;
+  }
+  .daily-table-wrap{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  #dailyTotalsCapture{
+    background:var(--card);
+    padding:2px 2px 4px;
+  }
+  table.daily-table{
+    border-collapse:collapse;
+    width:100%;
+    min-width:560px;
+  }
+  table.daily-table th, table.daily-table td{
+    border:1px solid var(--line);
+    text-align:center;
+    padding:8px 4px;
+    font-size:12px;
+  }
+  table.daily-table thead th{
+    background:var(--ink);
+    color:#fff;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  table.daily-table thead th .day-date{
+    display:block;
+    font-size:10px;
+    font-weight:400;
+    text-transform:none;
+    letter-spacing:0;
+    opacity:0.85;
+    margin-top:2px;
+  }
+  table.daily-table thead th.today-col{
+    background:var(--red);
+  }
+  table.daily-table tbody td{
+    font-weight:700;
+    font-size:15px;
+    color:var(--ink);
+  }
+  table.daily-table tbody td.today-col{
+    color:var(--red);
+    background:var(--red-bg);
+  }
+  table.daily-table tbody tr.row-total td{
+    background:var(--slate-bg);
+  }
+  table.daily-table tbody td.label-cell{
+    text-align:left;
+    font-weight:600;
+    font-size:11.5px;
+    color:var(--muted);
+    white-space:nowrap;
+    min-width:80px;
+  }
+  /* row total warna berbeda */
+  #rowTotal td{
+    background:var(--slate-bg);
+    color:var(--ink);
+  }
+  #rowTotal td.today-col{
+    background:#dce8f0;
+    color:var(--ink);
+  }
+  /* row Maks Jam subtle tint */
+  #rowMaksJam td{ background:#FFF8F0; }
+  #rowMaksJam td.today-col{ background:#FDEBD8; }
+  /* row Terima Malam subtle tint */
+  #rowTerimaMalam td{ background:#EEF4FA; }
+  #rowTerimaMalam td.today-col{ background:#D6E8F5; }
+  .daily-png-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    background:var(--card);
+    color:var(--ink);
+    font-family:inherit;
+    font-weight:700;
+    font-size:12.5px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:7px 12px;
+    cursor:pointer;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .daily-png-btn:disabled{
+    opacity:0.4;
+    cursor:default;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand-row">
+    <h1 class="brand-title">Monitoring Pengiriman Tallasacity</h1>
+    <div class="clock" id="clockBox">—</div>
+  </div>
+  <div class="subline">Jadwal kirim ke customer by Support Back TLC</div>
+  <div class="updated-line" id="lastUpdated"></div>
+</header>
+
+<div class="action-row">
+  <button type="button" id="pickBtn" class="action-btn primary">Pilih File (.xlsx)</button>
+  <button type="button" id="refreshBtn" class="action-btn secondary" disabled>Refresh Data</button>
+  <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
+</div>
+<div class="filename-row">
+  <div class="filename" id="filenameBox">Belum ada file dipilih</div>
+  <button type="button" id="clearBtn" class="clear-link" style="display:none;">Hapus data</button>
+</div>
+<div class="status-msg" id="statusMsg">Pilih file Excel hasil export jadwal pengiriman dari penyimpanan HP. Data tersimpan otomatis di browser ini dan ditampilkan per NP No. unik.</div>
+<div class="status-msg" id="fsaNote" style="margin-top:2px;"></div>
+
+<div class="stats">
+  <div class="tile today">
+    <div class="num" id="statToday">0</div>
+    <div class="lbl">Today</div>
+  </div>
+  <div class="tile next">
+    <div class="num" id="statNext">0</div>
+    <div class="lbl">Next Day</div>
+  </div>
+  <div class="tile far">
+    <div class="num" id="statFar">0</div>
+    <div class="lbl">&gt; 2 Days</div>
+  </div>
+  <div class="tile late">
+    <div class="num" id="statLate">0</div>
+    <div class="lbl">Overdue</div>
+  </div>
+</div>
+
+<div class="daily-section">
+  <div class="daily-card" id="dailyTotalsCapture">
+    <div class="daily-card-head">
+      <div>
+        <div class="daily-title">Total Dokumen Harian</div>
+        <div class="daily-sub" id="dailyTabLabel">Semua Order &middot; Hari ini &ndash; 7 hari ke depan</div>
+      </div>
+      <button type="button" class="daily-png-btn" id="dailyPngBtn" disabled>
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="#1A2F4B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        PNG
+      </button>
+    </div>
+    <div class="daily-table-wrap">
+      <table class="daily-table" id="dailyTotalsTable">
+        <thead><tr></tr></thead>
+        <tbody>
+          <tr id="rowMaksJam"></tr>
+          <tr id="rowTerimaMalam"></tr>
+          <tr id="rowTotal" class="row-total"></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="view-tabs">
+  <button type="button" class="view-tab active" id="tabAll">Semua Order</button>
+  <button type="button" class="view-tab pengiriman-tab" id="tabPengiriman">🚚 Pengiriman <span class="amsen-badge" id="pengirimanCount">0</span></button>
+  <button type="button" class="view-tab amsen-tab" id="tabAmsen">🏠 AMSEN <span class="amsen-badge" id="amsenCount">0</span></button>
+</div>
+
+<div class="filters">
+  <input type="text" class="search-input" id="searchBox" placeholder="Cari customer / NP No.">
+  <input type="date" class="search-input" id="filterDate">
+  <select id="filterPrio">
+    <option value="">Semua</option>
+    <option value="MAKSJAM">⏰ Maks Jam</option>
+    <option value="TERIMAMALAM">🌙 Terima Malam</option>
+  </select>
+</div>
+
+<div class="result-count">
+  <span class="result-count-left" id="resultCount"></span>
+  <div class="result-count-actions">
+    <button type="button" class="reset-link" id="resetBtn">Reset filter</button>
+    <button type="button" class="download-btn" id="downloadBtn" disabled>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Download PDF
+    </button>
+  </div>
+</div>
+
+<div class="list" id="cardList"></div>
+
+<div class="empty" id="emptyState">
+  <div class="stamp">Belum Ada Data</div>
+  <p>Tap "Pilih File (.xlsx)" di atas, lalu pilih file Excel jadwal pengiriman dari folder lokal (Downloads / Documents) di HP kamu.<br><br>
+  File dibaca langsung di browser — tidak diupload ke server manapun.</p>
+</div>
+
+
+
+<script>
+(function(){
+  var rawRows = [];
+  var ALL = [];
+  var lastFiltered = [];
+
+  // ---- date helpers ----
+  // All dates are normalized to a UTC-midnight timestamp representing a pure
+  // calendar date (no time-of-day, no timezone drift). Always read with UTC getters.
+  function excelDateToJS(v){
+    if (v instanceof Date){
+      // SheetJS (cellDates:true) and JSON round-trips can yield a Date whose
+      // UTC components already represent the intended calendar date, OR (in some
+      // SheetJS paths) a Date constructed from *local* y/m/d. To be safe, re-derive
+      // the calendar date from whichever components look like a real date and
+      // re-anchor to UTC midnight using UTC getters (SheetJS always emits UTC-based dates).
+      return new Date(Date.UTC(v.getUTCFullYear(), v.getUTCMonth(), v.getUTCDate()));
+    }
+    if (typeof v === 'number'){
+      // Excel serial date (1900 system) -> UTC midnight of that calendar date
+      var utc_days = Math.floor(v - 25569);
+      return new Date(utc_days * 86400 * 1000);
+    }
+    if (typeof v === 'string'){
+      var s = v.trim();
+      // Plain "YYYY-MM-DD" or ISO datetime - take the date part and anchor to UTC midnight
+      var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m){
+        return new Date(Date.UTC(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10)));
+      }
+      var d = new Date(s);
+      if (!isNaN(d.getTime())){
+        return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+      }
+    }
+    return null;
+  }
+  // Returns a UTC-midnight Date representing "today" in the device's local calendar date
+  function todayUTC(){
+    var now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  }
+  function fmtDate(d){
+    if (!d) return '—';
+    var months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+    return d.getUTCDate() + '-' + months[d.getUTCMonth()] + '-' + d.getUTCFullYear();
+  }
+  // Returns "YYYY-MM-DD" (UTC) to compare against <input type="date"> values
+  function fmtDateISO(d){
+    if (!d) return '';
+    var y = d.getUTCFullYear();
+    var m = ('0' + (d.getUTCMonth()+1)).slice(-2);
+    var day = ('0' + d.getUTCDate()).slice(-2);
+    return y + '-' + m + '-' + day;
+  }
+
+  // ---- live clock ----
+  function tickClock(){
+    var now = new Date();
+    var days = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+    var months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+    var txt = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+    var time = ('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2)+':'+('0'+now.getSeconds()).slice(-2);
+    document.getElementById('clockBox').innerHTML = txt + '<br>' + time;
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  // ---- priority / sisa hari (computed live) ----
+  function computeSisaHari(planningDate){
+    if (!planningDate) return null;
+    var today = todayUTC();
+    var diffMs = planningDate.getTime() - today.getTime();
+    return Math.round(diffMs / 86400000);
+  }
+  function computePrioritas(sisa){
+    if (sisa === null) return '';
+    if (sisa < 0) return 'LATE';
+    if (sisa === 0) return 'TODAY';
+    if (sisa === 1) return 'NEXT DAY';
+    if (sisa >= 2) return '> 2 DAYS';
+    return '';
+  }
+  function prioClass(p){
+    if (p === 'LATE') return 'LATE';
+    if (p === 'TODAY') return 'TODAY';
+    if (p === 'NEXT DAY') return 'NEXTDAY';
+    if (p === '> 2 DAYS') return 'FAR';
+    return 'unknown';
+  }
+
+  // ---- file handling ----
+  var pickBtn = document.getElementById('pickBtn');
+  var fileInput = document.getElementById('fileInput');
+  var statusMsg = document.getElementById('statusMsg');
+  var filenameBox = document.getElementById('filenameBox');
+  var clearBtn = document.getElementById('clearBtn');
+  var refreshBtn = document.getElementById('refreshBtn');
+  var currentFileHandle = null; // FileSystemFileHandle, if supported
+  var supportsFSAccess = typeof window.showOpenFilePicker === 'function';
+
+  var fsaNote = document.getElementById('fsaNote');
+  if (supportsFSAccess){
+    fsaNote.textContent = 'Setelah pilih file, tombol "Refresh Data" akan muncul untuk memuat ulang file yang sama (misal setelah export ulang dari sistem).';
+  } else {
+    fsaNote.textContent = 'Browser ini belum mendukung tombol Refresh otomatis — untuk update data, tap "Pilih File (.xlsx)" lagi setiap ada file baru.';
+  }
+
+  clearBtn.addEventListener('click', function(){
+    try{
+      localStorage.removeItem('manifestData');
+      localStorage.removeItem('manifestMeta');
+    } catch(e){}
+    rawRows = [];
+    ALL = [];
+    currentFileHandle = null;
+    filenameBox.textContent = 'Belum ada file dipilih';
+    statusMsg.textContent = 'Data dihapus. Pilih file Excel untuk memuat ulang.';
+    statusMsg.className = 'status-msg';
+    updateLastUpdated(null);
+    clearBtn.style.display = 'none';
+    refreshBtn.disabled = true;
+    render();
+  });
+
+  function parseAndApply(arrayBuffer, fileName){
+    try{
+      var data = new Uint8Array(arrayBuffer);
+      var workbook = XLSX.read(data, {type:'array', cellDates:false});
+
+      // prefer "ReportOutstandingNotaPenjualan" (sheet name from source system export),
+      // then a sheet literally named "Data", else first non-Dashboard sheet, else first sheet
+      var sheetName = null;
+      var preferredNames = ['reportoutstandingnotapenjualan', 'data'];
+      preferredNames.forEach(function(pref){
+        if (sheetName) return;
+        workbook.SheetNames.forEach(function(n){
+          if (n.toLowerCase() === pref) sheetName = n;
+        });
+      });
+      if (!sheetName){
+        for (var i=0;i<workbook.SheetNames.length;i++){
+          if (workbook.SheetNames[i].toLowerCase() !== 'dashboard'){
+            sheetName = workbook.SheetNames[i];
+            break;
+          }
+        }
+      }
+      if (!sheetName) sheetName = workbook.SheetNames[0];
+
+      var sheet = workbook.Sheets[sheetName];
+
+      // try default header-row-1 parse first
+      var json = XLSX.utils.sheet_to_json(sheet, {defval:'', raw:true});
+      var hasNpCol = json.length && Object.keys(json[0]).some(function(k){ return k.trim().toLowerCase().indexOf('np no') === 0; });
+
+      if (!hasNpCol){
+        // scan first 10 rows of the sheet for the real header row (contains "NP No.")
+        var rangeAll = XLSX.utils.decode_range(sheet['!ref']);
+        var headerRowIdx = -1;
+        for (var r = rangeAll.s.r; r <= Math.min(rangeAll.s.r + 10, rangeAll.e.r); r++){
+          for (var c = rangeAll.s.c; c <= rangeAll.e.c; c++){
+            var cell = sheet[XLSX.utils.encode_cell({r:r, c:c})];
+            if (cell && typeof cell.v === 'string' && cell.v.trim().toLowerCase().indexOf('np no') === 0){
+              headerRowIdx = r;
+              break;
+            }
+          }
+          if (headerRowIdx !== -1) break;
+        }
+        if (headerRowIdx !== -1){
+          json = XLSX.utils.sheet_to_json(sheet, {defval:'', raw:true, range: headerRowIdx});
+        }
+      }
+
+      // normalize header keys: trim whitespace so "NP No. " matches "NP No."
+      json = json.map(function(row){
+        var clean = {};
+        for (var k in row){
+          clean[k.trim()] = row[k];
+        }
+        return clean;
+      });
+
+      if (!json.length){
+        statusMsg.textContent = 'File terbaca tapi sheet "' + sheetName + '" kosong.';
+        statusMsg.className = 'status-msg err';
+        return false;
+      }
+
+      rawRows = json;
+      processRows();
+
+      if (ALL.length === 0){
+        var sampleKeys = Object.keys(json[0] || {}).join(', ');
+        statusMsg.textContent = 'File terbaca (' + json.length + ' baris mentah) tapi tidak ada baris valid (kolom "NP No." tidak ditemukan/kosong). Kolom yang terdeteksi: ' + sampleKeys;
+        statusMsg.className = 'status-msg err';
+        return true; // still cache so user sees the issue persists for debugging
+      }
+
+      statusMsg.textContent = 'Berhasil memuat ' + ALL.length + ' baris dari sheet "' + sheetName + '".';
+      statusMsg.className = 'status-msg ok';
+
+      // persist for auto-load next time
+      try{
+        localStorage.setItem('manifestData', JSON.stringify(rawRows));
+        var now = new Date();
+        var meta = {fileName: fileName, savedAt: now.toISOString()};
+        localStorage.setItem('manifestMeta', JSON.stringify(meta));
+        updateLastUpdated(meta);
+        clearBtn.style.display = 'inline';
+      } catch(storeErr){
+        statusMsg.textContent += ' (Catatan: gagal menyimpan untuk auto-load — ' + storeErr.message + ')';
+      }
+      return true;
+    } catch(err){
+      statusMsg.textContent = 'Gagal membaca file: ' + err.message;
+      statusMsg.className = 'status-msg err';
+      return false;
+    }
+  }
+
+  function readFileObject(file){
+    filenameBox.textContent = file.name;
+    statusMsg.textContent = 'Membaca file...';
+    statusMsg.className = 'status-msg';
+
+    var reader = new FileReader();
+    reader.onload = function(evt){
+      var ok = parseAndApply(evt.target.result, file.name);
+      if (ok && supportsFSAccess && currentFileHandle){
+        refreshBtn.disabled = false;
+      }
+    };
+    reader.onerror = function(){
+      statusMsg.textContent = 'Gagal membaca file dari penyimpanan.';
+      statusMsg.className = 'status-msg err';
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // Primary picker: use File System Access API on Chrome/Edge Android if available,
+  // so the file handle can be kept for the "Refresh Data" button.
+  if (supportsFSAccess){
+    pickBtn.addEventListener('click', function(){
+      window.showOpenFilePicker({
+        types: [{
+          description: 'Excel Files',
+          accept: {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'], 'application/vnd.ms-excel': ['.xls']}
+        }],
+        multiple: false
+      }).then(function(handles){
+        currentFileHandle = handles[0];
+        return currentFileHandle.getFile();
+      }).then(function(file){
+        readFileObject(file);
+      }).catch(function(err){
+        // user cancelled picker - ignore AbortError
+        if (err && err.name !== 'AbortError'){
+          statusMsg.textContent = 'Gagal membuka file: ' + err.message;
+          statusMsg.className = 'status-msg err';
+        }
+      });
+    });
+  } else {
+    pickBtn.addEventListener('click', function(){
+      fileInput.click();
+    });
+    fileInput.addEventListener('change', function(e){
+      var file = e.target.files[0];
+      if (!file) return;
+      readFileObject(file);
+    });
+  }
+
+  refreshBtn.addEventListener('click', function(){
+    if (!currentFileHandle){
+      statusMsg.textContent = 'Tidak ada referensi file. Tap "Pilih File (.xlsx)" lagi.';
+      statusMsg.className = 'status-msg err';
+      return;
+    }
+    statusMsg.textContent = 'Refreshing...';
+    statusMsg.className = 'status-msg';
+    currentFileHandle.getFile().then(function(file){
+      readFileObject(file);
+    }).catch(function(err){
+      statusMsg.textContent = 'Gagal refresh: ' + err.message + '. Tap "Pilih File (.xlsx)" lagi.';
+      statusMsg.className = 'status-msg err';
+      refreshBtn.disabled = true;
+      currentFileHandle = null;
+    });
+  });
+
+  function pick(row, keys){
+    for (var i=0;i<keys.length;i++){
+      var k = keys[i];
+      if (row.hasOwnProperty(k) && row[k] !== '') return row[k];
+      // case-insensitive fallback
+      for (var rk in row){
+        if (rk.toLowerCase().trim() === k.toLowerCase().trim() && row[rk] !== ''){
+          return row[rk];
+        }
+      }
+    }
+    return '';
+  }
+
+  function processRows(){
+    ALL = [];
+    rawRows.forEach(function(row){
+      var npNo = pick(row, ['NP No.','NP No','NP_No']);
+      if (!npNo) return; // skip empty rows
+
+      var planningRaw = pick(row, ['Planning Delivery Date']);
+      var planningDate = excelDateToJS(planningRaw);
+
+      var sisa = computeSisaHari(planningDate);
+      var prioritas = computePrioritas(sisa);
+
+      var realisasiRaw = pick(row, ['Tanggal Realisasi Kirim']);
+      var realisasiDate = excelDateToJS(realisasiRaw);
+
+      var releasedRaw = pick(row, ['Released Date']);
+      var releasedDate = excelDateToJS(releasedRaw);
+
+      var statusPengiriman = pick(row, ['Status Pengiriman']);
+      if (!statusPengiriman) statusPengiriman = 'On Process';
+
+      ALL.push({
+        npNo: String(npNo),
+        npType: pick(row, ['NP Type']),
+        releasedDate: releasedDate,
+        planningDate: planningDate,
+        receiptNo: pick(row, ['Receipt No.','Receipt No']),
+        customerNo: pick(row, ['Customer No.','Customer No']),
+        customerName: pick(row, ['Customer Name']),
+        sellToAddress: pick(row, ['Sell To Address']),
+        sellToAddress2: pick(row, ['Sell To Address 2','Sell To Adress 2','Sell To Address2']),
+        categoryName: pick(row, ['Category Name']),
+        masterBrand: pick(row, ['Master Brand Name']),
+        brandName: pick(row, ['Brand Name']),
+        itemNo: pick(row, ['Item No.','Item No']),
+        itemDesc: pick(row, ['Item Description']),
+        baseUOM: pick(row, ['Base UOM']),
+        orderQty: pick(row, ['Order Qty Base UOM']),
+        shippedQty: pick(row, ['Shipped Qty Base UOM']),
+        outstandingQty: pick(row, ['Outstanding Qty Base UOM']),
+        longitude: pick(row, ['Longitude','Longtitude']),
+        latitude: pick(row, ['Latitude']),
+        zipCode: pick(row, ['Zip Code']),
+        comment: pick(row, ['Comment']),
+        statusPengiriman: statusPengiriman,
+        realisasiDate: realisasiDate,
+        sisaHari: sisa,
+        prioritas: prioritas
+      });
+    });
+
+    // keep only unique NP No. (first occurrence wins)
+    var seen = {};
+    ALL = ALL.filter(function(r){
+      if (seen[r.npNo]) return false;
+      seen[r.npNo] = true;
+      return true;
+    });
+
+    render();
+  }
+
+  // ---- Tab filter state: 'all' | 'pengiriman' | 'amsen' ----
+  var activeTab = 'all';
+
+  function isAmsen(r){
+    var keyword = 'amsen';
+    var addr1 = (r.sellToAddress || '').toLowerCase();
+    var addr2 = (r.sellToAddress2 || '').toLowerCase();
+    var comment = (r.comment || '').toLowerCase();
+    return addr1.indexOf(keyword) !== -1 ||
+           addr2.indexOf(keyword) !== -1 ||
+           comment.indexOf(keyword) !== -1;
+  }
+
+  // Deteksi Maks Jam: cek keyword maks*/max*/eks*/exp*/jam* di address dan comment
+  var MAKSJAM_PATTERNS = [/\bmaks/i, /\bmax/i, /\beks/i, /\bexp/i, /\bjam\b/i];
+  function isMaksJam(r){
+    var fields = [
+      r.sellToAddress || '',
+      r.sellToAddress2 || '',
+      r.comment || ''
+    ];
+    return fields.some(function(f){
+      return MAKSJAM_PATTERNS.some(function(pat){ return pat.test(f); });
+    });
+  }
+
+  function setTab(tab){
+    activeTab = tab;
+    document.getElementById('tabAll').classList.toggle('active', tab === 'all');
+    document.getElementById('tabPengiriman').classList.toggle('active', tab === 'pengiriman');
+    document.getElementById('tabAmsen').classList.toggle('active', tab === 'amsen');
+    render();
+  }
+
+  document.getElementById('tabAll').addEventListener('click', function(){ setTab('all'); });
+  document.getElementById('tabPengiriman').addEventListener('click', function(){ setTab('pengiriman'); });
+  document.getElementById('tabAmsen').addEventListener('click', function(){ setTab('amsen'); });
+
+  // ---- filters ----
+  document.getElementById('filterPrio').addEventListener('change', render);
+  document.getElementById('filterDate').addEventListener('change', render);
+  document.getElementById('searchBox').addEventListener('input', render);
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    document.getElementById('filterPrio').value = '';
+    document.getElementById('filterDate').value = '';
+    document.getElementById('searchBox').value = '';
+    render();
+  });
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  var statusLabels = {
+    'On Process': 'ON PROCESS',
+    'Terkirim': 'TERKIRIM',
+    'Delay': 'DELAY'
+  };
+
+  function buildCard(r, idx){
+    var pClass = prioClass(r.prioritas);
+
+    // badge: shipped status takes priority for display, fallback to priority label
+    var badgeClass, badgeLabel;
+    if (r.statusPengiriman === 'Terkirim'){
+      badgeClass = 'Terkirim';
+      badgeLabel = 'TERKIRIM';
+    } else if (r.prioritas === 'LATE'){
+      badgeClass = 'LATE';
+      badgeLabel = 'OVERDUE';
+    } else if (r.prioritas === 'TODAY'){
+      badgeClass = 'TODAY';
+      badgeLabel = 'TODAY';
+    } else if (r.prioritas === 'NEXT DAY'){
+      badgeClass = 'NEXTDAY';
+      badgeLabel = 'NEXT DAY';
+    } else if (r.prioritas === '> 2 DAYS'){
+      badgeClass = 'FAR';
+      badgeLabel = statusLabels[r.statusPengiriman] || 'ON PROCESS';
+    } else {
+      badgeClass = 'unknown';
+      badgeLabel = statusLabels[r.statusPengiriman] || 'ON PROCESS';
+    }
+
+    // footer note: realisasi / lewat X hari / besok / hari ini / sisa hari
+    var footerNote, footerClass = '';
+    if (r.statusPengiriman === 'Terkirim'){
+      footerNote = 'Sudah terkirim';
+      footerClass = 'neutral';
+    } else if (r.sisaHari !== null && r.sisaHari < 0){
+      footerNote = 'Lewat ' + Math.abs(r.sisaHari) + ' hari';
+    } else if (r.sisaHari === 0){
+      footerNote = 'Jatuh tempo hari ini';
+    } else if (r.sisaHari === 1){
+      footerNote = 'Jatuh tempo besok';
+    } else if (r.sisaHari !== null){
+      footerNote = 'Sisa ' + r.sisaHari + ' hari';
+      footerClass = 'neutral';
+    } else {
+      footerNote = '—';
+      footerClass = 'neutral';
+    }
+
+    var extra = '<div class="card-extra">' +
+      '<div><b>NP Type:</b> ' + escapeHtml(r.npType || '—') + '</div>' +
+      '<div><b>Receipt No.:</b> ' + escapeHtml(r.receiptNo || '—') + '</div>' +
+      '<div><b>Alamat:</b> ' + escapeHtml(r.sellToAddress || '—') + (r.sellToAddress2 ? (', ' + escapeHtml(r.sellToAddress2)) : '') + (r.zipCode ? (' (' + escapeHtml(r.zipCode) + ')') : '') + '</div>' +
+      (r.comment ? ('<div><b>Comment:</b> ' + escapeHtml(r.comment) + '</div>') : '') +
+      '</div>';
+
+    var isAmsenCard = isAmsen(r);
+    var amsenClass = isAmsenCard ? ' amsen-match' : '';
+    var amsenTagHtml = isAmsenCard ? '<span class="amsen-tag">AMSEN</span>' : '';
+
+    var isMaksJamCard = isMaksJam(r);
+    var maksjamClass = isMaksJamCard ? ' maksjam-match' : '';
+    var maksjamTagHtml = isMaksJamCard ? '<span class="maksjam-tag"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 15 15"/></svg>MAKS JAM</span>' : '';
+
+    var terimamalamClass = (!isMaksJamCard) ? ' terimamalam-match' : '';
+    var terimamalamTagHtml = (!isMaksJamCard) ? '<span class="terimamalam-tag">🌙 MALAM</span>' : '';
+
+    return '<div class="ship-card prio-' + pClass + amsenClass + maksjamClass + terimamalamClass + '" data-idx="' + idx + '">' +
+      '<div class="card-top">' +
+        '<div>' +
+          '<div class="card-customer">' + escapeHtml(r.customerName || '—') + amsenTagHtml + maksjamTagHtml + terimamalamTagHtml + '</div>' +
+          '<div class="card-id">' + escapeHtml(r.npNo) + '</div>' +
+        '</div>' +
+        '<div class="badge badge-' + badgeClass + '">' + escapeHtml(badgeLabel) + '</div>' +
+      '</div>' +
+      '<div class="card-meta">' +
+        '<div class="meta-item"><div class="meta-lbl">Released</div><div class="meta-val">' + fmtDate(r.releasedDate) + '</div></div>' +
+        '<div class="meta-item"><div class="meta-lbl">Janji Kirim</div><div class="meta-val">' + fmtDate(r.planningDate) + '</div></div>' +
+        '<div class="meta-item"><div class="meta-lbl">Realisasi</div><div class="meta-val">' + (r.realisasiDate ? fmtDate(r.realisasiDate) : '—') + '</div></div>' +
+      '</div>' +
+      '<div class="card-footer">' +
+        '<span class="footer-note ' + footerClass + '">' + footerNote + '</span>' +
+        '<button class="detail-link toggle-btn" type="button">Detail</button>' +
+      '</div>' +
+      extra +
+    '</div>';
+  }
+
+  function bindCardToggles(list){
+    Array.prototype.forEach.call(list.querySelectorAll('.toggle-btn'), function(btn){
+      btn.addEventListener('click', function(){
+        var card = btn.closest('.ship-card');
+        card.classList.toggle('open');
+        btn.textContent = card.classList.contains('open') ? 'Tutup' : 'Detail';
+      });
+    });
+  }
+
+  // ---- Daily totals table (Today .. Today+7), excludes Overdue ----
+  var dayNamesShort = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+  var monthsShort = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+
+  function renderDailyTotals(base){
+    var today = todayUTC();
+    var days = [];
+    for (var i = 0; i <= 7; i++){
+      days.push(new Date(today.getTime() + i * 86400000));
+    }
+
+    // hitung per baris: maks jam, terima malam
+    var countsMJ  = days.map(function(){ return 0; });
+    var countsTM  = days.map(function(){ return 0; });
+
+    base.forEach(function(r){
+      if (!r.planningDate) return;
+      var diffDays = Math.round((r.planningDate.getTime() - today.getTime()) / 86400000);
+      if (diffDays < 0 || diffDays > 7) return;
+      if (isMaksJam(r)) countsMJ[diffDays]++;
+      else               countsTM[diffDays]++;
+    });
+
+    var totalMJ = countsMJ.reduce(function(a,b){ return a+b; }, 0);
+    var totalTM = countsTM.reduce(function(a,b){ return a+b; }, 0);
+    var grandTotal = totalMJ + totalTM;
+
+    // header row (label col + 8 hari + total)
+    var theadRow = document.querySelector('#dailyTotalsTable thead tr');
+    var theadHtml = '<th class="label-cell" style="text-align:left;min-width:80px"></th>' +
+      days.map(function(d, i){
+        var lbl = i === 0 ? 'Hari Ini' : (i === 1 ? 'H+1' : 'H+' + i);
+        var dateStr = d.getUTCDate() + ' ' + monthsShort[d.getUTCMonth()];
+        var cls = i === 0 ? ' class="today-col"' : '';
+        return '<th' + cls + '>' + lbl + '<span class="day-date">' + dayNamesShort[d.getUTCDay()] + ', ' + dateStr + '</span></th>';
+      }).join('') + '<th>Total</th>';
+    theadRow.innerHTML = theadHtml;
+
+    function buildRow(counts, rowTotal, labelHtml, todayCls){
+      var cells = counts.map(function(c, i){
+        var cls = i === 0 ? ' class="today-col"' : '';
+        return '<td' + cls + '>' + (c || '—') + '</td>';
+      }).join('');
+      return '<td class="label-cell">' + labelHtml + '</td>' + cells + '<td><b>' + rowTotal + '</b></td>';
+    }
+
+    document.getElementById('rowMaksJam').innerHTML =
+      buildRow(countsMJ, totalMJ, '⏰ Maks Jam');
+    document.getElementById('rowTerimaMalam').innerHTML =
+      buildRow(countsTM, totalTM, '🌙 Terima Malam');
+    document.getElementById('rowTotal').innerHTML =
+      (function(){
+        var cells = days.map(function(d, i){
+          var val = countsMJ[i] + countsTM[i];
+          var cls = i === 0 ? ' class="today-col"' : '';
+          return '<td' + cls + '>' + (val || '—') + '</td>';
+        }).join('');
+        return '<td class="label-cell" style="font-weight:700;color:var(--ink)">Total</td>' + cells + '<td><b>' + grandTotal + '</b></td>';
+      })();
+
+    // sub label reflects active tab
+    var tabLabel = activeTab === 'amsen' ? 'AMSEN' : activeTab === 'pengiriman' ? 'Pengiriman' : 'Semua Order';
+    document.getElementById('dailyTabLabel').textContent = tabLabel + ' \u00B7 Hari ini \u2013 7 hari ke depan (overdue diabaikan)';
+
+    var pngBtn = document.getElementById('dailyPngBtn');
+    pngBtn.disabled = (ALL.length === 0);
+  }
+
+  function downloadDailyTotalsPNG(){
+    var btn = document.getElementById('dailyPngBtn');
+    var target = document.getElementById('dailyTotalsCapture');
+    btn.disabled = true;
+    var originalHtml = btn.innerHTML;
+    btn.textContent = 'Menyiapkan...';
+
+    html2canvas(target, { backgroundColor: '#FFFFFF', scale: 2 }).then(function(canvas){
+      var tabSlug = activeTab === 'amsen' ? 'AMSEN' : activeTab === 'pengiriman' ? 'Pengiriman' : 'Semua';
+      var now = new Date();
+      var nowStr = now.getFullYear() + ('0'+(now.getMonth()+1)).slice(-2) + ('0'+now.getDate()).slice(-2);
+      var link = document.createElement('a');
+      link.download = 'TotalDokumenHarian_' + tabSlug + '_' + nowStr + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }).catch(function(err){
+      alert('Gagal membuat PNG: ' + err.message);
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    });
+  }
+
+  document.getElementById('dailyPngBtn').addEventListener('click', downloadDailyTotalsPNG);
+
+  function render(){
+    var prioF = document.getElementById('filterPrio').value;
+    var dateF = document.getElementById('filterDate').value; // "YYYY-MM-DD" or ""
+    var searchF = document.getElementById('searchBox').value.trim().toLowerCase();
+
+    // update AMSEN & Pengiriman badge counts (always from ALL)
+    var amsenTotal = ALL.filter(isAmsen).length;
+    var pengirimanTotal = ALL.filter(function(r){ return !isAmsen(r); }).length;
+    document.getElementById('amsenCount').textContent = amsenTotal;
+    document.getElementById('pengirimanCount').textContent = pengirimanTotal;
+
+    // base dataset for the active tab
+    var base = ALL.filter(function(r){
+      if (activeTab === 'amsen') return isAmsen(r);
+      if (activeTab === 'pengiriman') return !isAmsen(r);
+      return true;
+    });
+
+    var filtered = base.filter(function(r){
+      if (prioF === 'MAKSJAM'){
+        if (!isMaksJam(r)) return false;
+      } else if (prioF === 'TERIMAMALAM'){
+        if (isMaksJam(r)) return false;
+      }
+      if (dateF){
+        if (!r.planningDate) return false;
+        var pf = fmtDateISO(r.planningDate);
+        if (pf !== dateF) return false;
+      }
+      if (searchF){
+        var hay = (r.npNo + ' ' + r.itemDesc + ' ' + r.customerName + ' ' + r.itemNo).toLowerCase();
+        if (hay.indexOf(searchF) === -1) return false;
+      }
+      return true;
+    });
+
+    // stats computed from the active tab's BASE data (not filtered by prio/date/search)
+    var c = {TODAY:0, 'NEXT DAY':0, '> 2 DAYS':0, LATE:0};
+    base.forEach(function(r){
+      if (c.hasOwnProperty(r.prioritas)) c[r.prioritas]++;
+    });
+    document.getElementById('statToday').textContent = c.TODAY;
+    document.getElementById('statNext').textContent = c['NEXT DAY'];
+    document.getElementById('statFar').textContent = c['> 2 DAYS'];
+    document.getElementById('statLate').textContent = c.LATE;
+
+    renderDailyTotals(base);
+
+    // Tentukan apakah filter tanggal memilih lebih dari 1 tanggal (tidak ada dateF filter aktif = multi tanggal)
+    // Sort:
+    //   - Jika multi-tanggal (dateF kosong): sort by planningDate DESCENDING (terbaru ke lama),
+    //     lalu dalam tanggal yang sama: Maks Jam dulu (0), Terima Malam (1)
+    //   - Jika 1 tanggal terpilih (dateF ada): sort by Status — Maks Jam dulu (0), Terima Malam (1)
+    filtered.sort(function(a,b){
+      var aDate = a.planningDate ? a.planningDate.getTime() : 0;
+      var bDate = b.planningDate ? b.planningDate.getTime() : 0;
+      var aMJ = isMaksJam(a) ? 0 : 1;
+      var bMJ = isMaksJam(b) ? 0 : 1;
+      if (!dateF){
+        // multi-tanggal: sort planningDate descending (terbaru ke lama)
+        if (aDate !== bDate) return bDate - aDate;
+        // dalam tanggal sama: Maks Jam dulu
+        return aMJ - bMJ;
+      } else {
+        // 1 tanggal: sort Maks Jam dulu, Terima Malam belakang
+        return aMJ - bMJ;
+      }
+    });
+
+    var resultCount = document.getElementById('resultCount');
+    var emptyState = document.getElementById('emptyState');
+    var list = document.getElementById('cardList');
+    var dlBtn = document.getElementById('downloadBtn');
+
+    if (ALL.length === 0){
+      resultCount.textContent = '';
+      list.innerHTML = '';
+      emptyState.style.display = 'block';
+      dlBtn.disabled = true;
+      return;
+    }
+
+    // expose filtered to download function
+    lastFiltered = filtered;
+    dlBtn.disabled = filtered.length === 0;
+
+    resultCount.textContent = filtered.length + ' order';
+    emptyState.style.display = filtered.length ? 'none' : 'block';
+    if (!filtered.length){
+      emptyState.querySelector('.stamp').textContent = 'Tidak Ditemukan';
+      emptyState.querySelector('p').innerHTML = 'Tidak ada data yang cocok dengan filter / pencarian saat ini.';
+    }
+
+    var statusLabels = {
+      'On Process': 'ON PROCESS',
+      'Terkirim': 'TERKIRIM',
+      'Delay': 'DELAY'
+    };
+
+    function buildCardHtml(r, idx){
+      var pClass = prioClass(r.prioritas);
+
+      // badge: shipped status takes priority for display, fallback to priority label
+      var badgeClass, badgeLabel;
+      if (r.statusPengiriman === 'Terkirim'){
+        badgeClass = 'Terkirim';
+        badgeLabel = 'TERKIRIM';
+      } else if (r.prioritas === 'LATE'){
+        badgeClass = 'LATE';
+        badgeLabel = 'OVERDUE';
+      } else if (r.prioritas === 'TODAY'){
+        badgeClass = 'TODAY';
+        badgeLabel = 'TODAY';
+      } else if (r.prioritas === 'NEXT DAY'){
+        badgeClass = 'NEXTDAY';
+        badgeLabel = 'NEXT DAY';
+      } else if (r.prioritas === '> 2 DAYS'){
+        badgeClass = 'FAR';
+        badgeLabel = statusLabels[r.statusPengiriman] || 'ON PROCESS';
+      } else {
+        badgeClass = 'unknown';
+        badgeLabel = statusLabels[r.statusPengiriman] || 'ON PROCESS';
+      }
+
+      // footer note: realisasi / lewat X hari / besok / hari ini / sisa hari
+      var footerNote, footerClass = '';
+      if (r.statusPengiriman === 'Terkirim'){
+        footerNote = 'Sudah terkirim';
+        footerClass = 'neutral';
+      } else if (r.sisaHari !== null && r.sisaHari < 0){
+        footerNote = 'Lewat ' + Math.abs(r.sisaHari) + ' hari';
+      } else if (r.sisaHari === 0){
+        footerNote = 'Jatuh tempo hari ini';
+      } else if (r.sisaHari === 1){
+        footerNote = 'Jatuh tempo besok';
+      } else if (r.sisaHari !== null){
+        footerNote = 'Sisa ' + r.sisaHari + ' hari';
+        footerClass = 'neutral';
+      } else {
+        footerNote = '—';
+        footerClass = 'neutral';
+      }
+
+      var extra = '<div class="card-extra">' +
+        '<div><b>NP Type:</b> ' + escapeHtml(r.npType || '—') + '</div>' +
+        '<div><b>Receipt No.:</b> ' + escapeHtml(r.receiptNo || '—') + '</div>' +
+        '<div><b>Alamat:</b> ' + escapeHtml(r.sellToAddress || '—') + (r.sellToAddress2 ? (', ' + escapeHtml(r.sellToAddress2)) : '') + (r.zipCode ? (' (' + escapeHtml(r.zipCode) + ')') : '') + '</div>' +
+        (r.comment ? ('<div><b>Comment:</b> ' + escapeHtml(r.comment) + '</div>') : '') +
+        '</div>';
+
+      var isAmsenCard = isAmsen(r);
+      var amsenClass = isAmsenCard ? ' amsen-match' : '';
+      var amsenTagHtml = isAmsenCard ? '<span class="amsen-tag">AMSEN</span>' : '';
+
+      var isMaksJamCard = isMaksJam(r);
+      var maksjamClass = isMaksJamCard ? ' maksjam-match' : '';
+      var maksjamTagHtml = isMaksJamCard ? '<span class="maksjam-tag"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 15 15"/></svg>MAKS JAM</span>' : '';
+
+      var terimamalamClass = (!isMaksJamCard) ? ' terimamalam-match' : '';
+      var terimamalamTagHtml = (!isMaksJamCard) ? '<span class="terimamalam-tag">🌙 MALAM</span>' : '';
+
+      return '<div class="ship-card prio-' + pClass + amsenClass + maksjamClass + terimamalamClass + '" data-idx="' + idx + '">' +
+        '<div class="card-top">' +
+          '<div>' +
+            '<div class="card-customer">' + escapeHtml(r.customerName || '—') + amsenTagHtml + maksjamTagHtml + terimamalamTagHtml + '</div>' +
+            '<div class="card-id">' + escapeHtml(r.npNo) + '</div>' +
+          '</div>' +
+          '<div class="badge badge-' + badgeClass + '">' + escapeHtml(badgeLabel) + '</div>' +
+        '</div>' +
+        '<div class="card-meta">' +
+          '<div class="meta-item"><div class="meta-lbl">Released</div><div class="meta-val">' + fmtDate(r.releasedDate) + '</div></div>' +
+          '<div class="meta-item"><div class="meta-lbl">Janji Kirim</div><div class="meta-val">' + fmtDate(r.planningDate) + '</div></div>' +
+          '<div class="meta-item"><div class="meta-lbl">Realisasi</div><div class="meta-val">' + (r.realisasiDate ? fmtDate(r.realisasiDate) : '—') + '</div></div>' +
+        '</div>' +
+        '<div class="card-footer">' +
+          '<span class="footer-note ' + footerClass + '">' + footerNote + '</span>' +
+          '<button class="detail-link toggle-btn" type="button">Detail</button>' +
+        '</div>' +
+        extra +
+      '</div>';
+    }
+
+    function bindToggles(container){
+      Array.prototype.forEach.call(container.querySelectorAll('.toggle-btn'), function(btn){
+        btn.addEventListener('click', function(){
+          var card = btn.closest('.ship-card');
+          card.classList.toggle('open');
+          btn.textContent = card.classList.contains('open') ? 'Tutup' : 'Detail';
+        });
+      });
+    }
+
+    var html = filtered.map(function(r, idx){
+      return buildCardHtml(r, idx);
+    }).join('');
+
+    list.innerHTML = html;
+    bindToggles(list);
+
+  } // end render()
+
+  // ---- PDF Download ----
+  function getPrioLabel(p){
+    if (p === 'LATE') return 'Overdue';
+    if (p === 'TODAY') return 'Today';
+    if (p === 'NEXT DAY') return 'Next Day';
+    if (p === '> 2 DAYS') return '> 2 Days';
+    return p || '—';
+  }
+
+  function downloadPDF(){
+    if (!lastFiltered || lastFiltered.length === 0) return;
+    var btn = document.getElementById('downloadBtn');
+    btn.disabled = true;
+    btn.textContent = 'Menyiapkan...';
+
+    try {
+      var jsPDF = window.jspdf.jsPDF;
+      var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+      // ---- header ----
+      var now = new Date();
+      var months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+      var dateStr = now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+      var timeStr = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
+
+      var tabLabel = activeTab === 'amsen' ? 'AMSEN' : activeTab === 'pengiriman' ? 'Pengiriman' : 'Semua Order';
+      var prioFilter = document.getElementById('filterPrio').value;
+      var dateFilter = document.getElementById('filterDate').value;
+      var searchFilter = document.getElementById('searchBox').value.trim();
+
+      // title bar background
+      doc.setFillColor(26, 47, 75);
+      doc.rect(0, 0, 297, 18, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('Monitoring Pengiriman Tallasacity', 10, 12);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Dicetak: ' + dateStr + ' ' + timeStr, 207, 12, { align: 'right' });
+
+      // subtitle
+      doc.setTextColor(26, 47, 75);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      var subtitleParts = ['Tab: ' + tabLabel, lastFiltered.length + ' order'];
+      if (prioFilter === 'MAKSJAM') subtitleParts.push('Filter: Maks Jam');
+      else if (prioFilter === 'TERIMAMALAM') subtitleParts.push('Filter: Terima Malam');
+      else if (prioFilter) subtitleParts.push('Filter: ' + prioFilter);
+      if (dateFilter) subtitleParts.push('Tanggal: ' + dateFilter);
+      if (searchFilter) subtitleParts.push('Cari: "' + searchFilter + '"');
+      doc.text(subtitleParts.join('  ·  '), 10, 24);
+
+      // ---- table ----
+      var head = [['No','NP No.','Customer','Prioritas','Released','Janji Kirim','Realisasi','Alamat','Comment','Status']];
+
+      var body = lastFiltered.map(function(r, i){
+        var addr = (r.sellToAddress || '—');
+        if (r.sellToAddress2) addr += ', ' + r.sellToAddress2;
+        if (r.zipCode) addr += ' (' + r.zipCode + ')';
+        return [
+          i + 1,
+          r.npNo || '—',
+          r.customerName || '—',
+          getPrioLabel(r.prioritas),
+          fmtDate(r.releasedDate),
+          fmtDate(r.planningDate),
+          r.realisasiDate ? fmtDate(r.realisasiDate) : '—',
+          addr,
+          r.comment || '—',
+          isMaksJam(r) ? 'Maks Jam' : 'Terima Malam'
+        ];
+      });
+
+      // priority color map for first-col accents
+      var prioColors = {
+        'Overdue':  [122, 31, 23],
+        'Today':    [192, 57, 43],
+        'Next Day': [194, 121, 14],
+        '> 2 Days': [62, 122, 82]
+      };
+
+      doc.autoTable({
+        head: head,
+        body: body,
+        startY: 28,
+        margin: { left: 7, right: 7 },
+        styles: {
+          font: 'helvetica',
+          fontSize: 7.5,
+          cellPadding: 2.5,
+          valign: 'middle',
+          overflow: 'linebreak',
+          textColor: [26, 47, 75],
+          lineColor: [224, 220, 211],
+          lineWidth: 0.2
+        },
+        headStyles: {
+          fillColor: [26, 47, 75],
+          textColor: 255,
+          fontStyle: 'bold',
+          fontSize: 8,
+          halign: 'center'
+        },
+        columnStyles: {
+          0:  { halign: 'center', cellWidth: 8 },
+          1:  { cellWidth: 28, fontStyle: 'bold' },
+          2:  { cellWidth: 38 },
+          3:  { halign: 'center', cellWidth: 18 },
+          4:  { halign: 'center', cellWidth: 20 },
+          5:  { halign: 'center', cellWidth: 20 },
+          6:  { halign: 'center', cellWidth: 20 },
+          7:  { cellWidth: 48 },
+          8:  { cellWidth: 40 },
+          9:  { halign: 'center', cellWidth: 22 }
+        },
+        alternateRowStyles: { fillColor: [245, 243, 239] },
+        didParseCell: function(data){
+          if (data.section === 'body' && data.column.index === 3){
+            var label = data.cell.raw;
+            var col = prioColors[label];
+            if (col){
+              data.cell.styles.textColor = col;
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+          if (data.section === 'body' && data.column.index === 9){
+            var sv = data.cell.raw;
+            if (sv === 'Maks Jam'){
+              data.cell.styles.textColor = [184, 92, 0];
+              data.cell.styles.fontStyle = 'bold';
+            } else if (sv === 'Terima Malam'){
+              data.cell.styles.textColor = [26, 74, 107];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        },
+        // footer with page numbers
+        didDrawPage: function(data){
+          var pageCount = doc.internal.getNumberOfPages();
+          doc.setFontSize(7);
+          doc.setTextColor(150);
+          doc.text(
+            'Halaman ' + data.pageNumber + ' / ' + pageCount,
+            data.settings.margin.left,
+            doc.internal.pageSize.height - 5
+          );
+        }
+      });
+
+      // filename
+      var tabSlug = activeTab === 'amsen' ? 'AMSEN' : activeTab === 'pengiriman' ? 'Pengiriman' : 'Semua';
+      var nowStr = now.getFullYear() + ('0'+(now.getMonth()+1)).slice(-2) + ('0'+now.getDate()).slice(-2);
+      doc.save('Monitoring_' + tabSlug + '_' + nowStr + '.pdf');
+
+    } catch(err) {
+      alert('Gagal membuat PDF: ' + err.message);
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg> Download PDF';
+  }
+
+  document.getElementById('downloadBtn').addEventListener('click', downloadPDF);
+
+  function updateLastUpdated(meta){
+    var box = document.getElementById('lastUpdated');
+    if (!meta){
+      box.textContent = '';
+      return;
+    }
+    var d = new Date(meta.savedAt);
+    var months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+    var dStr = d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+    var tStr = ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+    box.textContent = 'Data: ' + meta.fileName + ' · diimport ' + dStr + ' ' + tStr;
+  }
+
+  function autoLoadFromStorage(){
+    try{
+      var stored = localStorage.getItem('manifestData');
+      var metaRaw = localStorage.getItem('manifestMeta');
+      if (!stored) return false;
+      rawRows = JSON.parse(stored);
+      var meta = metaRaw ? JSON.parse(metaRaw) : null;
+      processRows();
+      if (meta){
+        filenameBox.textContent = meta.fileName;
+        statusMsg.textContent = 'Data otomatis dimuat dari penyimpanan browser (' + ALL.length + ' NP No. unik, sisa hari dihitung ulang sesuai tanggal hari ini). Tap "Pilih File (.xlsx)" untuk update data terbaru.';
+        statusMsg.className = 'status-msg ok';
+        updateLastUpdated(meta);
+        clearBtn.style.display = 'inline';
+      }
+      return true;
+    } catch(err){
+      return false;
+    }
+  }
+
+  if (!autoLoadFromStorage()){
+    render();
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Ongkir &amp; SDC</title>
+<style>
+  :root{
+    --navy:#0a2540;
+    --navy-700:#0d2f52;
+    --navy-600:#123a66;
+    --navy-500:#1a4d85;
+    --navy-100:#e8eef5;
+    --navy-50:#f4f7fb;
+    --white:#ffffff;
+    --ink:#0a2540;
+    --ink-soft:#5b7088;
+    --line:#dde6ef;
+    --good:#1e8e5a;
+    --bad:#d23f3f;
+    --shadow-1: 0 1px 2px rgba(10,37,64,.08), 0 1px 3px rgba(10,37,64,.10);
+    --shadow-2: 0 2px 6px rgba(10,37,64,.10), 0 4px 12px rgba(10,37,64,.08);
+    --shadow-3: 0 8px 24px rgba(10,37,64,.16);
+    --radius:16px;
+    --mono: "SF Mono", "Roboto Mono", Consolas, monospace;
+    --body: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--navy-50);
+    color:var(--ink);
+    font-family:var(--body);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+
+  .wrap{
+    max-width:920px;
+    margin:0 auto;
+    padding:0 0 48px;
+  }
+
+  /* ===== APP BAR ===== */
+  .appbar{
+    background:var(--navy);
+    color:var(--white);
+    padding:20px 20px;
+    box-shadow:var(--shadow-2);
+    position:sticky;
+    top:0;
+    z-index:10;
+  }
+  .appbar-inner{
+    max-width:920px;
+    margin:0 auto;
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .brand-mark{
+    width:42px; height:42px;
+    background:var(--white);
+    color:var(--navy);
+    border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:0.3px;
+    flex-shrink:0;
+  }
+  .appbar h1{
+    font-size:18px;
+    font-weight:500;
+    margin:0;
+    line-height:1.3;
+  }
+  .appbar p{
+    margin:1px 0 0;
+    color:rgba(255,255,255,.7);
+    font-size:12.5px;
+  }
+  .status-chip{
+    margin-left:auto;
+    background:rgba(255,255,255,.12);
+    color:#fff;
+    font-size:11px;
+    padding:5px 11px;
+    border-radius:20px;
+    white-space:nowrap;
+    font-weight:500;
+    letter-spacing:0.02em;
+  }
+
+  .content{padding:20px 16px 0;}
+
+  /* ===== CARD (Material) ===== */
+  .card{
+    background:var(--white);
+    border-radius:var(--radius);
+    padding:20px;
+    box-shadow:var(--shadow-1);
+    margin-bottom:20px;
+  }
+
+  .card-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:0 0 18px;
+  }
+  .card-title .dot{
+    width:28px;height:28px;
+    border-radius:50%;
+    background:var(--navy-100);
+    color:var(--navy);
+    font-size:12.5px;
+    font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .card-title h2{
+    font-size:16px;
+    margin:0;
+    font-weight:500;
+    color:var(--navy);
+  }
+
+  /* ===== FORM ===== */
+  .field{margin-bottom:18px;}
+  .field label{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--navy-600);
+    margin-bottom:7px;
+    letter-spacing:0.01em;
+  }
+  .field label .hint{
+    color:var(--ink-soft);
+    font-weight:400;
+    font-size:11.5px;
+  }
+  .input-row{position:relative;}
+  .prefix{
+    position:absolute;
+    left:14px; top:50%;
+    transform:translateY(-50%);
+    font-family:var(--mono);
+    color:var(--ink-soft);
+    font-size:14px;
+    pointer-events:none;
+  }
+  input[type=number], input[type=text]{
+    width:100%;
+    border:none;
+    border-bottom:2px solid var(--line);
+    background:var(--navy-50);
+    border-radius:10px 10px 0 0;
+    padding:13px 14px 11px;
+    font-family:var(--mono);
+    font-size:15px;
+    color:var(--ink);
+    transition: border-color .15s, background .15s;
+  }
+  input.has-prefix{padding-left:38px;}
+  input::placeholder{color:#a9b8c8; font-family:var(--body);}
+  input:focus{
+    outline:none;
+    border-bottom-color:var(--navy);
+    background:var(--navy-100);
+  }
+  .toggle-group{
+    display:flex;
+    gap:8px;
+  }
+  .toggle-btn{
+    flex:1;
+    padding:11px 10px;
+    border:1.5px solid var(--line);
+    background:var(--white);
+    border-radius:10px;
+    font-family:var(--body);
+    font-size:13.5px;
+    font-weight:500;
+    color:var(--ink-soft);
+    cursor:pointer;
+    transition: all .15s;
+  }
+  .toggle-btn.active{
+    background:var(--navy);
+    border-color:var(--navy);
+    color:#fff;
+    box-shadow:var(--shadow-1);
+  }
+  .toggle-btn:hover:not(.active){
+    border-color:var(--navy-500);
+    color:var(--navy-500);
+  }
+
+  .row-2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:520px){
+    .row-2{grid-template-columns:1fr;}
+  }
+
+  .btn-primary{
+    width:100%;
+    padding:15px;
+    background:var(--navy);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    font-family:var(--body);
+    font-weight:500;
+    font-size:15px;
+    cursor:pointer;
+    box-shadow:var(--shadow-2);
+    transition: box-shadow .15s, transform .1s;
+    letter-spacing:0.02em;
+  }
+  .btn-primary:hover{box-shadow:var(--shadow-3);}
+  .btn-primary:active{transform:translateY(1px);}
+
+  .btn-ghost{
+    width:100%;
+    padding:11px;
+    background:transparent;
+    border:1.5px solid var(--line);
+    color:var(--ink-soft);
+    border-radius:10px;
+    font-family:var(--body);
+    font-size:13px;
+    font-weight:500;
+    cursor:pointer;
+    margin-top:10px;
+  }
+  .btn-ghost:hover{border-color:var(--navy-500); color:var(--navy);}
+
+  /* ===== RESULT PANEL ===== */
+  .result-hero{
+    background:var(--navy);
+    color:#fff;
+    border-radius:14px;
+    padding:24px 22px;
+    margin-bottom:18px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:var(--shadow-2);
+  }
+  .result-hero::before{
+    content:"";
+    position:absolute;
+    right:-50px; top:-50px;
+    width:160px; height:160px;
+    background:var(--navy-500);
+    opacity:0.4;
+    border-radius:50%;
+  }
+  .result-hero .label{
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:rgba(255,255,255,.65);
+    margin-bottom:6px;
+    position:relative;
+  }
+  .result-hero .value{
+    font-size:42px;
+    font-weight:500;
+    line-height:1;
+    position:relative;
+  }
+  .result-hero .value.good{color:#6fd49a;}
+  .result-hero .value.bad{color:#ff9b8a;}
+  .result-hero .sub{
+    margin-top:8px;
+    font-size:13px;
+    color:rgba(255,255,255,.85);
+    position:relative;
+  }
+
+  .breakdown{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:10px;
+  }
+  @media (max-width:480px){
+    .breakdown{grid-template-columns:1fr;}
+  }
+  .bd-item{
+    border-radius:10px;
+    padding:13px 14px;
+    background:var(--navy-50);
+  }
+  .bd-item .k{
+    font-size:11px;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    margin-bottom:4px;
+  }
+  .bd-item .v{
+    font-family:var(--mono);
+    font-size:16px;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .bd-item.full{grid-column:1 / -1;}
+  .bd-item.accent{background:var(--navy-100);}
+  .bd-item.accent .v{color:var(--navy);}
+
+  .formula-note{
+    margin-top:16px;
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--ink-soft);
+    line-height:1.7;
+    border-top:1px solid var(--line);
+    padding-top:14px;
+  }
+  .formula-note b{color:var(--navy);}
+
+  .fixed-note{
+    margin-bottom:18px;
+    padding:14px 16px;
+    border-radius:12px;
+    background:var(--navy-50);
+    border-left:4px solid var(--navy);
+  }
+  .fixed-note-title{
+    display:block;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    color:var(--ink-soft);
+    margin-bottom:10px;
+    font-weight:600;
+  }
+  .fixed-note-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+  }
+  .fixed-note-grid div{display:flex; flex-direction:column; gap:3px;}
+  .fixed-note-grid span{font-size:11px; color:var(--ink-soft);}
+  .fixed-note-grid b{
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--navy);
+  }
+  @media (max-width:520px){
+    .fixed-note-grid{grid-template-columns:1fr;}
+  }
+
+  footer{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:11.5px;
+    margin-top:24px;
+    padding:0 16px;
+  }
+
+  ::selection{background:var(--navy); color:#fff;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="appbar">
+  <div class="appbar-inner">
+    <div class="brand-mark">SDC</div>
+    <div>
+      <h1>Hitung Ongkir &amp; SDC</h1>
+      <p>Kalkulator biaya pengiriman &amp; margin per perjalanan</p>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="content">
+
+    <!-- RESULT -->
+    <div class="card">
+      <div class="card-title">
+        <h2>Hasil Perhitungan</h2>
+      </div>
+
+      <div class="result-hero">
+        <div class="label">SDC (Margin Selisih Ongkir)</div>
+        <div class="value" id="resultSdc">0.00%</div>
+        <div class="sub" id="resultSdcSub">Isi data di bawah untuk melihat hasil</div>
+      </div>
+
+      <div class="breakdown">
+        <div class="bd-item">
+          <div class="k">Helper</div>
+          <div class="v" id="bdHelper">Rp 0</div>
+        </div>
+        <div class="bd-item">
+          <div class="k">By KM</div>
+          <div class="v" id="bdByKm">Rp 0</div>
+        </div>
+        <div class="bd-item accent full">
+          <div class="k">Cost Delivery (Total)</div>
+          <div class="v" id="bdCostDelivery">Rp 0</div>
+        </div>
+        <div class="bd-item full">
+          <div class="k">Selisih (Cost Delivery − Ongkir Customer)</div>
+          <div class="v" id="bdSelisih">Rp 0</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- INPUT FORM -->
+    <div class="card">
+      <div class="card-title">
+        <h2>Input Perjalanan</h2>
+      </div>
+
+      <div class="field">
+        <label>Ritase <span class="hint">apakah perjalanan ke-1 hari ini?</span></label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" data-ritase="1" id="ritase1">Rit 1 (+Helper)</button>
+          <button class="toggle-btn" data-ritase="0" id="ritase0">Rit Lanjutan</button>
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label>Value Mobil <span class="hint">harga unit</span></label>
+          <div class="input-row">
+            <span class="prefix">Rp</span>
+            <input type="text" inputmode="decimal" id="valueMobil" class="has-prefix" placeholder="0">
+          </div>
+        </div>
+        <div class="field">
+          <label>Total KM <span class="hint">jarak tempuh</span></label>
+          <div class="input-row">
+            <input type="text" inputmode="decimal" id="totalKm" placeholder="0">
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Ongkir Customer <span class="hint">tarif yang dibayar customer</span></label>
+        <div class="input-row">
+          <span class="prefix">Rp</span>
+          <input type="text" inputmode="decimal" id="ongkirCustomer" class="has-prefix" placeholder="0">
+        </div>
+      </div>
+
+      <div class="fixed-note">
+        <span class="fixed-note-title">Nilai tetap (tidak berubah)</span>
+        <div class="fixed-note-grid">
+          <div><span>Biaya Awal</span><b id="fixedBiayaAwal">Rp 175,000</b></div>
+          <div><span>Tarif per KM</span><b id="fixedTarifKm">Rp 13,000</b></div>
+          <div><span>Helper Rit 1</span><b id="fixedHelper">Rp 75,000</b></div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="calcBtn">Hitung</button>
+      <button class="btn-ghost" id="resetBtn">Kosongkan input</button>
+    </div>
+
+  </div>
+
+  <footer>©<span id="footerYear"></span> Powered by Support Back</footer>
+
+</div>
+
+<script>
+(function(){
+  // Nilai tetap — tidak berubah, tidak ditampilkan sebagai input
+  const FIXED = {
+    biayaAwal: 175000,
+    tarifKm: 13000,
+    helperAmount: 75000,
+  };
+
+  const els = {
+    ritase1: document.getElementById('ritase1'),
+    ritase0: document.getElementById('ritase0'),
+    valueMobil: document.getElementById('valueMobil'),
+    totalKm: document.getElementById('totalKm'),
+    ongkirCustomer: document.getElementById('ongkirCustomer'),
+    calcBtn: document.getElementById('calcBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    resultSdc: document.getElementById('resultSdc'),
+    resultSdcSub: document.getElementById('resultSdcSub'),
+    bdHelper: document.getElementById('bdHelper'),
+    bdByKm: document.getElementById('bdByKm'),
+    bdCostDelivery: document.getElementById('bdCostDelivery'),
+    bdSelisih: document.getElementById('bdSelisih'),
+    fixedBiayaAwal: document.getElementById('fixedBiayaAwal'),
+    fixedTarifKm: document.getElementById('fixedTarifKm'),
+    fixedHelper: document.getElementById('fixedHelper'),
+  };
+
+  let ritase = 1;
+
+  function fmtRp(n){
+    if (isNaN(n)) n = 0;
+    const sign = n < 0 ? '-' : '';
+    return sign + 'Rp ' + Math.round(Math.abs(n)).toLocaleString('en-US');
+  }
+  function fmtPct(n){
+    if (isNaN(n)) return '0.00%';
+    return (n*100).toFixed(2) + '%';
+  }
+
+  // Menerima angka dengan koma ATAU titik sebagai pemisah ribuan, contoh: "30,000,000" atau "30.000.000"
+  function parseNum(str){
+    if (typeof str !== 'string') return parseFloat(str) || 0;
+    const cleaned = str.replace(/[.,](?=\d{3}(?:[.,]|$))/g, '').replace(/[^0-9.\-]/g, '');
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? 0 : n;
+  }
+
+  // Format ulang nilai input agar tampil rapi dengan koma ribuan secara live saat mengetik,
+  // sambil menjaga posisi kursor tetap wajar.
+  function formatFieldLive(input){
+    const raw = input.value;
+    if (raw.trim() === ''){ return; }
+
+    const caretFromEnd = raw.length - input.selectionStart;
+    const n = parseNum(raw);
+    const formatted = isNaN(n) ? '' : Math.round(n).toLocaleString('en-US');
+
+    input.value = formatted;
+
+    const newPos = Math.max(0, formatted.length - caretFromEnd);
+    input.setSelectionRange(newPos, newPos);
+  }
+
+  function getInputs(){
+    return {
+      ritase: ritase,
+      valueMobil: parseNum(els.valueMobil.value),
+      totalKm: parseNum(els.totalKm.value),
+      biayaAwal: FIXED.biayaAwal,
+      tarifKm: FIXED.tarifKm,
+      helperAmount: FIXED.helperAmount,
+      ongkirCustomer: parseNum(els.ongkirCustomer.value),
+    };
+  }
+
+  function compute(inp){
+    const helper = inp.ritase === 1 ? inp.helperAmount : 0;
+    const byKm = inp.totalKm * inp.tarifKm;
+    const costDelivery = inp.biayaAwal + helper + byKm;
+    const selisih = costDelivery - inp.ongkirCustomer;
+    const sdc = inp.valueMobil === 0 ? null : selisih / inp.valueMobil;
+    return { helper, byKm, costDelivery, selisih, sdc };
+  }
+
+  function renderResult(){
+    const inp = getInputs();
+    const r = compute(inp);
+
+    els.bdHelper.textContent = fmtRp(r.helper);
+    els.bdByKm.textContent = fmtRp(r.byKm);
+    els.bdCostDelivery.textContent = fmtRp(r.costDelivery);
+    els.bdSelisih.textContent = fmtRp(r.selisih);
+
+    const valueEl = els.resultSdc;
+    valueEl.classList.remove('good','bad');
+
+    if (r.sdc === null){
+      valueEl.textContent = '—';
+      els.resultSdcSub.textContent = 'Value Mobil tidak boleh 0';
+    } else {
+      valueEl.textContent = fmtPct(r.sdc);
+      if (r.sdc > 0){
+        valueEl.classList.add('bad');
+        els.resultSdcSub.textContent = 'Cost Delivery lebih besar dari Ongkir Customer — perjalanan ini merugi';
+      } else if (r.sdc < 0) {
+        valueEl.classList.add('good');
+        els.resultSdcSub.textContent = 'Ongkir Customer menutup Cost Delivery — perjalanan ini untung';
+      } else {
+        els.resultSdcSub.textContent = 'Cost Delivery sama dengan Ongkir Customer — balik modal';
+      }
+    }
+    return { inp, r };
+  }
+
+  function setRitase(val){
+    ritase = val;
+    els.ritase1.classList.toggle('active', val === 1);
+    els.ritase0.classList.toggle('active', val === 0);
+    renderResult();
+  }
+
+  els.ritase1.addEventListener('click', () => setRitase(1));
+  els.ritase0.addEventListener('click', () => setRitase(0));
+
+  [els.valueMobil, els.totalKm, els.ongkirCustomer].forEach(input => {
+    input.addEventListener('input', () => { formatFieldLive(input); renderResult(); });
+  });
+
+  els.calcBtn.addEventListener('click', renderResult);
+
+  els.resetBtn.addEventListener('click', () => {
+    els.valueMobil.value = '';
+    els.totalKm.value = '';
+    els.ongkirCustomer.value = '';
+    setRitase(1);
+  });
+
+  function renderFixedNote(){
+    els.fixedBiayaAwal.textContent = fmtRp(FIXED.biayaAwal);
+    els.fixedTarifKm.textContent = fmtRp(FIXED.tarifKm);
+    els.fixedHelper.textContent = fmtRp(FIXED.helperAmount);
+  }
+
+  renderFixedNote();
+  renderResult();
+  document.getElementById('footerYear').textContent = new Date().getFullYear();
+})();
+</script>
+
+</body>
+</html>

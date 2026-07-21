@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Ritase Pengiriman — Mitra10 Tallasa City Makassar</title>
+<style>
+:root{
+  /* ===== MATERIAL DESIGN — WHITE & NAVY THEME ===== */
+  --navy-950:#0d1b2a;
+  --navy-900:#13263b;
+  --navy-800:#1b3a5c;
+  --navy-700:#234870;
+  --navy-600:#2c5784;
+  --accent:#2962ff;
+  --accent-soft:#5b85ff;
+  --surface:#ffffff;
+  --surface-alt:#f4f6f9;
+  --surface-sunken:#eaeef3;
+  --ink:#16233a;
+  --ink-dim:#5b6b85;
+  --ink-faint:#8b97aa;
+  --ok:#1e9e6b;
+  --warn:#c97a16;
+  --bad:#d3403f;
+  --line:rgba(19,38,59,0.12);
+  --line-soft:rgba(19,38,59,0.08);
+  --radius:10px;
+  --shadow-1:0 1px 2px rgba(16,30,54,0.06), 0 1px 3px rgba(16,30,54,0.08);
+  --shadow-2:0 2px 6px rgba(16,30,54,0.08), 0 4px 12px rgba(16,30,54,0.06);
+  --shadow-3:0 8px 24px rgba(16,30,54,0.14);
+  --font-display:'Oswald','Arial Narrow',sans-serif;
+  --font-body:'Segoe UI',Arial,sans-serif;
+  --font-mono:'Consolas','Courier New',monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:var(--surface-alt);
+  color:var(--ink);
+  font-family:var(--font-body);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+@font-face{
+  font-family:'Oswald';
+  src:local('Arial Narrow Bold');
+}
+
+/* ===== TOPBAR ===== */
+.topbar{
+  background:var(--navy-900);
+  border-bottom:none;
+  padding:14px 24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+  box-shadow:var(--shadow-2);
+}
+.topbar-left{display:flex;align-items:center;gap:14px;}
+.topbar-logo{
+  width:40px;height:40px;border-radius:8px;
+  background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:700;font-size:18px;color:var(--navy-900);
+  flex-shrink:0;
+  box-shadow:var(--shadow-1);
+}
+.topbar-title{font-family:var(--font-display);font-weight:600;font-size:18px;letter-spacing:0.5px;text-transform:uppercase;color:#ffffff;}
+.topbar-sub{font-size:11px;color:rgba(255,255,255,0.65);margin-top:2px;letter-spacing:0.3px;}
+.layout-toggle{
+  display:flex;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:999px;padding:4px;gap:4px;
+}
+.layout-btn{
+  border:none;background:transparent;color:rgba(255,255,255,0.7);font-family:var(--font-display);
+  font-size:12px;letter-spacing:0.4px;text-transform:uppercase;padding:7px 16px;border-radius:999px;
+  cursor:pointer;transition:all .2s;
+}
+.layout-btn.active{background:var(--surface);color:var(--navy-900);font-weight:600;}
+.layout-btn:not(.active):hover{color:#ffffff;}
+.topbar-stats{display:flex;gap:18px;align-items:center;}
+.tstat{text-align:right;}
+.tstat-num{font-family:var(--font-display);font-size:18px;color:#ffffff;font-weight:600;}
+.tstat-label{font-size:10px;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:0.4px;}
+
+/* ===== SPLIT VIEW LAYOUT ===== */
+.split-wrap{
+  display:flex;
+  height:calc(100vh - 73px);
+  overflow:hidden;
+}
+.panel-left{
+  width:34%;
+  min-width:320px;
+  max-width:34%;
+  overflow-y:auto;
+  overflow-x:hidden;
+  border-right:1px solid var(--line);
+  background:var(--surface-alt);
+  flex-shrink:0;
+}
+.panel-left.collapsed{
+  width:0 !important;
+  min-width:0 !important;
+  border-right:none;
+  overflow:hidden;
+}
+.panel-left-inner{padding:14px;min-width:300px;}
+.panel-resizer{
+  width:1px;background:var(--line);flex-shrink:0;position:relative;z-index:10;
+}
+.panel-right{
+  flex:1;overflow-y:auto;min-width:0;
+  background:var(--surface-alt);
+}
+.panel-right-inner{padding:18px 24px 80px;}
+
+/* ===== FILTER BAR ===== */
+.filterbar{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;
+  box-shadow:var(--shadow-1);
+}
+.filt-group{display:flex;flex-direction:column;gap:5px;}
+.filt-label{font-size:10.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.5px;font-family:var(--font-display);}
+.filt-group input, .filt-group select{
+  background:var(--surface);border:1px solid var(--line);color:var(--ink);
+  padding:8px 10px;border-radius:6px;font-size:13px;font-family:var(--font-body);min-width:150px;
+}
+.filt-group input:focus, .filt-group select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(41,98,255,0.12);}
+.filt-group input[type="date"]{color-scheme:light;}
+.btn{
+  background:var(--accent);color:#ffffff;border:none;border-radius:6px;
+  padding:9px 18px;font-family:var(--font-display);font-size:12.5px;letter-spacing:0.4px;
+  text-transform:uppercase;cursor:pointer;font-weight:600;transition:all .15s;
+  box-shadow:var(--shadow-1);
+}
+.btn:hover{background:var(--accent-soft);transform:translateY(-1px);box-shadow:var(--shadow-2);}
+.btn-ghost{
+  background:var(--surface);color:var(--navy-800);border:1px solid var(--line);
+  border-radius:6px;padding:9px 16px;font-family:var(--font-display);font-size:12.5px;
+  letter-spacing:0.4px;text-transform:uppercase;cursor:pointer;
+}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);background:var(--surface-alt);}
+.filt-spacer{flex:1;}
+.search-box{position:relative;}
+.search-box input{padding-left:30px;min-width:220px;}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--ink-faint);font-size:13px;pointer-events:none;}
+
+/* ===== SUMMARY CHIPS ===== */
+.chiprow{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.chip{
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  padding:10px 16px;display:flex;align-items:center;gap:10px;
+  box-shadow:var(--shadow-1);
+}
+.chip-dot{width:8px;height:8px;border-radius:50%;}
+.chip-val{font-family:var(--font-display);font-weight:600;font-size:15px;color:var(--ink);}
+.chip-lbl{font-size:11px;color:var(--ink-faint);}
+
+/* ===== TABLE / CUSTOMER GROUPS ===== */
+.pool-layout{display:grid;grid-template-columns:1fr;gap:8px;}
+.cust-group{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;margin-bottom:6px;
+  box-shadow:var(--shadow-1);
+}
+.cust-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 14px;background:var(--surface);cursor:grab;
+  border-bottom:1px solid transparent;gap:8px;
+}
+.cust-head.dragging{opacity:0.35;}
+.cust-head:hover{background:var(--surface-alt);}
+.cust-head.open{border-bottom-color:var(--line);}
+.cust-head-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1;overflow:hidden;}
+.cust-head-left > div{min-width:0;overflow:hidden;}
+.cust-caret{color:var(--accent);font-size:11px;transition:transform .2s;}
+.cust-head.open .cust-caret{transform:rotate(90deg);}
+.cust-name{font-family:var(--font-display);font-size:14.5px;color:var(--ink);font-weight:500;letter-spacing:0.2px;}
+.cust-compass{
+  font-size:10px;font-family:var(--font-display);font-weight:600;letter-spacing:0.2px;
+  background:rgba(41,98,255,0.1);color:var(--accent);border:1px solid rgba(41,98,255,0.25);
+  border-radius:999px;padding:1px 7px;white-space:nowrap;
+}
+.cust-addr{font-size:11.5px;color:var(--ink-faint);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cust-meta{display:flex;gap:10px;align-items:center;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
+.cust-badge{
+  font-size:10.5px;padding:3px 9px;border-radius:999px;font-family:var(--font-display);
+  letter-spacing:0.3px;text-transform:uppercase;font-weight:600;
+}
+.badge-geo-ok{background:rgba(30,158,107,0.12);color:var(--ok);border:1px solid rgba(30,158,107,0.3);}
+.badge-geo-bad{background:rgba(211,64,63,0.1);color:var(--bad);border:1px solid rgba(211,64,63,0.3);}
+.cust-count{font-size:12px;color:var(--ink-dim);font-family:var(--font-mono);}
+.cust-weight{font-size:12.5px;color:var(--accent);font-family:var(--font-display);font-weight:600;}
+
+.cust-body{display:none;}
+.cust-body.open{display:block;}
+table.itemtbl{width:100%;border-collapse:collapse;font-size:10.8px;table-layout:fixed;}
+table.itemtbl thead th{
+  background:var(--surface-sunken);color:var(--ink-faint);text-align:left;padding:5px 5px;
+  font-size:8.8px;text-transform:uppercase;letter-spacing:0.2px;font-family:var(--font-display);
+  border-bottom:1px solid var(--line);position:sticky;top:0;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+table.itemtbl tbody tr{
+  border-bottom:1px solid var(--line-soft);cursor:grab;transition:background .12s;
+}
+table.itemtbl tbody tr:hover{background:rgba(41,98,255,0.06);}
+table.itemtbl tbody tr.dragging{opacity:0.35;}
+table.itemtbl tbody tr.placed{opacity:0.45;}
+table.itemtbl td{padding:4px 5px;color:var(--ink-dim);vertical-align:top;word-break:break-word;overflow-wrap:break-word;}
+table.itemtbl td.np{color:var(--ink);font-family:var(--font-mono);font-size:11px;}
+table.itemtbl td.qty{text-align:right;font-family:var(--font-mono);color:var(--ink);}
+table.itemtbl td.wt{text-align:right;font-family:var(--font-mono);color:var(--accent);}
+.drag-handle{color:var(--ink-faint);margin-right:6px;font-size:13px;}
+.np-type-tag{font-size:9.5px;padding:2px 6px;border-radius:4px;background:var(--surface-sunken);color:var(--ink-faint);white-space:nowrap;}
+.placed-tag{font-size:9.5px;padding:2px 7px;border-radius:4px;background:rgba(41,98,255,0.12);color:var(--accent);font-family:var(--font-display);text-transform:uppercase;}
+
+.empty-state{
+  text-align:center;padding:60px 20px;color:var(--ink-faint);
+}
+.empty-state .big{font-size:40px;margin-bottom:10px;opacity:0.5;}
+
+/* ===== PANEL KANAN: TOP ROW (depot / weight ref / unassigned) ===== */
+.s2-top-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;margin-bottom:18px;}
+.depot-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;
+  box-shadow:var(--shadow-1);
+}
+.depot-card h3{margin:0 0 10px;font-family:var(--font-display);font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;}
+.depot-row{display:flex;justify-content:space-between;font-size:11.5px;padding:4px 0;color:var(--ink-dim);border-bottom:1px solid var(--line-soft);}
+.depot-row b{color:var(--ink);font-weight:500;}
+
+.weightref-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;
+  max-height:220px;overflow-y:auto;
+  box-shadow:var(--shadow-1);
+}
+.weightref-card h3{margin:0;font-family:var(--font-display);font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;}
+.card-caret{color:var(--accent);font-size:10px;transition:transform .2s;}
+.collapsible-card.open .card-caret{transform:rotate(90deg);}
+.collapsible-card .card-collapsible{display:none;margin-top:8px;}
+.collapsible-card.open .card-collapsible{display:block;}
+.weightref-note{font-size:10.5px;color:var(--ink-faint);margin-bottom:8px;line-height:1.4;}
+.wref-row{display:grid;grid-template-columns:1fr 60px 44px;gap:6px;align-items:center;padding:4px 0;}
+.wref-row label{font-size:11px;color:var(--ink-dim);}
+.wref-row input{
+  background:var(--surface-alt);border:1px solid var(--line);color:var(--accent);
+  padding:4px 6px;border-radius:5px;font-size:11px;text-align:right;width:100%;font-family:var(--font-mono);
+}
+.wref-row span{font-size:10px;color:var(--ink-faint);}
+
+.unassigned-card{
+  background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius);padding:14px;
+  min-height:90px;max-height:220px;display:flex;flex-direction:column;
+  box-shadow:var(--shadow-1);
+}
+.unassigned-card h3{margin:0 0 8px;font-family:var(--font-display);font-size:12px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:0.4px;display:flex;justify-content:space-between;}
+.unassigned-card.dragover{border-color:var(--accent);background:rgba(41,98,255,0.04);}
+.unassigned-list{display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1;}
+.mini-item{
+  background:var(--surface-alt);border:1px solid var(--line);border-radius:6px;padding:8px 10px;
+  font-size:11.5px;cursor:grab;
+}
+.mini-item:hover{border-color:var(--accent);box-shadow:var(--shadow-1);}
+.mini-item .mi-name{color:var(--ink);font-weight:500;}
+.mini-item .mi-meta{color:var(--ink-faint);font-size:10.5px;margin-top:2px;}
+
+.fleet-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.fleet-toolbar h2{font-family:var(--font-display);font-size:17px;color:var(--ink);margin:0;text-transform:uppercase;letter-spacing:0.4px;}
+.fleet-grid{display:grid;grid-template-columns:1fr;gap:18px;}
+
+.vehicle-card{
+  background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+  transition:border-color .15s, box-shadow .15s;
+  box-shadow:var(--shadow-1);
+}
+.vehicle-card.dragover{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset;}
+.vehicle-card.over-capacity{border-color:var(--bad);}
+.vh-head{padding:12px 14px;background:var(--surface-sunken);display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.vh-name-row{display:flex;align-items:center;gap:8px;}
+.vh-icon{font-size:18px;}
+.vh-name{font-family:var(--font-display);font-size:14.5px;color:var(--ink);font-weight:600;background:transparent;border:none;border-bottom:1px dashed transparent;width:140px;}
+.vh-name:focus{outline:none;border-bottom-color:var(--accent);}
+.vh-cap-input{
+  background:var(--surface);border:1px solid var(--line);color:var(--accent);
+  width:62px;padding:4px 6px;border-radius:5px;font-size:11.5px;text-align:right;font-family:var(--font-mono);
+}
+.vh-field-input{
+  background:var(--surface);border:1px solid var(--line);color:var(--ink);
+  padding:4px 7px;border-radius:5px;font-size:11.5px;font-family:var(--font-body);
+}
+.vh-field-input:focus,.vh-cap-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(41,98,255,0.12);}
+.vh-cap-label{font-size:10px;color:var(--ink-faint);}
+.vh-remove{background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:15px;padding:2px 6px;}
+.vh-remove:hover{color:var(--bad);}
+.vh-pdf-btn{
+  background:var(--navy-800);color:#ffffff;border:none;border-radius:5px;
+  padding:5px 11px;font-family:var(--font-display);font-size:11px;letter-spacing:0.3px;
+  text-transform:uppercase;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;
+}
+.vh-pdf-btn:hover{background:var(--navy-700);transform:translateY(-1px);box-shadow:var(--shadow-1);}
+
+.vh-gauge-wrap{padding:10px 14px 4px;}
+.vh-gauge-track{height:8px;background:var(--surface-sunken);border-radius:4px;overflow:hidden;}
+.vh-gauge-fill{height:100%;border-radius:4px;transition:width .25s;background:linear-gradient(90deg,var(--ok),var(--accent));}
+.vh-gauge-fill.warn{background:linear-gradient(90deg,var(--accent),var(--warn));}
+.vh-gauge-fill.over{background:linear-gradient(90deg,var(--warn),var(--bad));}
+.vh-gauge-label{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-dim);margin-top:5px;font-family:var(--font-mono);}
+.vh-gauge-label b{color:var(--ink);}
+
+.vh-drop{min-height:60px;padding:10px 14px;}
+.vh-stop{
+  display:flex;align-items:flex-start;gap:8px;background:var(--surface-alt);border-radius:6px;
+  padding:8px 10px;margin-bottom:6px;border-left:3px solid var(--accent);
+  cursor:grab;transition:transform .12s, box-shadow .12s, opacity .12s;
+}
+.vh-stop:active{cursor:grabbing;}
+.vh-stop.stop-dragging{opacity:0.35;}
+.vh-stop.stop-dragover{box-shadow:0 0 0 2px var(--accent) inset;transform:translateY(-1px);}
+.vh-stop-num{
+  font-family:var(--font-display);font-size:11px;color:#ffffff;background:var(--accent);
+  width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-weight:700;
+}
+.vh-stop.stop-origin .vh-stop-num{background:var(--ok);}
+.vh-stop-drag-handle{color:var(--ink-faint);font-size:13px;line-height:20px;flex-shrink:0;cursor:grab;align-self:center;}
+.vh-stop-info{flex:1;min-width:0;}
+.vh-stop-name{font-size:12.5px;color:var(--ink);font-weight:500;}
+.vh-stop-addr{font-size:10.5px;color:var(--ink-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vh-stop-meta{display:flex;gap:8px;margin-top:3px;font-size:10px;color:var(--ink-dim);font-family:var(--font-mono);}
+.vh-stop-remove{background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:14px;flex-shrink:0;}
+.vh-stop-remove:hover{color:var(--bad);}
+.vh-stop.no-geo{border-left-color:var(--bad);}
+.vh-empty-drop{
+  border:1px dashed var(--line);border-radius:6px;padding:18px;text-align:center;
+  color:var(--ink-faint);font-size:11.5px;
+}
+
+.vh-route-info{
+  padding:10px 14px;background:var(--surface-sunken);border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
+}
+.vh-route-stats{display:flex;gap:14px;font-size:11px;color:var(--ink-dim);}
+.vh-route-stats b{color:var(--accent);font-family:var(--font-mono);}
+.vh-maps-btn{
+  font-size:11px;background:var(--surface);color:var(--navy-800);border:1px solid var(--line);
+  padding:6px 12px;border-radius:5px;text-decoration:none;font-family:var(--font-display);
+  letter-spacing:0.3px;text-transform:uppercase;display:inline-flex;align-items:center;gap:5px;
+}
+.vh-maps-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+.add-vehicle-card{
+  display:flex;align-items:center;justify-content:center;min-height:56px;
+  border:2px dashed var(--line);border-radius:var(--radius);cursor:pointer;
+  color:var(--ink-faint);font-family:var(--font-display);text-transform:uppercase;
+  letter-spacing:0.4px;font-size:13px;transition:all .15s;
+  background:var(--surface);padding:14px;
+}
+.add-vehicle-card:hover{border-color:var(--accent);color:var(--accent);background:rgba(41,98,255,0.04);}
+
+/* route mini-map: live Google Maps embed (no API key) — enlarged */
+.route-map-wrap{padding:10px 14px 0;}
+iframe.route-iframe{
+  width:100%;height:520px;border-radius:6px;border:1px solid var(--line);
+  background:var(--surface-sunken);display:block;
+}
+.route-iframe-empty{
+  width:100%;height:520px;border-radius:6px;border:1px dashed var(--line);
+  background:var(--surface-sunken);display:flex;align-items:center;justify-content:center;
+  color:var(--ink-faint);font-size:11.5px;text-align:center;padding:10px;
+}
+
+/* Side-by-side: map kiri, stop list kanan */
+.vh-body-split{
+  display:grid;
+  grid-template-columns:1fr 340px;
+  gap:0;
+  align-items:stretch;
+}
+.vh-map-col{
+  padding:12px 14px 0;
+  border-right:1px solid var(--line-soft);
+}
+.vh-map-col iframe.route-iframe{
+  width:100%;height:480px;
+}
+.vh-map-col .route-iframe-empty{
+  width:100%;height:480px;
+}
+.vh-stops-col{
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.vh-drop{min-height:80px;padding:10px 12px;flex:1;overflow-y:auto;max-height:480px;}
+
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+
+@media print{
+  .topbar, .filterbar, .add-vehicle-card, .vh-remove, .vh-stop-remove{display:none !important;}
+}
+
+@media (max-width:1000px){
+  .split-wrap{flex-direction:column;height:auto;overflow:visible;}
+  .panel-left{width:100% !important;max-width:100%;border-right:none;border-bottom:1px solid var(--line);}
+  .panel-resizer{display:none;}
+  .panel-right{overflow:visible;}
+  .s2-top-row{grid-template-columns:1fr;}
+  .filterbar{flex-direction:column;align-items:stretch;}
+  .vh-body-split{grid-template-columns:1fr;}
+  .vh-map-col{border-right:none;border-bottom:1px solid var(--line-soft);}
+  .vh-drop{max-height:none;}
+}/* ===== MODAL KONFIRMASI KAPASITAS ===== */
+.cap-modal-overlay{
+  position:fixed;inset:0;background:rgba(13,27,42,0.55);
+  display:flex;align-items:center;justify-content:center;z-index:1000;
+}
+.cap-modal-box{
+  background:var(--surface);border-radius:var(--radius);padding:22px 24px;
+  width:340px;max-width:90vw;box-shadow:var(--shadow-3);
+}
+.cap-modal-title{font-family:var(--font-display);font-size:14.5px;color:var(--bad);font-weight:600;
+  text-transform:uppercase;letter-spacing:0.3px;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.cap-modal-msg{font-size:13px;color:var(--ink-dim);line-height:1.5;margin-bottom:18px;}
+.cap-modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+.cap-modal-btn{
+  border:none;border-radius:6px;padding:8px 18px;font-family:var(--font-display);
+  font-size:12.5px;letter-spacing:0.3px;text-transform:uppercase;cursor:pointer;font-weight:600;
+}
+.cap-modal-btn.batal{background:var(--surface-sunken);color:var(--ink-dim);}
+.cap-modal-btn.batal:hover{background:var(--surface-alt);}
+.cap-modal-btn.lanjut{background:var(--bad);color:#ffffff;}
+.cap-modal-btn.lanjut:hover{background:#b8302f;}
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">M10</div>
+    <div>
+      <div class="topbar-title">Dashboard Ritase Pengiriman</div>
+      <div class="topbar-sub">Mitra10 Tallasa City Makassar &middot; Support Back TLC</div>
+    </div>
+  </div>
+  <div class="layout-toggle">
+    <button class="layout-btn active" id="btnCollapseLeft" onclick="toggleLeftPanel()" title="Sembunyikan/tampilkan panel data">&#8676; Data Outstanding</button>
+  </div>
+  <div class="topbar-stats">
+    <div class="tstat"><div class="tstat-num" id="topTotalNP">0</div><div class="tstat-label">NP Outstanding</div></div>
+    <div class="tstat"><div class="tstat-num" id="topTotalCust">0</div><div class="tstat-label">Customer</div></div>
+    <div class="tstat"><div class="tstat-num" id="topAssigned">0</div><div class="tstat-label">Sudah Dijadwalkan</div></div>
+  </div>
+</div>
+
+<!-- ======================= SPLIT VIEW: KIRI = DATA POOL, KANAN = ARMADA ======================= -->
+<div class="split-wrap" id="splitWrap">
+
+  <!-- ---------- PANEL KIRI: DATA OUTSTANDING ---------- -->
+  <div class="panel-left" id="panelLeft">
+    <div class="panel-left-inner">
+
+      <div class="filterbar">
+        <div class="filt-group">
+          <label class="filt-label">Planning Delivery — Dari</label>
+          <input type="date" id="filtDateFrom">
+        </div>
+        <div class="filt-group">
+          <label class="filt-label">Planning Delivery — Sampai</label>
+          <input type="date" id="filtDateTo">
+        </div>
+        <div class="filt-group">
+          <label class="filt-label">Kategori</label>
+          <select id="filtCategory"><option value="">Semua Kategori</option></select>
+        </div>
+        <div class="filt-group">
+          <label class="filt-label">Status Koordinat</label>
+          <select id="filtGeo">
+            <option value="">Semua</option>
+            <option value="ok">Ada Koordinat</option>
+            <option value="bad">Tanpa Koordinat</option>
+          </select>
+        </div>
+        <div class="filt-group">
+          <label class="filt-label">Status Penjadwalan</label>
+          <select id="filtPlaced">
+            <option value="">Semua</option>
+            <option value="no">Belum Dijadwalkan</option>
+            <option value="yes">Sudah Dijadwalkan</option>
+          </select>
+        </div>
+        <div class="filt-group">
+          <label class="filt-label">Urutkan</label>
+          <select id="filtSort">
+            <option value="">Nama Customer (A-Z)</option>
+            <option value="compass">Arah Mata Angin (dari Gudang)</option>
+          </select>
+        </div>
+        <div class="filt-group search-box" style="flex:1;">
+          <label class="filt-label">Cari Customer / Item</label>
+          <span class="search-icon">&#128269;</span>
+          <input type="text" id="filtSearch" placeholder="nama customer, item, NP No..." style="width:100%;">
+        </div>
+        <button class="btn-ghost" onclick="resetFilters()">Reset</button>
+        <button class="btn" onclick="expandAll()">Buka Semua</button>
+        <div class="filt-group">
+          <label class="filt-label">Update Data</label>
+          <label class="btn" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:var(--navy-800);" title="Import file xlsx Outstanding NP">
+            &#128196; Import XLSX
+            <input type="file" accept=".xlsx,.xls" id="xlsxFileInput" style="display:none;" onchange="importXlsxData(this)">
+          </label>
+        </div>
+      </div>
+
+      <div class="chiprow" id="chipRow"></div>
+
+      <div class="pool-layout" id="custGroups"></div>
+    </div>
+  </div>
+
+  <!-- drag handle to resize -->
+  <div class="panel-resizer" id="panelResizer"></div>
+
+  <!-- ---------- PANEL KANAN: ARMADA & RUTE ---------- -->
+  <div class="panel-right" id="panelRight">
+    <div class="panel-right-inner">
+
+      <div class="s2-top-row">
+        <div class="depot-card">
+          <h3>Titik Asal (Gudang)</h3>
+          <div class="depot-row"><span>Lokasi</span><b>Mitra10 Tallasa City</b></div>
+          <div class="depot-row"><span>Longitude</span><b id="depotLng">119.4860</b></div>
+          <div class="depot-row"><span>Latitude</span><b id="depotLat">-5.1080</b></div>
+          <div style="margin-top:10px;display:flex;gap:8px;">
+            <input type="text" id="depotLngInput" placeholder="Longitude" style="width:48%;background:var(--surface-alt);border:1px solid var(--line);color:var(--ink);padding:6px;border-radius:5px;font-size:11px;">
+            <input type="text" id="depotLatInput" placeholder="Latitude" style="width:48%;background:var(--surface-alt);border:1px solid var(--line);color:var(--ink);padding:6px;border-radius:5px;font-size:11px;">
+          </div>
+          <button class="btn-ghost" style="width:100%;margin-top:8px;" onclick="updateDepot()">Update Titik Asal</button>
+        </div>
+        <div class="unassigned-card" id="unassignedZone">
+          <h3><span>Belum Ditugaskan</span><span id="unassignedCount">0</span></h3>
+          <div class="unassigned-list" id="unassignedList"></div>
+        </div>
+      </div>
+
+      <div class="fleet-toolbar">
+        <h2>Armada &amp; Rute Pengiriman</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-ghost" onclick="clearAllVehicles()">Kosongkan Semua</button>
+          <button class="btn" onclick="addVehicle()">+ Tambah Mobil</button>
+        </div>
+      </div>
+      <div class="fleet-grid" id="fleetGrid"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="cap-modal-overlay" id="capModalOverlay" style="display:none;">
+  <div class="cap-modal-box">
+    <div class="cap-modal-title">&#9888;&#65039; Kapasitas Tidak Cukup</div>
+    <div class="cap-modal-msg">Kapasitas mobil tidak cukup, silahkan kirim partial.</div>
+    <div class="cap-modal-actions">
+      <button class="cap-modal-btn batal" onclick="capModalResolve(false)">Batal</button>
+      <button class="cap-modal-btn lanjut" onclick="capModalResolve(true)">Lanjut</button>
+    </div>
+  </div>
+</div>
+
+<script id="raw-data" type="application/json">
+[]
+</script>
+
+<script>
+// ====================== STATE ======================
+let RAW = JSON.parse(document.getElementById('raw-data').textContent);
+
+// default weight estimation per UOM*category combo (kg per unit). Editable by user.
+const DEFAULT_WEIGHTS = {
+  'FLOORING AND WALL_BOX': 22,
+  'FLOORING AND WALL_PCS': 4,
+  'BATHROOM_PCS': 18,
+  'BATHROOM_SET': 35,
+  'BATHROOM_UNIT': 25,
+  'DOORS AND WINDOWS_PCS': 28,
+  'DOORS AND WINDOWS_UNIT': 30,
+  'KITCHEN_SET': 12,
+  'KITCHEN_PCS': 6,
+  'KITCHEN_UNIT': 15,
+  'HARDWARE_PCS': 1.5,
+  'HARDWARE_SET': 3,
+  'ELECTRICAL AND LIGHTING_PCS': 2,
+  'ELECTRICAL AND LIGHTING_UNIT': 4,
+  'PLUMBING_PCS': 3,
+  'PLUMBING_SET': 5,
+  'BUILDING MATERIAL_BAG': 40,
+  'BUILDING MATERIAL_PCS': 10,
+  'APPLIANCES_UNIT': 35,
+  'APPLIANCES_PCS': 20,
+  'PAINT AND SUNDRIES_PCS': 5,
+  'TOOLS_PCS': 2,
+  'HOUSEWARE & HOBBIES_PCS': 1,
+  '_DEFAULT': 8
+};
+
+function weightKeyFor(row){ return row.category + '_' + row.uom; }
+function defaultWeightFor(row){
+  const k = weightKeyFor(row);
+  return DEFAULT_WEIGHTS[k] !== undefined ? DEFAULT_WEIGHTS[k] : DEFAULT_WEIGHTS['_DEFAULT'];
+}
+
+// build unique categories from data, derive weight-ref rows (category+uom combos present in data)
+function buildWeightRefCombos(){
+  const seen = {};
+  RAW.forEach(r=>{
+    const k = weightKeyFor(r);
+    seen[k] = (seen[k]||0)+1;
+  });
+  return Object.keys(seen).sort((a,b)=>seen[b]-seen[a]);
+}
+let WEIGHT_OVERRIDES = {}; // key -> kg per unit, set by user input
+
+function getWeightPerUnit(row){
+  const k = weightKeyFor(row);
+  if(WEIGHT_OVERRIDES[k] !== undefined) return WEIGHT_OVERRIDES[k];
+  return defaultWeightFor(row);
+}
+
+// assign a stable id to each row
+RAW.forEach((r,i)=>{ r._id = 'r'+i; r._placed = null; }); // _placed = vehicleId or null
+
+let DEPOT = { lng: 119.4860, lat: -5.1080 };
+
+let VEHICLES = []; // {id, name, capacity, color}
+let vehicleSeq = 1;
+const VEHICLE_COLORS = ['#d4af37','#3ecf8e','#5b9bd5','#e07b39','#c46bd6','#52c2c9','#e25c5c','#9fa83c'];
+
+// ====================== PANEL LAYOUT (split view) ======================
+function toggleLeftPanel(){
+  const panel = document.getElementById('panelLeft');
+  const btn = document.getElementById('btnCollapseLeft');
+  panel.classList.toggle('collapsed');
+  btn.classList.toggle('active', !panel.classList.contains('collapsed'));
+}
+
+function toggleCard(headerEl){
+  headerEl.closest('.collapsible-card').classList.toggle('open');
+}
+
+function initResizer(){
+  // Pembatas panel kiri/kanan dibuat statis (tidak bisa digeser oleh user).
+  // Fungsi ini sengaja dikosongkan; lebar panel kiri diatur lewat CSS (.panel-left width tetap).
+}
+
+// ====================== FILTERS ======================
+function populateCategoryFilter(){
+  const cats = [...new Set(RAW.map(r=>r.category))].sort();
+  const sel = document.getElementById('filtCategory');
+  cats.forEach(c=>{
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    sel.appendChild(o);
+  });
+}
+
+function getFilters(){
+  return {
+    from: document.getElementById('filtDateFrom').value,
+    to: document.getElementById('filtDateTo').value,
+    category: document.getElementById('filtCategory').value,
+    geo: document.getElementById('filtGeo').value,
+    placed: document.getElementById('filtPlaced').value,
+    search: document.getElementById('filtSearch').value.trim().toLowerCase()
+  };
+}
+
+function hasGeo(row){ return row.lng && row.lng !== 0 && row.lat && row.lat !== 0; }
+
+function applyFilters(){
+  const f = getFilters();
+  return RAW.filter(r=>{
+    if(f.from && r.planning_date < f.from) return false;
+    if(f.to && r.planning_date > f.to) return false;
+    if(f.category && r.category !== f.category) return false;
+    if(f.geo === 'ok' && !hasGeo(r)) return false;
+    if(f.geo === 'bad' && hasGeo(r)) return false;
+    if(f.placed === 'no' && r._placed) return false;
+    if(f.placed === 'yes' && !r._placed) return false;
+    if(f.search){
+      const hay = (r.cust_name+' '+r.item_desc+' '+r.np_no+' '+r.address).toLowerCase();
+      if(!hay.includes(f.search)) return false;
+    }
+    return true;
+  });
+}
+
+function resetFilters(){
+  document.getElementById('filtDateFrom').value='';
+  document.getElementById('filtDateTo').value='';
+  document.getElementById('filtCategory').value='';
+  document.getElementById('filtGeo').value='';
+  document.getElementById('filtPlaced').value='';
+  document.getElementById('filtSort').value='';
+  document.getElementById('filtSearch').value='';
+  renderScreen1();
+}
+
+['filtDateFrom','filtDateTo','filtCategory','filtGeo','filtPlaced'].forEach(id=>{
+  document.addEventListener('DOMContentLoaded',()=>{});
+});
+
+// Ikon panah unicode untuk tiap arah mata angin (dipakai sebagai badge dekat nama customer)
+const COMPASS_ARROWS = {
+  'Utara':'&#8593;', 'Timur Laut':'&#8599;', 'Timur':'&#8594;', 'Tenggara':'&#8600;',
+  'Selatan':'&#8595;', 'Barat Daya':'&#8601;', 'Barat':'&#8592;', 'Barat Laut':'&#8598;'
+};
+function compassArrow(dir){ return COMPASS_ARROWS[dir] || ''; }
+
+// ====================== RENDER SCREEN 1 ======================
+// Urutan arah mata angin (jam analog) dipakai untuk sorting searah jarum jam mulai dari Utara
+const COMPASS_ORDER = ['Utara','Timur Laut','Timur','Tenggara','Selatan','Barat Daya','Barat','Barat Laut'];
+
+function groupByCustomer(rows, sortBy){
+  const groups = {};
+  rows.forEach(r=>{
+    const key = r.cust_name + '||' + r.address;
+    if(!groups[key]) groups[key] = { cust_name:r.cust_name, address:r.address, address2:r.address2, lng:r.lng, lat:r.lat, items:[] };
+    groups[key].items.push(r);
+  });
+  const list = Object.values(groups);
+
+  // Hitung arah mata angin tiap customer relatif terhadap titik depot (gudang)
+  list.forEach(g=>{
+    if(g.lng && g.lng!==0 && g.lat && g.lat!==0){
+      g._compass = bearingLabel(DEPOT.lat, DEPOT.lng, g.lat, g.lng);
+      g._compassIdx = COMPASS_ORDER.indexOf(g._compass);
+    } else {
+      g._compass = null;
+      g._compassIdx = -1; // tanpa koordinat dikelompokkan di akhir
+    }
+  });
+
+  if(sortBy === 'compass'){
+    list.sort((a,b)=>{
+      if(a._compassIdx === b._compassIdx) return a.cust_name.localeCompare(b.cust_name);
+      if(a._compassIdx === -1) return 1;  // tanpa koordinat ke bawah
+      if(b._compassIdx === -1) return -1;
+      return a._compassIdx - b._compassIdx;
+    });
+  } else {
+    list.sort((a,b)=> a.cust_name.localeCompare(b.cust_name));
+  }
+  return list;
+}
+
+let openGroups = new Set();
+
+function renderChips(rows){
+  const total = rows.length;
+  const withGeo = rows.filter(hasGeo).length;
+  const noGeo = total - withGeo;
+  const placed = rows.filter(r=>r._placed).length;
+  const totalW = rows.reduce((s,r)=> s + r.outstanding_qty * getWeightPerUnit(r), 0);
+  const custCount = new Set(rows.map(r=>r.cust_name+'||'+r.address)).size;
+
+  const chips = [
+    {dot:'#5b9bd5', val: total, lbl:'Baris Item (filtered)'},
+    {dot:'#d4af37', val: custCount, lbl:'Customer / Tujuan'},
+    {dot:'#3ecf8e', val: withGeo, lbl:'Ada Koordinat'},
+    {dot:'#e25c5c', val: noGeo, lbl:'Tanpa Koordinat'},
+    {dot:'#e8c766', val: totalW.toLocaleString('id-ID',{maximumFractionDigits:0})+' kg', lbl:'Estimasi Total Berat'},
+    {dot:'#9fa83c', val: placed, lbl:'Sudah Dijadwalkan'}
+  ];
+  document.getElementById('chipRow').innerHTML = chips.map(c=>`
+    <div class="chip"><div class="chip-dot" style="background:${c.dot}"></div>
+    <div><div class="chip-val">${c.val}</div><div class="chip-lbl">${c.lbl}</div></div></div>
+  `).join('');
+
+  document.getElementById('topTotalNP').textContent = new Set(rows.map(r=>r.np_no)).size;
+  document.getElementById('topTotalCust').textContent = custCount;
+  document.getElementById('topAssigned').textContent = RAW.filter(r=>r._placed).length;
+}
+
+function renderScreen1(){
+  const rows = applyFilters();
+  renderChips(rows);
+  const sortBy = document.getElementById('filtSort') ? document.getElementById('filtSort').value : '';
+  const groups = groupByCustomer(rows, sortBy);
+  const container = document.getElementById('custGroups');
+
+  if(RAW.length === 0){
+    container.innerHTML = `<div class="empty-state"><div class="big">&#128196;</div><div style="font-family:var(--font-display);font-size:15px;letter-spacing:0.3px;margin-bottom:8px;">Belum Ada Data</div><div style="font-size:12px;line-height:1.5;">Klik <b>Import XLSX</b> untuk memuat<br>data Outstanding Nota Penjualan terbaru.</div></div>`;
+    return;
+  }
+  if(groups.length === 0){
+    container.innerHTML = `<div class="empty-state"><div class="big">&#128230;</div>Tidak ada data yang cocok dengan filter ini.</div>`;
+    return;
+  }
+
+  container.innerHTML = groups.map((g,gi)=>{
+    const gid = 'g'+gi;
+    const isOpen = openGroups.has(g.cust_name+'||'+g.address);
+    const geoOk = g.lng && g.lng!==0 && g.lat && g.lat!==0;
+    const totalW = g.items.reduce((s,r)=> s + r.outstanding_qty * getWeightPerUnit(r), 0);
+    const placedCount = g.items.filter(r=>r._placed).length;
+
+    const rowsHtml = g.items.map(r=>{
+      const w = (r.outstanding_qty * getWeightPerUnit(r)).toLocaleString('id-ID',{maximumFractionDigits:1});
+      const placedTag = r._placed ? `<span class="placed-tag">${getVehicleName(r._placed)}</span>` : '';
+      const wpu = getWeightPerUnit(r);
+      return `<tr data-id="${r._id}" class="${r._placed?'placed':''}">
+        <td class="np">${r.np_no}<br><span class="np-type-tag">${shortNpType(r.np_type)}</span></td>
+        <td>${r.planning_date}</td>
+        <td>${escapeHtml(r.item_desc)}<br><span style="color:var(--ink-faint);font-size:10.5px;">${r.category} &middot; ${r.brand}</span></td>
+        <td class="qty">${r.outstanding_qty} ${r.uom}</td>
+        <td class="wt" style="white-space:normal;">
+          <div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;">
+            <input type="number" step="0.1" min="0" value="${wpu}"
+              style="width:42px;background:var(--surface-alt);border:1px solid var(--line);color:var(--accent);padding:2px 3px;border-radius:4px;font-size:10px;text-align:right;font-family:var(--font-mono);"
+              title="kg per unit (${r.uom})"
+              onchange="setWeightOverride('${weightKeyFor(r)}', this.value)"
+              onclick="event.stopPropagation()">
+            <span style="font-size:8.5px;color:var(--ink-faint);">kg/${r.uom}</span>
+          </div>
+          <div style="font-size:9px;color:var(--accent);margin-top:1px;">${(r.outstanding_qty * wpu).toLocaleString('id-ID',{maximumFractionDigits:1})} kg total</div>
+        </td>
+        <td>${placedTag}</td>
+      </tr>`;
+    }).join('');
+
+    const groupItemIds = g.items.map(r=>r._id).join(',');
+
+    return `<div class="cust-group">
+      <div class="cust-head ${isOpen?'open':''}" draggable="true"
+           onclick="toggleGroup('${gid}','${(g.cust_name+'||'+g.address).replace(/'/g,"\\'")}')"
+           ondragstart="onGroupDragStart(event,'${groupItemIds}')" ondragend="onDragEnd(event)">
+        <div class="cust-head-left">
+          <span class="drag-handle">&#10303;</span>
+          <span class="cust-caret">&#9656;</span>
+          <div>
+            <div class="cust-name">${escapeHtml(g.cust_name)}${g._compass ? ` <span class="cust-compass" title="Arah dari titik gudang">${compassArrow(g._compass)} ${g._compass}</span>` : ''}</div>
+            <div class="cust-addr">${escapeHtml(g.address)}${g.address2?(' &middot; '+escapeHtml(g.address2)):''}</div>
+          </div>
+        </div>
+        <div class="cust-meta">
+          <span class="cust-badge ${geoOk?'badge-geo-ok':'badge-geo-bad'}">${geoOk?'GEO OK':'NO GEO'}</span>
+          <span class="cust-count">${g.items.length} item${placedCount?` &middot; ${placedCount} terjadwal`:''}</span>
+          <span class="cust-weight">${totalW.toLocaleString('id-ID',{maximumFractionDigits:0})} kg</span>
+        </div>
+      </div>
+      <div class="cust-body ${isOpen?'open':''}" id="${gid}">
+        <table class="itemtbl">
+          <colgroup>
+            <col style="width:17%;"><col style="width:13%;"><col style="width:32%;">
+            <col style="width:14%;"><col style="width:17%;"><col style="width:7%;">
+          </colgroup>
+          <thead><tr><th>NP No.</th><th>Tgl</th><th>Item</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Est. Berat</th><th>St.</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function shortNpType(t){
+  if(t.includes('Indent Another')) return 'Indent DC';
+  if(t.includes('Indent Supplier')) return 'Indent Supplier';
+  if(t.includes('Cash')) return 'Cash & Delivery';
+  return t;
+}
+function escapeHtml(s){
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function toggleGroup(gid, key){
+  if(openGroups.has(key)) openGroups.delete(key); else openGroups.add(key);
+  renderScreen1();
+}
+function expandAll(){
+  const rows = applyFilters();
+  groupByCustomer(rows).forEach(g=> openGroups.add(g.cust_name+'||'+g.address));
+  renderScreen1();
+}
+
+// ====================== WEIGHT REFERENCE PANEL ======================
+function renderWeightRefPanel(){
+  // Panel estimasi berat per kategori dihapus — berat kini diatur langsung di tabel detail item
+}
+function setWeightOverride(key, val){
+  WEIGHT_OVERRIDES[key] = parseFloat(val) || 0;
+  renderScreen1();
+  renderScreen2();
+}
+
+// ====================== DRAG & DROP: SCREEN1 -> doesn't drop here, just source ======================
+function onDragEnd(e){
+  e.currentTarget.classList.remove('dragging');
+}
+
+// ====================== VEHICLES ======================
+function addVehicle(){
+  const color = VEHICLE_COLORS[(vehicleSeq-1) % VEHICLE_COLORS.length];
+  VEHICLES.push({ id:'v'+vehicleSeq, name:'Mobil '+vehicleSeq, capacity:1000, color, jenis:'', plat:'' });
+  vehicleSeq++;
+  renderScreen2();
+}
+function removeVehicle(id){
+  RAW.forEach(r=>{ if(r._placed===id) r._placed=null; });
+  VEHICLES = VEHICLES.filter(v=>v.id!==id);
+  delete MANUAL_ORDER[id];
+  renderScreen2();
+}
+function clearAllVehicles(){
+  if(!confirm('Hapus semua mobil dan kembalikan semua item ke daftar belum ditugaskan?')) return;
+  RAW.forEach(r=> r._placed=null);
+  VEHICLES = [];
+  Object.keys(MANUAL_ORDER).forEach(k=> delete MANUAL_ORDER[k]);
+  renderScreen2();
+}
+function getVehicleName(id){
+  const v = VEHICLES.find(v=>v.id===id);
+  return v ? v.name : id;
+}
+function renameVehicle(id, name){
+  const v = VEHICLES.find(v=>v.id===id);
+  if(v) v.name = name;
+}
+function setVehicleCapacity(id, cap){
+  const v = VEHICLES.find(v=>v.id===id);
+  if(v){ v.capacity = parseFloat(cap)||0; renderScreen2(); }
+}
+function setVehicleJenis(id, val){
+  const v = VEHICLES.find(v=>v.id===id);
+  if(v) v.jenis = val;
+}
+function setVehiclePlat(id, val){
+  const v = VEHICLES.find(v=>v.id===id);
+  if(v) v.plat = val.toUpperCase();
+}
+
+function updateDepot(){
+  const lng = parseFloat(document.getElementById('depotLngInput').value);
+  const lat = parseFloat(document.getElementById('depotLatInput').value);
+  if(!isNaN(lng)) DEPOT.lng = lng;
+  if(!isNaN(lat)) DEPOT.lat = lat;
+  document.getElementById('depotLng').textContent = DEPOT.lng;
+  document.getElementById('depotLat').textContent = DEPOT.lat;
+  renderScreen2();
+}
+
+// ====================== DISTANCE / ROUTE CALC ======================
+function haversine(lat1,lng1,lat2,lng2){
+  const R=6371;
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function bearingLabel(lat1,lng1,lat2,lng2){
+  const dLng=(lng2-lng1)*Math.PI/180;
+  const y=Math.sin(dLng)*Math.cos(lat2*Math.PI/180);
+  const x=Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180) - Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos(dLng);
+  let brng = Math.atan2(y,x)*180/Math.PI;
+  brng = (brng+360)%360;
+  const dirs=['Utara','Timur Laut','Timur','Tenggara','Selatan','Barat Daya','Barat','Barat Laut'];
+  return dirs[Math.round(brng/45)%8];
+}
+
+// nearest-neighbor route ordering starting from depot, grouping by customer-location (stop = unique address)
+// If a manual order (array of stop keys) is supplied for this vehicle, that order is respected instead
+// of the auto nearest-neighbor sequence — this is how drag-and-drop reordering of stops works.
+function computeRoute(items, manualOrder){
+  // group items into stops by customer+address (one truck visit per location)
+  const stopsMap = {};
+  items.forEach(r=>{
+    const key = r.cust_name+'||'+r.address;
+    if(!stopsMap[key]) stopsMap[key] = { key, cust_name:r.cust_name, address:r.address, lng:r.lng, lat:r.lat, items:[] };
+    stopsMap[key].items.push(r);
+  });
+  let stops = Object.values(stopsMap);
+
+  if(manualOrder && manualOrder.length){
+    // respect manual order for stops the user has already arranged; any brand-new stop
+    // (not yet in the saved order) is appended at the end in nearest-neighbor fashion.
+    const byKey = {};
+    stops.forEach(s=> byKey[s.key]=s);
+    const ordered = [];
+    manualOrder.forEach(k=>{ if(byKey[k]){ ordered.push(byKey[k]); delete byKey[k]; } });
+    const leftover = Object.values(byKey);
+    // nearest-neighbor for leftover stops, continuing from the last manually-placed stop (or depot)
+    const geoLeftover = leftover.filter(s=> s.lng && s.lng!==0 && s.lat && s.lat!==0);
+    const noGeoLeftover = leftover.filter(s=> !(s.lng && s.lng!==0 && s.lat && s.lat!==0));
+    let curLat = DEPOT.lat, curLng = DEPOT.lng;
+    if(ordered.length){
+      const last = ordered[ordered.length-1];
+      if(last.lng && last.lng!==0){ curLat = last.lat; curLng = last.lng; }
+    }
+    let remaining = geoLeftover.slice();
+    while(remaining.length){
+      let bestIdx=0, bestDist=Infinity;
+      remaining.forEach((s,i)=>{ const d=haversine(curLat,curLng,s.lat,s.lng); if(d<bestDist){bestDist=d;bestIdx=i;} });
+      const chosen = remaining.splice(bestIdx,1)[0];
+      ordered.push(chosen);
+      curLat = chosen.lat; curLng = chosen.lng;
+    }
+    ordered.push(...noGeoLeftover);
+    // compute leg distances/bearings for the final manual+leftover sequence
+    let pLat = DEPOT.lat, pLng = DEPOT.lng;
+    ordered.forEach(s=>{
+      if(s.lng && s.lng!==0){
+        s._legDist = haversine(pLat,pLng,s.lat,s.lng);
+        s._bearing = bearingLabel(pLat,pLng,s.lat,s.lng);
+        pLat = s.lat; pLng = s.lng;
+      } else { s._legDist=null; s._bearing=null; }
+    });
+    const totalDist = ordered.reduce((s,st)=> s + (st._legDist||0), 0);
+    return { stops: ordered, totalDist };
+  }
+
+  const geoStops = stops.filter(s=> s.lng && s.lng!==0 && s.lat && s.lat!==0);
+  const noGeoStops = stops.filter(s=> !(s.lng && s.lng!==0 && s.lat && s.lat!==0));
+
+  // nearest neighbor from depot
+  let ordered = [];
+  let remaining = geoStops.slice();
+  let curLat = DEPOT.lat, curLng = DEPOT.lng;
+  while(remaining.length){
+    let bestIdx=0, bestDist=Infinity;
+    remaining.forEach((s,i)=>{
+      const d = haversine(curLat,curLng,s.lat,s.lng);
+      if(d<bestDist){bestDist=d;bestIdx=i;}
+    });
+    const chosen = remaining.splice(bestIdx,1)[0];
+    chosen._legDist = bestDist;
+    chosen._bearing = bearingLabel(curLat,curLng,chosen.lat,chosen.lng);
+    ordered.push(chosen);
+    curLat = chosen.lat; curLng = chosen.lng;
+  }
+  // append no-geo stops at the end (can't be routed)
+  noGeoStops.forEach(s=>{ s._legDist=null; s._bearing=null; });
+  ordered = ordered.concat(noGeoStops);
+
+  const totalDist = ordered.reduce((s,st)=> s + (st._legDist||0), 0);
+  return { stops: ordered, totalDist };
+}
+
+// Manual stop ordering per vehicle, keyed by vehicle id -> array of stop keys (cust_name||address)
+const MANUAL_ORDER = {};
+
+// ====================== RENDER SCREEN 2 ======================
+function renderUnassigned(){
+  const f_search = '';
+  const unassigned = RAW.filter(r=> !r._placed);
+  document.getElementById('unassignedCount').textContent = unassigned.length;
+  const zone = document.getElementById('unassignedList');
+  if(unassigned.length===0){
+    zone.innerHTML = `<div style="color:var(--ink-faint);font-size:11.5px;text-align:center;padding:10px;">Semua item sudah ditugaskan ke mobil.</div>`;
+    return;
+  }
+  // group by customer for compactness, show as draggable mini cards per customer (drag whole group) -- but also allow per-item from screen1
+  const groups = groupByCustomer(unassigned);
+  zone.innerHTML = groups.map(g=>{
+    const w = g.items.reduce((s,r)=> s+ r.outstanding_qty*getWeightPerUnit(r),0);
+    const geoOk = g.lng && g.lng!==0;
+    const ids = g.items.map(r=>r._id).join(',');
+    return `<div class="mini-item" draggable="true" data-ids="${ids}" ondragstart="onGroupDragStart(event,'${ids}')" ondragend="onDragEnd(event)">
+      <div class="mi-name">${escapeHtml(g.cust_name)} ${geoOk?'':'&#9888;&#65039;'}</div>
+      <div class="mi-meta">${g.items.length} item &middot; ${w.toLocaleString('id-ID',{maximumFractionDigits:0})} kg</div>
+    </div>`;
+  }).join('');
+}
+let dragGroupIds = null;
+function onGroupDragStart(e, ids){
+  dragGroupIds = ids.split(',');
+  e.dataTransfer.setData('text/plain', ids);
+  if(e.currentTarget) e.currentTarget.classList.add('dragging');
+}
+
+function findRowsByIds(idStr){
+  const ids = idStr.split(',');
+  return RAW.filter(r=> ids.includes(r._id));
+}
+
+function renderScreen2(){
+  renderWeightRefPanel();
+  renderUnassigned();
+  const grid = document.getElementById('fleetGrid');
+
+  if(VEHICLES.length===0){
+    grid.innerHTML = `<div class="add-vehicle-card" onclick="addVehicle()">+ Tambah Mobil Pertama</div>`;
+    return;
+  }
+
+  grid.innerHTML = VEHICLES.map(v=>{
+    const items = RAW.filter(r=> r._placed===v.id);
+    const totalW = items.reduce((s,r)=> s + r.outstanding_qty*getWeightPerUnit(r), 0);
+    const pct = v.capacity>0 ? Math.min(100, (totalW/v.capacity)*100) : 0;
+    const overCap = totalW > v.capacity;
+    const gaugeClass = overCap ? 'over' : (pct>80?'warn':'');
+
+    const route = computeRoute(items, MANUAL_ORDER[v.id]);
+
+    const stopsHtml = route.stops.length === 0
+      ? `<div class="vh-empty-drop">Tarik customer dari panel kiri atau dari "Belum Ditugaskan" ke sini</div>`
+      : route.stops.map((s,i)=>{
+          const stopW = s.items.reduce((sum,r)=> sum + r.outstanding_qty*getWeightPerUnit(r),0);
+          const noGeo = !(s.lng && s.lng!==0);
+          const distTxt = s._legDist!=null ? s._legDist.toFixed(1)+' km' : '—';
+          const dirTxt = s._bearing || 'tanpa koordinat';
+          const itemIds = s.items.map(r=>r._id).join(',');
+          return `<div class="vh-stop ${noGeo?'no-geo':''} ${i===0?'stop-origin':''}" draggable="true"
+              data-vehicle="${v.id}" data-stop-key="${escapeHtml(s.key)}"
+              ondragstart="onStopDragStart(event,'${v.id}','${escapeHtml(s.key)}')"
+              ondragover="onStopDragOver(event,this)"
+              ondragleave="this.classList.remove('stop-dragover')"
+              ondrop="onStopDrop(event,'${v.id}','${escapeHtml(s.key)}')"
+              ondragend="onStopDragEnd(event)"
+              title="Tarik untuk mengubah urutan / titik awal pemberhentian">
+            <span class="vh-stop-drag-handle">&#10303;</span>
+            <div class="vh-stop-num">${i+1}</div>
+            <div class="vh-stop-info">
+              <div class="vh-stop-name">${escapeHtml(s.cust_name)}</div>
+              <div class="vh-stop-addr">${escapeHtml(s.address)}</div>
+              <div class="vh-stop-meta">
+                <span>${s.items.length} item</span>
+                <span>${stopW.toLocaleString('id-ID',{maximumFractionDigits:0})} kg</span>
+                <span>${dirTxt}</span>
+                <span>${distTxt}</span>
+              </div>
+            </div>
+            <button class="vh-stop-remove" onclick="unassignStop('${itemIds}')" title="Kembalikan ke daftar">&times;</button>
+          </div>`;
+        }).join('');
+
+    const mapsUrl = buildMapsUrl(route.stops);
+    const mapsEmbedUrl = buildMapsEmbedUrl(route.stops);
+
+    return `<div class="vehicle-card ${overCap?'over-capacity':''}" id="card_${v.id}"
+        ondragover="event.preventDefault();this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')"
+        ondrop="onDropToVehicle(event,'${v.id}')">
+      <div class="vh-head">
+        <div class="vh-name-row">
+          <span class="vh-icon" style="color:${v.color}">&#128666;</span>
+          <input class="vh-name" value="${escapeHtml(v.name)}" onchange="renameVehicle('${v.id}', this.value); renderScreen2();">
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span class="vh-cap-label">Jenis</span>
+            <input class="vh-field-input" type="text" value="${escapeHtml(v.jenis||'')}" placeholder="Cth: Pick Up" style="width:90px;"
+              onchange="setVehicleJenis('${v.id}', this.value)" onclick="event.stopPropagation()">
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span class="vh-cap-label">Plat</span>
+            <input class="vh-field-input" type="text" value="${escapeHtml(v.plat||'')}" placeholder="DD 1234 AB" style="width:86px;text-transform:uppercase;"
+              onchange="setVehiclePlat('${v.id}', this.value)" onclick="event.stopPropagation()">
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span class="vh-cap-label">Kapasitas</span>
+            <input class="vh-cap-input" type="number" value="${v.capacity}" onchange="setVehicleCapacity('${v.id}', this.value)">
+            <span class="vh-cap-label">kg</span>
+          </div>
+          <button class="vh-pdf-btn" onclick="downloadVehiclePDF('${v.id}')" title="Download laporan PDF mobil ini">&#128438; PDF</button>
+          <button class="vh-remove" onclick="removeVehicle('${v.id}')" title="Hapus mobil">&times;</button>
+        </div>
+      </div>
+      <div class="vh-gauge-wrap">
+        <div class="vh-gauge-track"><div class="vh-gauge-fill ${gaugeClass}" style="width:${Math.min(100,pct)}%"></div></div>
+        <div class="vh-gauge-label"><span>Muatan: <b>${totalW.toLocaleString('id-ID',{maximumFractionDigits:0})} kg</b></span><span>${pct.toFixed(0)}% / ${v.capacity} kg</span></div>
+      </div>
+      <div class="vh-body-split">
+        <div class="vh-map-col">${
+          mapsEmbedUrl
+            ? `<iframe class="route-iframe" src="${mapsEmbedUrl}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>`
+            : `<div class="route-iframe route-iframe-empty">Tarik customer ke sini untuk melihat peta rute</div>`
+        }</div>
+        <div class="vh-stops-col">
+          <div style="padding:10px 12px 6px;font-size:10px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.4px;font-family:var(--font-display);border-bottom:1px solid var(--line-soft);">
+            &#128205; ${route.stops.length} Stop &nbsp;·&nbsp; ${route.totalDist.toFixed(1)} km
+          </div>
+          <div class="vh-drop">${stopsHtml}</div>
+          <div class="vh-route-info" style="border-top:1px solid var(--line);">
+            ${route.stops.length>0 ? `<a class="vh-maps-btn" href="${mapsUrl}" target="_blank" style="width:100%;justify-content:center;">&#128205; Buka Penuh di Google Maps</a>` : '<span style="font-size:11px;color:var(--ink-faint);">Belum ada stop</span>'}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('') + `<div class="add-vehicle-card" onclick="addVehicle()">+ Tambah Mobil</div>`;
+
+  renderScreen1(); // refresh placed tags/badges in case screen1 visible later
+}
+
+function unassignStop(itemIds){
+  const ids = itemIds.split(',');
+  RAW.forEach(r=>{ if(ids.includes(r._id)) r._placed = null; });
+  renderScreen2();
+}
+
+// ====================== STOP REORDER (drag-and-drop within a vehicle) ======================
+// Lets the user re-drag a customer that's already placed under a vehicle's minimap to
+// change the delivery order — including which stop is the first one (starting point).
+let stopDrag = null; // { vehicleId, key }
+
+function getCurrentStopKeysForVehicle(vehicleId){
+  const items = RAW.filter(r=> r._placed===vehicleId);
+  const route = computeRoute(items, MANUAL_ORDER[vehicleId]);
+  return route.stops.map(s=> s.key);
+}
+
+function onStopDragStart(e, vehicleId, key){
+  stopDrag = { vehicleId, key };
+  e.dataTransfer.setData('text/plain', 'stop-reorder');
+  e.dataTransfer.effectAllowed = 'move';
+  if(e.currentTarget) e.currentTarget.classList.add('stop-dragging');
+  // stop this from bubbling up to the vehicle-card's own dragover/drop (customer-from-panel) handlers
+  e.stopPropagation();
+}
+
+function onStopDragOver(e, el){
+  if(!stopDrag) return; // only react to our own stop-reorder drags, not the customer-panel drag
+  e.preventDefault();
+  e.stopPropagation();
+  el.classList.add('stop-dragover');
+}
+
+function onStopDrop(e, vehicleId, targetKey){
+  e.preventDefault();
+  e.stopPropagation();
+  if(e.currentTarget) e.currentTarget.classList.remove('stop-dragover');
+  if(!stopDrag || stopDrag.vehicleId!==vehicleId) { stopDrag=null; return; }
+  if(stopDrag.key===targetKey){ stopDrag=null; return; }
+
+  let order = MANUAL_ORDER[vehicleId] || getCurrentStopKeysForVehicle(vehicleId);
+  order = order.filter(k=> k!==stopDrag.key); // remove dragged stop from its old position
+  const targetIdx = order.indexOf(targetKey);
+  const insertAt = targetIdx===-1 ? order.length : targetIdx;
+  order.splice(insertAt, 0, stopDrag.key); // drop it right before the target stop
+  MANUAL_ORDER[vehicleId] = order;
+
+  stopDrag = null;
+  renderScreen2();
+}
+
+function onStopDragEnd(e){
+  if(e.currentTarget) e.currentTarget.classList.remove('stop-dragging');
+  document.querySelectorAll('.vh-stop.stop-dragover').forEach(el=> el.classList.remove('stop-dragover'));
+  stopDrag = null;
+}
+
+
+function buildMapsUrl(stops){
+  if(stops.length===0) return '#';
+  // Setiap stop diwakili dengan koordinat jika tersedia (lng/lat != 0),
+  // atau dengan teks alamat (Sell To Address) sebagai fallback jika koordinat kosong/0.
+  const toPoint = (s)=> (s.lng && s.lng!==0 && s.lat && s.lat!==0)
+    ? `${s.lat},${s.lng}`
+    : encodeURIComponent(s.address || s.cust_name || '');
+  const usable = stops.filter(s=> (s.lng && s.lng!==0 && s.lat && s.lat!==0) || s.address || s.cust_name);
+  if(usable.length===0) return '#';
+  const origin = `${DEPOT.lat},${DEPOT.lng}`;
+  const destination = toPoint(usable[usable.length-1]);
+  const waypoints = usable.slice(0,-1).map(toPoint).join('|');
+  let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+  if(waypoints) url += `&waypoints=${encodeURIComponent(waypoints)}`;
+  url += `&travelmode=driving`;
+  return url;
+}
+
+// Google Maps embed WITHOUT an API key, using the legacy "output=embed" endpoint.
+// Format: https://www.google.com/maps?saddr=LAT,LNG&daddr=LAT,LNG+to:LAT,LNG+to:LAT,LNG&output=embed
+// IMPORTANT: encode each coordinate individually and keep "+to:" literal —
+// encodeURIComponent on the whole string turns "+to:" into "%2Bto%3A" which Google can't parse,
+// causing it to silently fall back to the zoomed-out world map.
+// Jika koordinat (Longitude/Latitude) kosong atau 0, titik gmaps dibaca dari Sell To Address
+// sebagai fallback, supaya stop tersebut tetap muncul di rute/peta.
+function buildMapsEmbedUrl(stops){
+  if(stops.length===0) return null;
+  const toPoint = (s)=> (s.lng && s.lng!==0 && s.lat && s.lat!==0)
+    ? `${encodeURIComponent(s.lat)},${encodeURIComponent(s.lng)}`
+    : encodeURIComponent(s.address || s.cust_name || '');
+  const usable = stops.filter(s=> (s.lng && s.lng!==0 && s.lat && s.lat!==0) || s.address || s.cust_name);
+  if(usable.length===0) return null;
+  const saddr = `${encodeURIComponent(DEPOT.lat)},${encodeURIComponent(DEPOT.lng)}`;
+  const daddr = usable.map(toPoint).join('+to:');
+  return `https://www.google.com/maps?saddr=${saddr}&daddr=${daddr}&output=embed`;
+}
+
+// ====================== MODAL KONFIRMASI KAPASITAS (Batal / Lanjut) ======================
+let _capModalResolver = null;
+function showCapacityConfirm(){
+  return new Promise((resolve)=>{
+    _capModalResolver = resolve;
+    document.getElementById('capModalOverlay').style.display = 'flex';
+  });
+}
+function capModalResolve(result){
+  document.getElementById('capModalOverlay').style.display = 'none';
+  if(_capModalResolver){ _capModalResolver(result); _capModalResolver = null; }
+}
+
+// ====================== DROP HANDLER ======================
+async function onDropToVehicle(e, vehicleId){
+  e.preventDefault();
+  e.currentTarget.classList.remove('dragover');
+  const data = e.dataTransfer.getData('text/plain');
+  if(!data || data==='stop-reorder') return; // a stop-reorder drag already handled by onStopDrop; ignore here
+  const ids = data.split(',');
+  const v = VEHICLES.find(x=>x.id===vehicleId);
+  const draggedRows = RAW.filter(r=> ids.includes(r._id));
+  const draggedWeight = draggedRows.reduce((s,r)=> s + r.outstanding_qty*getWeightPerUnit(r), 0);
+  const currentWeight = RAW.filter(r=> r._placed===vehicleId && !ids.includes(r._id))
+    .reduce((s,r)=> s + r.outstanding_qty*getWeightPerUnit(r), 0);
+
+  if(v && v.capacity>0 && (currentWeight + draggedWeight) > v.capacity){
+    // Notifikasi kapasitas tidak cukup, tetap memberi pilihan Batal / Lanjut.
+    // Drag & drop tidak otomatis dibatalkan; menunggu keputusan user dulu.
+    const lanjut = await showCapacityConfirm();
+    if(!lanjut) return; // Batal: proses drag & drop dibatalkan, item tidak dipindahkan
+    // Lanjut: proses tetap dilanjutkan, item dimasukkan ke armada meski melebihi kapasitas
+  }
+
+  RAW.forEach(r=>{ if(ids.includes(r._id)) r._placed = vehicleId; });
+  renderScreen2();
+}
+
+// unassigned zone as drop target too (to un-assign by dragging back)
+document.addEventListener('DOMContentLoaded', ()=>{
+  const zone = document.getElementById('unassignedZone');
+  zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', ()=> zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e=>{
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const data = e.dataTransfer.getData('text/plain');
+    if(!data || data==='stop-reorder') return; // ignore stray stop-reorder drags, not a customer-group drop
+    const ids = data.split(',');
+    RAW.forEach(r=>{ if(ids.includes(r._id)) r._placed = null; });
+    renderScreen2();
+  });
+});
+
+
+// ====================== IMPORT XLSX ======================
+function importXlsxData(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const wb = XLSX.read(e.target.result, {type:'binary', cellDates:false});
+      const sheetName = wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if(rows.length < 2){ alert('Data tidak ditemukan di sheet pertama.'); return; }
+      
+      // Find header row — cari baris yang punya "NP No." atau "np_no"
+      let hdrIdx = -1;
+      for(let i=0;i<Math.min(10,rows.length);i++){
+        const r = rows[i].map(c=>String(c).toLowerCase());
+        if(r.some(c=>c.includes('np no') || c==='np_no' || c.includes('np no.'))){
+          hdrIdx = i; break;
+        }
+      }
+      if(hdrIdx === -1){ alert('Header kolom tidak ditemukan. Pastikan file adalah laporan Outstanding NP yang benar.'); return; }
+      
+      const headers = rows[hdrIdx].map(c=>String(c).trim());
+      // Map header Excel ke field internal
+      const fieldMap = {
+        'NP No.': 'np_no', 'np_no': 'np_no',
+        'NP Type': 'np_type', 'np_type': 'np_type',
+        'Released Date': 'released_date',
+        'Planning Delivery Date': 'planning_date', 'Planning Delivery': 'planning_date',
+        'Receipt No.': 'receipt_no', 'Receipt No': 'receipt_no',
+        'Customer No.': 'cust_no', 'Customer No': 'cust_no',
+        'Customer Name': 'cust_name',
+        'Sell To Address': 'address', 'Sell To Address 2': 'address2',
+        'Category Name': 'category',
+        'Master Brand Name': 'master_brand', 'Brand Name': 'brand',
+        'Item No.': 'item_no', 'Item No': 'item_no',
+        'Item Description': 'item_desc',
+        'Base UOM': 'uom',
+        'Order Qty Base UOM': 'order_qty', 'Order Qty Base UOM ': 'order_qty',
+        'Shipped Qty Base UOM': 'shipped_qty', 'Shipped Qty Base UOM ': 'shipped_qty',
+        'Outstanding Qty Base UOM': 'outstanding_qty', 'Outstanding Qty Base UOM ': 'outstanding_qty',
+        'Longitude': 'lng', 'Latitude': 'lat',
+        'Zip Code': 'zip', 'Comment': 'comment'
+      };
+
+      // Excel serial date to YYYY-MM-DD
+      function excelDateToISO(v){
+        if(!v && v!==0) return '';
+        const n = parseFloat(v);
+        if(isNaN(n)) return String(v).trim();
+        // Excel epoch: Jan 1 1900 = serial 1 (but Excel treats 1900 as leap year, so offset by 1)
+        const d = new Date(Date.UTC(1899,11,30) + n*86400000);
+        return d.toISOString().slice(0,10);
+      }
+
+      const colIdx = {};
+      headers.forEach((h,i)=>{ if(fieldMap[h]) colIdx[fieldMap[h]] = i; });
+
+      const newRaw = [];
+      let skippedAmsen = 0;
+      for(let i=hdrIdx+1; i<rows.length; i++){
+        const row = rows[i];
+        if(!row || row.every(c=>!c)) continue; // skip empty
+        const np_no = String(row[colIdx['np_no']]||'').trim();
+        if(!np_no || np_no.length < 5) continue;
+        
+        const outstanding = parseFloat(row[colIdx['outstanding_qty']]) || 0;
+        if(outstanding <= 0) continue; // skip zero outstanding
+
+        const obj = {
+          np_no: np_no,
+          np_type: String(row[colIdx['np_type']]||'').trim(),
+          released_date: excelDateToISO(row[colIdx['released_date']]),
+          planning_date: excelDateToISO(row[colIdx['planning_date']]),
+          receipt_no: String(row[colIdx['receipt_no']]||'').trim(),
+          cust_no: String(row[colIdx['cust_no']]||'').trim(),
+          cust_name: String(row[colIdx['cust_name']]||'').trim(),
+          address: String(row[colIdx['address']]||'').trim(),
+          address2: String(row[colIdx['address2']]||'').trim(),
+          category: String(row[colIdx['category']]||'').trim(),
+          master_brand: String(row[colIdx['master_brand']]||'').trim(),
+          brand: String(row[colIdx['brand']]||'').trim(),
+          item_no: parseInt(row[colIdx['item_no']])||0,
+          item_desc: String(row[colIdx['item_desc']]||'').trim(),
+          uom: String(row[colIdx['uom']]||'').trim(),
+          order_qty: parseFloat(row[colIdx['order_qty']])||0,
+          shipped_qty: parseFloat(row[colIdx['shipped_qty']])||0,
+          outstanding_qty: outstanding,
+          lng: parseFloat(row[colIdx['lng']])||0,
+          lat: parseFloat(row[colIdx['lat']])||0,
+          zip: String(row[colIdx['zip']]||'').trim(),
+          comment: String(row[colIdx['comment']]||'').replace(/\n/g,'\n').trim()
+        };
+
+        // Seleksi data: buang baris yang mengandung kata "amsen" di Sell To Address,
+        // Sell To Address 2, atau Comment (pengecekan case-insensitive)
+        const blockedKeyword = 'amsen';
+        const checkFields = [obj.address, obj.address2, obj.comment].join(' ').toLowerCase();
+        if(checkFields.includes(blockedKeyword)){ skippedAmsen++; continue; }
+
+        newRaw.push(obj);
+      }
+
+      if(newRaw.length === 0){
+        alert(skippedAmsen>0
+          ? `Tidak ada baris valid. ${skippedAmsen} baris dibuang karena mengandung kata "amsen".`
+          : 'Tidak ada baris outstanding yang valid ditemukan.');
+        return;
+      }
+
+      // Reset state
+      VEHICLES = [];
+      vehicleSeq = 1;
+      Object.keys(MANUAL_ORDER).forEach(k => delete MANUAL_ORDER[k]);
+      WEIGHT_OVERRIDES = {};
+      openGroups = new Set();
+
+      // Load new data
+      RAW = newRaw;
+      RAW.forEach((r,i)=>{ r._id='r'+i; r._placed=null; });
+      
+      // Re-populate category filter
+      const sel = document.getElementById('filtCategory');
+      sel.innerHTML = '<option value="">Semua Kategori</option>';
+      [...new Set(RAW.map(r=>r.category))].sort().forEach(c=>{
+        const o = document.createElement('option');
+        o.value=c; o.textContent=c; sel.appendChild(o);
+      });
+      
+      // Add 1 vehicle and render
+      addVehicle();
+      renderScreen1();
+      renderScreen2();
+      
+      // Show success
+      const btn = document.querySelector('label[title="Import file xlsx Outstanding NP"]');
+      const origText = btn.childNodes[0].textContent;
+      btn.childNodes[0].textContent = '✓ ' + newRaw.length + ' baris dimuat' + (skippedAmsen>0 ? ` (${skippedAmsen} dibuang)` : '');
+      setTimeout(()=>{ btn.childNodes[0].textContent = origText; }, 3000);
+      
+      // Reset file input
+      input.value='';
+    } catch(err){
+      alert('Gagal membaca file: ' + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+// ====================== PDF REPORT PER MOBIL ======================
+function downloadVehiclePDF(vehicleId){
+  const v = VEHICLES.find(x=>x.id===vehicleId);
+  if(!v){ alert('Mobil tidak ditemukan.'); return; }
+
+  const items = RAW.filter(r=>r._placed===vehicleId);
+  if(items.length===0){ alert('Belum ada customer/item yang ditugaskan ke mobil ini.'); return; }
+
+  const route = computeRoute(items, MANUAL_ORDER[vehicleId]);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const colW = pageW - margin*2;
+  const today = new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
+
+  const totalMuatan = items.reduce((s,r)=>s+r.outstanding_qty*getWeightPerUnit(r),0);
+  const isOver = totalMuatan > v.capacity;
+  const ket = isOver ? 'OVER' : 'NORMAL';
+
+  // ── HEADER (hitam putih) ──
+  doc.setTextColor(0,0,0);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(13);
+  doc.text('MAPPING DAN RITASE ARMADA', margin, 14);
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica','normal');
+  doc.text('Mitra10 Tallasa City Makassar  ·  Support Back TLC', margin, 19.5);
+  doc.text('Dicetak: '+today, margin, 24);
+  doc.setLineWidth(0.4);
+  doc.setDrawColor(0,0,0);
+  doc.line(margin, 27, pageW-margin, 27);
+
+  // ── INFO KENDARAAN (ringkas) ──
+  let y = 35;
+  const infoRows = [
+    ['Mobil', v.name || '-'],
+    ['Jenis', v.jenis || '-'],
+    ['Plat', v.plat || '-'],
+    ['Kapasitas Mobil', v.capacity.toLocaleString('id-ID') + ' kg'],
+    ['Total Muatan', totalMuatan.toLocaleString('id-ID',{maximumFractionDigits:0}) + ' kg'],
+    ['Ket', ket]
+  ];
+  doc.setFontSize(9.5);
+  infoRows.forEach((row,i)=>{
+    doc.setFont('helvetica','bold');
+    doc.text(row[0], margin, y+i*5.5);
+    doc.setFont('helvetica', row[0]==='Ket' ? 'bold' : 'normal');
+    doc.text(': '+row[1], margin+38, y+i*5.5);
+  });
+  y += infoRows.length*5.5 + 5;
+
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageW-margin, y);
+  y += 6;
+
+  // Loop setiap stop / customer
+  route.stops.forEach((stop, si)=>{
+    const stopItems = stop.items;
+    const npNo = [...new Set(stopItems.map(r=>r.np_no))].join(', ');
+    const comments = [...new Set(stopItems.map(r=>r.comment).filter(Boolean))].join(' | ');
+
+    // Cek apakah cukup ruang di halaman, kalau tidak tambah halaman baru
+    if(y > pageH - 45){ doc.addPage(); y = 16; }
+
+    // Stop header: nama customer
+    doc.setTextColor(0,0,0);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9.5);
+    doc.text(`Stop ${si+1}  –  ${stop.cust_name}`, margin, y);
+    y += 5;
+
+    // No / NP
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8);
+    doc.text('No (NP): '+(npNo||'-'), margin, y);
+    y += 4.5;
+
+    // Comment
+    if(comments){
+      const noteLines = doc.splitTextToSize('Comment: '+comments, colW);
+      doc.text(noteLines, margin, y);
+      y += noteLines.length*4 + 1;
+    }
+    y += 1;
+
+    // Tabel item: NP, Item, Qty, UOM, Est. Berat, Hapus
+    const tableHead = [['NP','Item','Qty','UOM','Est. Berat','Hapus']];
+    const tableBody = stopItems.map(r=>[
+      r.np_no,
+      r.item_desc.length>50 ? r.item_desc.substring(0,48)+'…' : r.item_desc,
+      r.outstanding_qty,
+      r.uom,
+      (r.outstanding_qty*getWeightPerUnit(r)).toLocaleString('id-ID',{maximumFractionDigits:1})+' kg',
+      ''
+    ]);
+
+    doc.autoTable({
+      head: tableHead,
+      body: tableBody,
+      startY: y,
+      margin: {left:margin, right:margin},
+      theme: 'grid',
+      styles:{ fontSize:7.5, cellPadding:2, overflow:'linebreak', textColor:[0,0,0], lineColor:[0,0,0], lineWidth:0.2 },
+      headStyles:{ fillColor:[255,255,255], textColor:[0,0,0], fontStyle:'bold', fontSize:7.5, lineColor:[0,0,0], lineWidth:0.2 },
+      columnStyles:{
+        0:{cellWidth:26},
+        1:{cellWidth:'auto'},
+        2:{cellWidth:14, halign:'right'},
+        3:{cellWidth:14, halign:'center'},
+        4:{cellWidth:22, halign:'right'},
+        5:{cellWidth:14, halign:'center'}
+      },
+      didDrawPage: (data)=>{ y = data.cursor.y + 4; }
+    });
+    y = doc.lastAutoTable.finalY + 7;
+  });
+
+  // Nomor halaman
+  const pageCount = doc.internal.getNumberOfPages();
+  for(let p=1;p<=pageCount;p++){
+    doc.setPage(p);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7);
+    doc.setTextColor(0,0,0);
+    doc.text('Hal '+p+' dari '+pageCount, pageW-margin, pageH-6, {align:'right'});
+  }
+
+  const platSafe = (v.plat||'').replace(/\s/g,'_') || v.id;
+  const nameSafe = (v.name||'Mobil').replace(/\s/g,'_');
+  doc.save(`MappingRitase_${nameSafe}_${platSafe}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+
+function init(){
+  populateCategoryFilter();
+  ['filtDateFrom','filtDateTo','filtCategory','filtGeo','filtPlaced','filtSort','filtSearch'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', renderScreen1);
+    document.getElementById(id).addEventListener('change', renderScreen1);
+  });
+  document.getElementById('depotLng').textContent = DEPOT.lng;
+  document.getElementById('depotLat').textContent = DEPOT.lat;
+  initResizer();
+  renderScreen1();
+  // start with one default vehicle
+  addVehicle();
+}
+init();
+
+</script>
+
+</body>
+</html>
