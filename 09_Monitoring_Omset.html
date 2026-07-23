@@ -2387,8 +2387,8 @@ function buildInvoiceSegmentInsight(data, periodLabel) {
   const bigValuePct = pct(buckets.b4.total, totalValue);
   const bigCountPct = pct(buckets.b4.count, totalCount);
   let cls = '';
-  if (smallPct >= 60) { desc += ` Mayoritas transaksi (${smallPct.toFixed(1)}%) masih bernilai <Rp1jt — peluang upsell/cross-sell untuk menaikkan basket size.`; cls = 'mid'; }
-  if (bigCountPct > 0 && bigValuePct >= 30) { desc += ` Invoice >Rp10jt hanya ${bigCountPct.toFixed(1)}% dari transaksi namun menyumbang ${bigValuePct.toFixed(1)}% omset — omset terkonsentrasi pada pelanggan besar, prioritaskan retensi & layanan khusus (risiko bila hilang).`; cls = cls || 'good'; }
+  if (smallPct >= 60) { desc += ` Mayoritas transaksi (${smallPct.toFixed(1)}%) masih bernilai &lt;Rp1jt — peluang upsell/cross-sell untuk menaikkan basket size.`; cls = 'mid'; }
+  if (bigCountPct > 0 && bigValuePct >= 30) { desc += ` Invoice &gt;Rp10jt hanya ${bigCountPct.toFixed(1)}% dari transaksi namun menyumbang ${bigValuePct.toFixed(1)}% omset — omset terkonsentrasi pada pelanggan besar, prioritaskan retensi & layanan khusus (risiko bila hilang).`; cls = cls || 'good'; }
 
   const dominant = ['b1', 'b2', 'b3', 'b4'].map(k => [k, buckets[k].count]).sort((a, b) => b[1] - a[1])[0];
   return { cls, label: `Segmentasi Nilai Invoice (${periodLabel})`, value: `Dominan ${labelMap[dominant[0]]} (${dominant[1]} inv)`, desc };
