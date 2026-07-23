@@ -519,11 +519,11 @@
 
   <!-- DATA_SALES_2025 LY -->
   <div class="import-group has-drive" id="grpSalesLY">
-    <label class="btn-import" id="btnSalesLY" title="Pilih file DATA_SALES_2025 (CSV)">
+    <label class="btn-import" id="btnSalesLY" title="Pilih file DATA_SALES_2025 / Sales Detail Report (XLSX)">
       <span class="icon">📈</span>
       <span>DATA_SALES_2025 (LY)</span>
-      <span class="tag" id="tagSalesLY">CSV</span>
-      <input type="file" accept=".csv" onchange="importFile('sales_ly', this)">
+      <span class="tag" id="tagSalesLY">XLSX</span>
+      <input type="file" accept=".xlsx,.xls" onchange="importFile('sales_ly', this)">
     </label>
     <button class="btn-reload" id="reloadSalesLY" onclick="reloadFile('sales_ly')" title="Reload file dari disk" style="display:none">🔄</button>
     <button class="btn-drive" id="driveSalesLY" title="Load dari Google Drive (tahan untuk ubah link)">☁️</button>
@@ -1232,7 +1232,7 @@ function clearStorage() {
   state.sales = []; state.sales_ly = []; state.budgetCat = {}; state.budgetSP = {}; state.stock = []; state.stockDate = null;
   ['btnSales','btnSalesLY','btnBudgetCat','btnBudgetSP','btnStock'].forEach(id => document.getElementById(id)?.classList.remove('loaded','cached'));
   ['tagSales','tagSalesLY','tagBudgetCat','tagBudgetSP','tagStock'].forEach(id => {
-    const el = document.getElementById(id); if(el) el.textContent = id.includes('Sales') ? 'CSV' : 'XLSX';
+    const el = document.getElementById(id); if(el) el.textContent = (id === 'tagSales') ? 'CSV' : 'XLSX';
   });
   // Reset FSAPI handles
   Object.keys(fileHandles).forEach(k => { fileHandles[k] = null; });
@@ -1366,7 +1366,8 @@ function parseIndoDateStr(str) {
 
 function parseAndStore(type, wb, fname) {
   const sheetMap = {
-    sales: ['DATA_SALES'], budget_category: ['BUDGET_CATEGORY'], budget_salesperson: ['BUDGET_SALPER', 'BUDGET_SALESPERSON'],
+    sales: ['DATA_SALES'], sales_ly: ['SALES DETAIL', 'DATA_SALES_2025', 'SALES_DETAIL', 'DATA SALES 2025'],
+    budget_category: ['BUDGET_CATEGORY'], budget_salesperson: ['BUDGET_SALPER', 'BUDGET_SALESPERSON'],
     stock: ['STOCK QTY AND VALUE', 'STOCK_QTY_VALUE', 'STOCK']
   };
   const candidates = sheetMap[type];
@@ -1398,6 +1399,64 @@ function parseAndStore(type, wb, fname) {
     })).filter(r => r.amount !== 0);
     markLoaded('btnSales', 'tagSales', 'LOADED', fname);
     setDateRange();
+  } else if (type === 'sales_ly') {
+    // File DATA_SALES_2025 (LY) sekarang berformat XLSX "Sales Detail Report" — punya 3 baris
+    // info (User ID, judul report, periode & store code) SEBELUM baris header kolom
+    // sebenarnya, mirip STOCK_QTY_VALUE, jadi dibaca sebagai array-of-array supaya baris
+    // header bisa dicari secara dinamis (bukan diasumsikan baris pertama).
+    const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, raw: true, cellDates: true });
+
+    let headerRowIdx = -1;
+    for (let i = 0; i < Math.min(aoa.length, 10); i++) {
+      const row = (aoa[i] || []).map(h => (h != null ? String(h).trim() : ''));
+      if (row.includes('Receipt Date') && row.includes('Item No')) { headerRowIdx = i; break; }
+    }
+
+    if (headerRowIdx === -1) {
+      showToast('Format DATA_SALES_2025 (LY) tidak dikenali (header kolom tidak ditemukan)', true);
+    } else {
+      const headers = aoa[headerRowIdx].map(h => (h != null ? String(h).trim() : ''));
+      const colIdx = name => headers.indexOf(name);
+      // Kolom Salesperson ID/Name pada format lama kini bernama "Salescode ID"/"Salescode Name"
+      // di Sales Detail Report — dipetakan ke field internal yang sama (salespersonId/Name)
+      // supaya seluruh logika lain (tabel SP, dsb) tetap jalan tanpa perubahan.
+      const c = {
+        date: colIdx('Receipt Date'), receiptNo: colIdx('Receipt No'),
+        salespersonId: colIdx('Salescode ID'), salespersonName: colIdx('Salescode Name'),
+        amountExcl: colIdx('Amount Exclude Sales'), category: colIdx('Category'),
+        itemName: colIdx('Item Name'), brand: colIdx('Brand'), masterBrand: colIdx('Master Brand'),
+        qty: colIdx('Qty'), sourceType: colIdx('Source Type Name'),
+        masterTypeBrand: colIdx('Master Type Brand'), itemNo: colIdx('Item No')
+      };
+
+      const parsedRecords = [];
+      for (let i = headerRowIdx + 1; i < aoa.length; i++) {
+        const row = aoa[i];
+        if (!row) continue;
+        const dateISO = excelDateToISO(row[c.date]);
+        const amountExcl = parseFloat(row[c.amountExcl] || 0) || 0;
+        if (!dateISO || amountExcl === 0) continue;
+
+        parsedRecords.push({
+          date: dateISO,
+          receiptNo: row[c.receiptNo] || '',
+          salespersonId: row[c.salespersonId] || '',
+          salespersonName: row[c.salespersonName] || '',
+          amount: amountExcl,
+          category: row[c.category] || '',
+          itemName: row[c.itemName] || '',
+          brand: row[c.brand] || '',
+          masterBrand: row[c.masterBrand] || '',
+          qty: parseFloat(row[c.qty] || 0) || 0,
+          sourceType: row[c.sourceType] || '',
+          masterTypeBrand: row[c.masterTypeBrand] || '',
+          itemNo: String(row[c.itemNo] || '')
+        });
+      }
+
+      state.sales_ly = parsedRecords;
+      markLoaded('btnSalesLY', 'tagSalesLY', 'LOADED', fname);
+    }
   } else if (type === 'budget_category') {
     state.budgetCat = {};
     const headers = rows.length ? Object.keys(rows[0]) : [];
@@ -1843,6 +1902,15 @@ function renderTiebsGrid(to, isSingleDay) {
   setGrowth('kpiTiebsGrowthEftMTD', effMTDTY, lyMTD.effTrafficLY);
   setGrowth('kpiTiebsGrowthBasketDaily', avgDaily, lyDaily.bszLY);
   setGrowth('kpiTiebsGrowthBasketMTD', avgMTD, lyMTD.bszLY);
+
+  // Simpan hasil perhitungan TIEBS Harian & MTD (TY + LY) supaya bisa dipakai ulang
+  // oleh Executive Summary (analisa manajerial) tanpa menghitung ulang dari awal.
+  LAST.tiebs = {
+    daily: { total: totalDaily, inv: invDaily, basket: avgDaily, ffc: ffcDailyTY, eft: effDailyTY,
+      invLY: lyDaily.invoiceLY || 0, ffcLY: lyDaily.ffcLY || 0, eftLY: lyDaily.effTrafficLY || 0, basketLY: lyDaily.bszLY || 0 },
+    mtd: { total: totalMTD, inv: invMTD, basket: avgMTD, ffc: ffcMTDTY, eft: effMTDTY,
+      invLY: lyMTD.invoiceLY || 0, ffcLY: lyMTD.ffcLY || 0, eftLY: lyMTD.effTrafficLY || 0, basketLY: lyMTD.bszLY || 0 }
+  };
 }
 
 function renderDailyChart(sales, from, to) {
@@ -2288,6 +2356,91 @@ function canvasWithFooter(canvas, align = 'right') {
 // salesperson menjadi satu ringkasan naratif untuk bahan pengambilan keputusan,
 // seperti yang biasa dibutuhkan store manager dalam briefing harian/mingguan.
 // ──────────────────────────────────────────
+// ──────────────────────────────────────────
+// Segmentasi Nilai Invoice — mengelompokkan invoice (per struk) ke 4 rentang nilai
+// (<Rp1jt, Rp1-5jt, Rp5-10jt, >Rp10jt) untuk melihat komposisi transaksi & kontribusinya
+// ke omset, dari kacamata manajerial (bukan cuma rata-rata basket size).
+// ──────────────────────────────────────────
+function bucketInvoicesByValue(salesRows) {
+  const map = new Map();
+  salesRows.forEach(r => map.set(r.receiptNo, (map.get(r.receiptNo) || 0) + r.amount));
+  const buckets = { b1: { count: 0, total: 0 }, b2: { count: 0, total: 0 }, b3: { count: 0, total: 0 }, b4: { count: 0, total: 0 } };
+  let totalCount = 0, totalValue = 0;
+  map.forEach(v => {
+    totalCount++; totalValue += v;
+    const k = v < 1000000 ? 'b1' : v < 5000000 ? 'b2' : v < 10000000 ? 'b3' : 'b4';
+    buckets[k].count++; buckets[k].total += v;
+  });
+  return { buckets, totalCount, totalValue };
+}
+
+function buildInvoiceSegmentInsight(data, periodLabel) {
+  const { buckets, totalCount, totalValue } = data;
+  const labelMap = { b1: '< Rp1jt', b2: 'Rp1-5jt', b3: 'Rp5-10jt', b4: '> Rp10jt' };
+  if (!totalCount) return { cls: '', label: `Segmentasi Nilai Invoice (${periodLabel})`, value: '—', desc: `Belum ada transaksi pada periode ${periodLabel} ini.` };
+
+  const pct = (n, d) => d > 0 ? (n / d * 100) : 0;
+  const rows = ['b1', 'b2', 'b3', 'b4'].map(k => `${labelMap[k]}: ${buckets[k].count} inv (${pct(buckets[k].count, totalCount).toFixed(1)}%, ${pct(buckets[k].total, totalValue).toFixed(1)}% omset)`);
+  let desc = rows.join(' · ') + '.';
+
+  const smallPct = pct(buckets.b1.count, totalCount);
+  const bigValuePct = pct(buckets.b4.total, totalValue);
+  const bigCountPct = pct(buckets.b4.count, totalCount);
+  let cls = '';
+  if (smallPct >= 60) { desc += ` Mayoritas transaksi (${smallPct.toFixed(1)}%) masih bernilai <Rp1jt — peluang upsell/cross-sell untuk menaikkan basket size.`; cls = 'mid'; }
+  if (bigCountPct > 0 && bigValuePct >= 30) { desc += ` Invoice >Rp10jt hanya ${bigCountPct.toFixed(1)}% dari transaksi namun menyumbang ${bigValuePct.toFixed(1)}% omset — omset terkonsentrasi pada pelanggan besar, prioritaskan retensi & layanan khusus (risiko bila hilang).`; cls = cls || 'good'; }
+
+  const dominant = ['b1', 'b2', 'b3', 'b4'].map(k => [k, buckets[k].count]).sort((a, b) => b[1] - a[1])[0];
+  return { cls, label: `Segmentasi Nilai Invoice (${periodLabel})`, value: `Dominan ${labelMap[dominant[0]]} (${dominant[1]} inv)`, desc };
+}
+
+// ──────────────────────────────────────────
+// Analisa Performance TIEBS (Traffic, Invoice, Efft. Traffic, Basket Size) — narasi
+// manajerial untuk membantu keputusan: apakah pertumbuhan/penurunan omset didorong oleh
+// jumlah kunjungan (traffic), kualitas closing (conversion/Efft. Traffic), atau nilai
+// belanja per transaksi (basket size).
+// ──────────────────────────────────────────
+function growthPctOf(ty, ly) { return (ty !== null && ty !== undefined && ly > 0) ? ((ty - ly) / ly * 100) : null; }
+
+function buildTiebsPerfInsight(m, periodLabel) {
+  if (!m) return { cls: '', label: `Performance TIEBS (${periodLabel})`, value: '—', desc: 'Data belum tersedia.' };
+  const fmtPct = v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+  const invG = growthPctOf(m.inv, m.invLY);
+  const ffcG = growthPctOf(m.ffc, m.ffcLY);
+  const eftD = (m.eft !== null && m.eftLY > 0) ? (m.eft - m.eftLY) : null;
+  const bszG = growthPctOf(m.basket, m.basketLY);
+
+  const parts = [];
+  if (invG !== null) parts.push(`Invoice ${fmtPct(invG)}`);
+  if (ffcG !== null) parts.push(`Traffic ${fmtPct(ffcG)}`);
+  if (eftD !== null) parts.push(`EFT ${(eftD >= 0 ? '+' : '')}${eftD.toFixed(1)}pts`);
+  if (bszG !== null) parts.push(`Basket ${fmtPct(bszG)}`);
+
+  let cls = '', desc;
+  if (m.ffc === null || m.ffc === undefined) {
+    desc = `Field FFC${periodLabel === 'MTD' ? ' MTD' : ' (Customer Count)'} belum diisi — Efft. Traffic (conversion rate) periode ${periodLabel} belum bisa dihitung. Lengkapi agar analisa closing rate akurat.`;
+  } else if (invG === null && eftD === null && ffcG === null) {
+    desc = `Data pembanding tahun lalu (LY) belum lengkap untuk periode ${periodLabel} — driver traffic vs conversion belum bisa dibandingkan.`;
+  } else if (eftD !== null && eftD < -2 && (ffcG === null || ffcG >= 0)) {
+    desc = `Conversion rate (Efft. Traffic) turun ${Math.abs(eftD).toFixed(1)} pts dibanding LY meski traffic ${ffcG !== null ? (ffcG >= 0 ? 'naik' : 'turun') : 'relatif sama'} — indikasi closing rate di lantai penjualan melemah (cek ketersediaan stok, kecukupan SPG, display).`;
+    cls = 'bad';
+  } else if (ffcG !== null && ffcG < -5 && (eftD === null || eftD >= 0)) {
+    desc = `Traffic turun ${Math.abs(ffcG).toFixed(1)}% dibanding LY — prioritaskan program marketing/kunjungan untuk mendongkrak jumlah pengunjung periode ${periodLabel}.`;
+    cls = 'bad';
+  } else if (eftD !== null && eftD >= 0 && (ffcG === null || ffcG >= 0)) {
+    desc = `Traffic${ffcG !== null ? ` ${fmtPct(ffcG)}` : ''} dan conversion rate ${eftD >= 0 ? 'membaik' : 'turun'} ${Math.abs(eftD).toFixed(1)} pts — funnel kunjungan-ke-transaksi berjalan sehat.`;
+    cls = 'good';
+  } else {
+    desc = `Performa traffic & conversion relatif stabil dibanding LY untuk periode ${periodLabel}.`;
+    cls = 'mid';
+  }
+  if (bszG !== null) {
+    desc += ` Basket size ${bszG >= 0 ? 'naik' : 'turun'} ${Math.abs(bszG).toFixed(1)}% — ${bszG >= 0 ? 'kontribusi positif ke nilai omset per transaksi.' : 'perlu dorong strategi upsell/bundling agar nilai transaksi meningkat.'}`;
+  }
+
+  return { cls, label: `Performance TIEBS (${periodLabel})`, value: parts.length ? parts.join(' · ') : '—', desc };
+}
+
 function renderExecutiveSummary(sales, salesLY, from, to) {
   const container = document.getElementById('execSummaryCard');
   if (!container) return;
@@ -2301,32 +2454,6 @@ function renderExecutiveSummary(sales, salesLY, from, to) {
   const pctAch = targetAcuan > 0 ? (total / targetAcuan * 100) : null;
   const hasLY = state.sales_ly.length > 0;
   const growthPct = (hasLY && totalLY > 0) ? ((total - totalLY) / totalLY * 100) : null;
-
-  // Data non-sales (Invoice/Traffic/FFC/Basket Size) LY diprioritaskan dari kolom LY
-  // di file BUDGET_CATEGORY (FFC LY, INVOICE LY, EFF TRAFFIC LY, BSZ LY, REAL LY).
-  // sales_ly (DATA_SALES_2025) tetap dipakai sebagai fallback jika BUDGET_CATEGORY
-  // belum diimport / belum ada datanya untuk periode ini.
-  const budgetLYRange = getBudgetCategoryLYRange(from, to);
-  const hasBudgetLY = budgetLYRange.hasData;
-
-  const receiptsTY = new Set(sales.map(r => r.receiptNo)).size;
-  const receiptsLYFromSales = new Set(salesLY.map(r => r.receiptNo)).size;
-  const receiptsLY = hasBudgetLY && budgetLYRange.invoiceLY > 0 ? budgetLYRange.invoiceLY : receiptsLYFromSales;
-  const basketTY = receiptsTY > 0 ? total / receiptsTY : 0;
-  const basketLYFromSales = receiptsLYFromSales > 0 ? totalLY / receiptsLYFromSales : 0;
-  const basketLY = hasBudgetLY && budgetLYRange.bszLY > 0 ? budgetLYRange.bszLY : basketLYFromSales;
-  const hasNonSalesLY = (hasBudgetLY && budgetLYRange.invoiceLY > 0) || (hasLY && receiptsLYFromSales > 0);
-  const trafficGrowthPct = (receiptsLY > 0 && hasNonSalesLY) ? ((receiptsTY - receiptsLY) / receiptsLY * 100) : null;
-  const hasNonSalesBasketLY = (hasBudgetLY && budgetLYRange.bszLY > 0) || (hasLY && basketLYFromSales > 0);
-  const basketGrowthPct = (basketLY > 0 && hasNonSalesBasketLY) ? ((basketTY - basketLY) / basketLY * 100) : null;
-
-  // FFC (kunjungan) & EFT Traffic — dibandingkan dengan FFC LY / EFF TRAFFIC LY dari BUDGET_CATEGORY.
-  // FFC TY berasal dari input manual "FFC (Customer Count)" di panel export.
-  const ffcTYEl = document.getElementById('expFFC');
-  const ffcTY = ffcTYEl ? (parseInt(ffcTYEl.value) || 0) : 0;
-  const ffcGrowthPct = (hasBudgetLY && budgetLYRange.ffcLY > 0 && ffcTY > 0) ? ((ffcTY - budgetLYRange.ffcLY) / budgetLYRange.ffcLY * 100) : null;
-  const eftTrafficTY = ffcTY > 0 ? (receiptsTY / ffcTY * 100) : null;
-  const eftTrafficGrowthPts = (eftTrafficTY !== null && hasBudgetLY && budgetLYRange.effTrafficLY > 0) ? (eftTrafficTY - budgetLYRange.effTrafficLY) : null;
 
   // ── Kategori ──
   const catWithBudget = LAST.catRows.filter(r => r.targetAcuan > 0);
@@ -2375,42 +2502,20 @@ function renderExecutiveSummary(sales, salesLY, from, to) {
     + (growthPct !== null ? `, tumbuh ${growthPct >= 0 ? '+' : ''}${growthPct.toFixed(1)}% dibanding periode sama tahun lalu.` : '. Data pembanding tahun lalu (LY) belum diimport.');
 
   const insights = [];
-  let driverDesc = 'Data LY belum lengkap untuk analisa traffic vs basket.', driverCls = '';
-  if (trafficGrowthPct !== null && basketGrowthPct !== null) {
-    if (growthPct !== null && growthPct >= 0) {
-      driverDesc = trafficGrowthPct >= basketGrowthPct ? `Pertumbuhan didorong oleh kenaikan traffic/invoice (+${trafficGrowthPct.toFixed(1)}%).` : `Pertumbuhan didorong oleh kenaikan basket size (+${basketGrowthPct.toFixed(1)}%), traffic ${trafficGrowthPct >= 0 ? 'naik' : 'turun'} ${trafficGrowthPct.toFixed(1)}%.`;
-      driverCls = 'good';
-    } else {
-      driverDesc = trafficGrowthPct <= basketGrowthPct ? `Penurunan utamanya disebabkan turunnya traffic/invoice (${trafficGrowthPct.toFixed(1)}%).` : `Penurunan utamanya disebabkan turunnya basket size (${basketGrowthPct.toFixed(1)}%).`;
-      driverCls = 'bad';
-    }
-  }
-  insights.push({ cls: driverCls, label: 'Driver Traffic vs Basket', value: (trafficGrowthPct !== null ? (trafficGrowthPct >= 0 ? '+' : '') + trafficGrowthPct.toFixed(1) + '% traffic' : '—'), desc: driverDesc });
 
-  // ── Growth Non-Sales (Invoice/Traffic, FFC Kunjungan, EFT Traffic, Basket Size) ──
-  // Dibandingkan langsung dengan kolom LY di file BUDGET_CATEGORY: INVOICE LY, FFC LY,
-  // EFF TRAFFIC LY, BSZ LY (REAL LY dipakai sebagai basis perhitungan BSZ LY).
-  const nonSalesParts = [];
-  if (trafficGrowthPct !== null) nonSalesParts.push(`Invoice ${trafficGrowthPct >= 0 ? '+' : ''}${trafficGrowthPct.toFixed(1)}%`);
-  if (ffcGrowthPct !== null) nonSalesParts.push(`FFC ${ffcGrowthPct >= 0 ? '+' : ''}${ffcGrowthPct.toFixed(1)}%`);
-  if (eftTrafficGrowthPts !== null) nonSalesParts.push(`EFT Traffic ${eftTrafficGrowthPts >= 0 ? '+' : ''}${eftTrafficGrowthPts.toFixed(1)} pts`);
-  if (basketGrowthPct !== null) nonSalesParts.push(`Basket Size ${basketGrowthPct >= 0 ? '+' : ''}${basketGrowthPct.toFixed(1)}%`);
+  // ── Segmentasi Nilai Invoice & Performance TIEBS — Harian & MTD ──
+  // Dihitung independen dari filter tanggal aktif (selalu Harian = tanggal `to`,
+  // MTD = awal bulan s/d `to`), selaras dengan grid TIEBS di atas, supaya analisa
+  // manajerial ini konsisten dengan angka yang dilihat store manager di grid.
+  const monthStartRE = to ? to.slice(0, 7) + '-01' : null;
+  const salesDailyRE = to ? state.sales.filter(r => r.date === to) : [];
+  const salesMTDRE = to ? state.sales.filter(r => r.date >= monthStartRE && r.date <= to) : [];
 
-  let nonSalesDesc, nonSalesCls;
-  if (!nonSalesParts.length) {
-    nonSalesDesc = 'Kolom LY di BUDGET_CATEGORY (FFC LY/INVOICE LY/EFF TRAFFIC LY/BSZ LY) belum terisi untuk periode ini, dan DATA_SALES_2025 (LY) juga belum diimport sebagai fallback.';
-    nonSalesCls = '';
-  } else {
-    const avgNonSalesGrowth = [trafficGrowthPct, ffcGrowthPct, basketGrowthPct].filter(v => v !== null).reduce((s, v, _, arr) => s + v / arr.length, 0);
-    nonSalesCls = avgNonSalesGrowth >= 0 ? 'good' : 'bad';
-    nonSalesDesc = `${nonSalesParts.join(', ')} dibanding periode sama tahun lalu (sumber: kolom LY BUDGET_CATEGORY${(!hasBudgetLY && hasLY) ? ', fallback dari DATA_SALES_2025' : ''}).`;
-  }
-  insights.push({
-    cls: nonSalesCls,
-    label: 'Growth Non-Sales (Traffic/FFC/EFT/Basket)',
-    value: nonSalesParts.length ? nonSalesParts[0] : '—',
-    desc: nonSalesDesc
-  });
+  insights.push(buildInvoiceSegmentInsight(bucketInvoicesByValue(salesDailyRE), 'Harian'));
+  insights.push(buildInvoiceSegmentInsight(bucketInvoicesByValue(salesMTDRE), 'MTD'));
+  insights.push(buildTiebsPerfInsight(LAST.tiebs ? LAST.tiebs.daily : null, 'Harian'));
+  insights.push(buildTiebsPerfInsight(LAST.tiebs ? LAST.tiebs.mtd : null, 'MTD'));
+
   insights.push({
     cls: bestCat ? (bestCat.pct >= 100 ? 'good' : 'mid') : '', label: 'Kategori Unggulan',
     value: bestCat ? `${bestCat.cat} (${bestCat.pct.toFixed(1)}%)` : '—',
@@ -2542,7 +2647,7 @@ function downloadTableAsPNGPaged(containerId, filename) {
 }
 
 let spTableData = [];
-let LAST = { catRows: [], zonaResults: [], growthRows: [], roadRows: [], remainingDays: 0, isSingleDay: false };
+let LAST = { catRows: [], zonaResults: [], growthRows: [], roadRows: [], remainingDays: 0, isSingleDay: false, tiebs: null };
 function renderSPTable(sales, salesLY, from, to) {
   const bySP = {}; const dayCount = countDaysInclusive(from, to);
   
@@ -3013,20 +3118,33 @@ const STOCK_CLASS_A_CATEGORIES = [
   { col: 'TOOLS', full: 'TOOLS' }
 ];
 
-// Total "Amount Exclude Sales" pada tanggal tertentu, untuk item-item yang menurut
-// file Stock Qty & Value berada di "Item Class By Value" = A dan Category = kategori terkait.
-// Dicocokkan lewat Item No (bukan nama kategori di file sales), sesuai instruksi template.
+// Total Value (kolom "Value (Cost Amount Actual + Cost Amount Expected)") pada file
+// STOCK_QTY_VALUE, dijumlahkan untuk item-item dengan "Item Class By Value" = A dan
+// Category = kategori terkait. Nilainya diambil langsung dari data stok (bukan dari
+// omset penjualan tanggal berjalan), karena file Stock Qty & Value adalah snapshot stok
+// per tanggal stock-nya sendiri (lihat state.stockDate), bukan data harian.
 function getStockClassAAmount(categoryFull, dateISO) {
   const norm = s => (s || '').toUpperCase().trim();
   if (!state.stock.length) return 0;
+  return state.stock
+    .filter(s => norm(s.itemClass) === 'A' && norm(s.category) === norm(categoryFull))
+    .reduce((sum, s) => sum + (s.value || 0), 0);
+}
+
+// Total "Amount Exclude Sales" (kolom di file DATA_SALES) pada tanggal tertentu, untuk baris
+// penjualan yang Item No-nya cocok dengan item-item ber-"Item Class By Value" = A di file
+// STOCK_QTY_VALUE (dicocokkan via Item No, lintas semua kategori). Dipakai untuk kolom
+// "CONTR. SALES CLASS A" = kontribusi omset item-item Class A terhadap total omset toko —
+// berbeda dari "VALUE STOCK CLASS A" yang mengambil nilai stok (Value) itu sendiri.
+function getSalesClassAAmount(dateISO) {
+  const norm = s => (s || '').toUpperCase().trim();
+  if (!state.stock.length) return 0;
   const itemSet = new Set();
-  state.stock.forEach(s => {
-    if (norm(s.itemClass) === 'A' && norm(s.category) === norm(categoryFull) && s.itemNo) itemSet.add(String(s.itemNo));
-  });
+  state.stock.forEach(s => { if (norm(s.itemClass) === 'A' && s.itemNo) itemSet.add(String(s.itemNo)); });
   if (!itemSet.size) return 0;
   return state.sales
     .filter(r => r.date === dateISO && r.itemNo && itemSet.has(String(r.itemNo)))
-    .reduce((s, r) => s + r.amount, 0);
+    .reduce((sum, r) => sum + r.amount, 0);
 }
 
 function getRegionData() {
@@ -3057,6 +3175,7 @@ function getRegionData() {
   // ── Stock Class A (otomatis, cross-ref Item No sales <-> stock) ──
   const stockClassA = STOCK_CLASS_A_CATEGORIES.map(c => ({ ...c, value: getStockClassAAmount(c.full, to) }));
   const stockClassATotal = stockClassA.reduce((s, c) => s + c.value, 0);
+  const salesClassATotal = getSalesClassAAmount(to);
 
   // ── Sales Project, Member, Waiting Time ──
   const isProjectSource = st => (st || '').trim().toUpperCase() === 'SALES PROJECT';
@@ -3092,7 +3211,7 @@ function getRegionData() {
   return {
     regionName: txt('expRegRegionName') || 'REGION 6', storeCode: txt('expRegStoreCode') || 'TLC', tanggal: to,
     target, actual, ly, trafficAct, trafficLY, invAct, invLY,
-    dsl, stockClassA, stockClassATotal,
+    dsl, stockClassA, stockClassATotal, salesClassATotal,
     actualProject, budgetMember, memberRegist, newMemberTransaksi, salesNewMember, avgWaitTime, totalDR, gt10NoTinting,
     budgetProtection, budgetProtectionMTD, actualProtection, allSalper, salperMultiKategori, salesBathroom, budgetSalperBathroom, salesBathroomLY,
     dataOk, stockOk, budgetOk
@@ -3114,7 +3233,7 @@ function updateExportPreviewRegion() {
     `${d.regionName} — ${d.storeCode} — ${d.tanggal}`,
     `TIEBS: Target ${n(d.target)} / Actual ${n(d.actual)} (ACV ${pct(d.target ? d.actual / d.target : 0)}) / LY ${n(d.ly)}`,
     `Traffic: ${n(d.trafficAct)} / LY ${n(d.trafficLY)}   Invoice: ${n(d.invAct)} / LY ${n(d.invLY)}`,
-    `Stock Class A Total: ${n(d.stockClassATotal)}   Kontr. Sales Class A: ${pct(d.actual ? d.stockClassATotal / d.actual : 0)}`,
+    `Stock Class A Total: ${n(d.stockClassATotal)}   Kontr. Sales Class A: ${pct(d.actual ? d.salesClassATotal / d.actual : 0)}`,
     `Sales Project: ${n(d.actualProject)}   Member Budget: ${n(d.budgetMember)} / Regist ${n(d.memberRegist)}`,
     `Mitra10 Protection: Budget ${n(d.budgetProtection)} / Actual ${n(d.actualProtection)}`,
     `Salper: All ${d.allSalper} / >2 Kategori ${d.salperMultiKategori}   Sales Bathroom: ${n(d.salesBathroom)}`
@@ -3275,16 +3394,16 @@ function buildRegionWorkbook(d) {
   setc(ws, 'A19', d.storeCode, RG.storeName);
   d.stockClassA.forEach((c, i) => setc(ws, stockCols[i] + '19', c.value, RG.num));
   setc(ws, 'N19', d.stockClassATotal, RG.num, 'SUM(B19:M19)');
-  setc(ws, 'O19', d.stockClassATotal, RG.num, 'N19');
+  setc(ws, 'O19', d.salesClassATotal, RG.num);
   setc(ws, 'P19', d.actual, RG.num, 'C7');
-  setc(ws, 'Q19', d.actual ? d.stockClassATotal / d.actual : 0, RG.pctGreen, 'O19/P19');
+  setc(ws, 'Q19', d.actual ? d.salesClassATotal / d.actual : 0, RG.pctGreen, 'O19/P19');
 
   setc(ws, 'A20', 'TOTAL', RG.totalTxt);
   stockCols.forEach((c, i) => setc(ws, c + '20', d.stockClassA[i].value, RG.total, `SUM(${c}19)`));
   setc(ws, 'N20', d.stockClassATotal, RG.total, 'SUM(N19)');
-  setc(ws, 'O20', d.stockClassATotal, RG.total, 'SUM(O19)');
+  setc(ws, 'O20', d.salesClassATotal, RG.total, 'SUM(O19)');
   setc(ws, 'P20', d.actual, RG.total, 'SUM(P19)');
-  setc(ws, 'Q20', d.actual ? d.stockClassATotal / d.actual : 0, RG.totalPct, 'O20/P20');
+  setc(ws, 'Q20', d.actual ? d.salesClassATotal / d.actual : 0, RG.totalPct, 'O20/P20');
 
   // ── SALES PROJECT, MEMBER, WAITING TIME ──
   setc(ws, 'A22', 'SALES PROJECT, MEMBER, WATING TIME', RG.section); M(22, 1, 22, 4);
@@ -3632,7 +3751,7 @@ async function loadFromDrive(type, silent) {
     for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
     const blob = new Blob([bytes], { type: data.mimeType || 'application/octet-stream' });
 
-    const fname = data.name || (label + (type === 'sales_ly' ? '.csv' : '.xlsx'));
+    const fname = data.name || (label + '.xlsx');
     const file = new File([blob], fname, { type: blob.type });
     processFile(type, file);
     showToast('✅ ' + label + ' berhasil dimuat dari Google Drive (' + fname + ')');
@@ -3725,7 +3844,7 @@ const fileHandles = {
 // Map tipe ke elemen UI
 const FILE_META = {
   sales:              { btn: 'btnSales',     tag: 'tagSales',     reload: 'reloadSales',     accept: ['.csv'], mime: ['text/csv','application/csv'] },
-  sales_ly:           { btn: 'btnSalesLY',   tag: 'tagSalesLY',   reload: 'reloadSalesLY',   accept: ['.csv'], mime: ['text/csv','application/csv'] },
+  sales_ly:           { btn: 'btnSalesLY',   tag: 'tagSalesLY',   reload: 'reloadSalesLY',   accept: ['.xlsx','.xls'], mime: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.ms-excel'] },
   budget_category:    { btn: 'btnBudgetCat', tag: 'tagBudgetCat', reload: 'reloadBudgetCat', accept: ['.xlsx','.xls'], mime: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.ms-excel'] },
   budget_salesperson: { btn: 'btnBudgetSP',  tag: 'tagBudgetSP',  reload: 'reloadBudgetSP',  accept: ['.xlsx','.xls'], mime: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.ms-excel'] },
   stock:              { btn: 'btnStock',     tag: 'tagStock',     reload: 'reloadStock',     accept: ['.xlsx','.xls'], mime: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.ms-excel'] }
@@ -3772,7 +3891,7 @@ async function openFileWithFSAPI(type) {
   try {
     const [handle] = await window.showOpenFilePicker({
       types: [{
-        description: (type.includes('budget') || type === 'stock') ? 'Excel Files' : 'CSV Files',
+        description: (type.includes('budget') || type === 'stock' || type === 'sales_ly') ? 'Excel Files' : 'CSV Files',
         accept: Object.fromEntries(meta.mime.map(m => [m, meta.accept]))
       }],
       multiple: false
@@ -3800,7 +3919,7 @@ function processFile(type, file) {
   const isCSV = file.name.toLowerCase().endsWith('.csv');
   const reader = new FileReader();
 
-  if (isCSV && (type === 'sales' || type === 'sales_ly')) {
+  if (isCSV && type === 'sales') {
     reader.onload = (e) => {
       try { parseCSVSales(e.target.result, file.name, type); }
       catch (err) { showToast('Gagal membaca CSV: ' + err.message, true); }
@@ -3865,7 +3984,7 @@ async function reloadAllFiles() {
       await new Promise((resolve) => {
         const isCSV = file.name.toLowerCase().endsWith('.csv');
         const reader = new FileReader();
-        if (isCSV && (type === 'sales' || type === 'sales_ly')) {
+        if (isCSV && type === 'sales') {
           reader.onload = (e) => { try { parseCSVSales(e.target.result, file.name, type); } catch(e){} resolve(); };
           reader.readAsText(file, 'latin-1');
         } else {
