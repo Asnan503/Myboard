@@ -509,26 +509,25 @@
     body * { visibility: hidden; }
     #briefingPrintArea, #briefingPrintArea * { visibility: visible; }
     #briefingPrintArea { display: block; position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 0; }
-    @page { size: A4; margin: 12mm; }
+    @page { size: A4; margin: 9mm; }
   }
-  .brief-page { font-family: 'Roboto', Arial, sans-serif; color: #212121; font-size: 11px; }
-  .brief-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #1976D2; padding-bottom: 10px; margin-bottom: 14px; }
-  .brief-header h1 { font-size: 18px; color: #1976D2; margin: 0 0 2px; }
-  .brief-header .sub { font-size: 11px; color: #616161; }
-  .brief-header .meta { text-align: right; font-size: 11px; color: #616161; }
-  .brief-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; background: #1976D2; color: #fff; padding: 6px 10px; margin: 16px 0 8px; border-radius: 3px; }
+  .brief-page { font-family: Arial, Helvetica, sans-serif; color: #000; background: #fff; font-size: 8.5px; line-height: 1.25; }
+  .brief-header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 6px; }
+  .brief-header h1 { font-size: 14px; color: #000; margin: 0 0 1px; }
+  .brief-header .sub { font-size: 9px; color: #000; }
+  .brief-header .meta { text-align: right; font-size: 8.5px; color: #000; line-height: 1.35; }
+  .brief-section-title { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; background: #fff; color: #000; padding: 2px 0; margin: 7px 0 3px; border-bottom: 1.5px solid #000; }
   .brief-section-title:first-of-type { margin-top: 0; }
-  .brief-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-  .brief-table th, .brief-table td { border: 1px solid #BDBDBD; padding: 4px 6px; font-size: 10.5px; text-align: right; }
-  .brief-table th { background: #E3F2FD; color: #0D47A1; font-weight: 700; text-align: center; }
+  .brief-table { width: 100%; border-collapse: collapse; margin-bottom: 2px; }
+  .brief-table th, .brief-table td { border: 1px solid #000; padding: 1.5px 4px; font-size: 8px; text-align: right; color: #000; }
+  .brief-table th { background: #fff; color: #000; font-weight: 700; text-align: center; }
   .brief-table td:first-child, .brief-table th:first-child { text-align: left; }
-  .brief-table tr.brief-total td { background: #ECEFF1; font-weight: 700; }
-  .brief-pos { color: #2E7D32; font-weight: 700; }
-  .brief-neg { color: #C62828; font-weight: 700; }
-  .brief-two-col { display: flex; gap: 14px; }
+  .brief-table tr.brief-total td { background: #fff; font-weight: 700; color: #000; border-top: 2px solid #000; }
+  .brief-pos, .brief-neg { color: #000; font-weight: 700; }
+  .brief-two-col { display: flex; gap: 10px; }
   .brief-two-col > div { flex: 1; min-width: 0; }
-  .brief-note { font-size: 10px; color: #757575; font-style: italic; margin: 4px 0 0; }
-  .brief-footer { margin-top: 18px; font-size: 9.5px; color: #9e9e9e; text-align: center; border-top: 1px solid #E0E0E0; padding-top: 8px; }
+  .brief-note { font-size: 7.5px; color: #000; font-style: italic; margin: 2px 0 0; }
+  .brief-footer { margin-top: 8px; font-size: 7.5px; color: #000; text-align: center; border-top: 1px solid #000; padding-top: 4px; }
 </style>
 </head>
 <body>
@@ -3601,7 +3600,16 @@ function generateRegionExcel() {
 // ──────────────────────────────────────────
 function nb(v) { if (v === null || v === undefined || isNaN(v)) return '—'; return Math.round(v).toLocaleString('id-ID'); }
 function pctb(v) { if (v === null || v === undefined || !isFinite(v)) return '—'; return v.toFixed(1) + '%'; }
-function briefCls(v) { return (v >= 0) ? 'brief-pos' : 'brief-neg'; }
+
+// Membagi daftar baris panjang (mis. kategori) jadi 2 tabel berdampingan supaya hemat
+// ruang vertikal — penting untuk memastikan laporan briefing tetap muat 1 halaman A4.
+function twoColTableHtml(headerHtml, rows, rowFn, emptyText) {
+  if (!rows.length) return `<table class="brief-table"><thead><tr>${headerHtml}</tr></thead><tbody><tr><td colspan="10" style="text-align:center">${emptyText}</td></tr></tbody></table>`;
+  const mid = Math.ceil(rows.length / 2);
+  const left = rows.slice(0, mid), right = rows.slice(mid);
+  const build = arr => `<table class="brief-table"><thead><tr>${headerHtml}</tr></thead><tbody>${arr.map(rowFn).join('')}</tbody></table>`;
+  return `<div class="brief-two-col"><div>${build(left)}</div><div>${right.length ? build(right) : ''}</div></div>`;
+}
 
 function buildBriefingData() {
   const to = document.getElementById('dateTo').value;
@@ -3698,27 +3706,28 @@ function buildBriefingData() {
 }
 
 function renderBriefingPrint(d) {
-  const catRowsHtml = d.catRows.map(r => `
-    <tr><td>${r.cat}</td><td>${nb(r.budget)}</td><td>${nb(r.real)}</td><td>${pctb(r.pct)}</td><td class="${briefCls(r.selisih)}">${r.selisih >= 0 ? '▲' : '▼'} ${nb(Math.abs(r.selisih))}</td></tr>`).join('');
+  const catHeaderHtml = '<th>Kategori</th><th>Budget</th><th>Real</th><th>%</th><th>Selisih</th>';
+  const catRowFn = r => `<tr><td>${r.cat}</td><td>${nb(r.budget)}</td><td>${nb(r.real)}</td><td>${pctb(r.pct)}</td><td>${r.selisih >= 0 ? '▲' : '▼'} ${nb(Math.abs(r.selisih))}</td></tr>`;
+  const catTwoColHtml = twoColTableHtml(catHeaderHtml, d.catRows, catRowFn, 'Tidak ada data');
+
   const zonaRowsHtml = d.zonaRows.map(r => `
-    <tr><td>${r.zona}</td><td>${nb(r.budget)}</td><td>${nb(r.real)}</td><td>${pctb(r.pct)}</td><td class="${briefCls(r.selisih)}">${r.selisih >= 0 ? '▲' : '▼'} ${nb(Math.abs(r.selisih))}</td></tr>`).join('');
+    <tr><td>${r.zona}</td><td>${nb(r.budget)}</td><td>${nb(r.real)}</td><td>${pctb(r.pct)}</td><td>${r.selisih >= 0 ? '▲' : '▼'} ${nb(Math.abs(r.selisih))}</td></tr>`).join('');
 
   const tiebsRowsHtml = d.tiebsRows.map(r => `
     <tr>
       <td>${r.label}</td>
       <td>${r.isPct ? pctb(r.ty) : nb(r.ty)}</td>
       <td>${r.isPct ? pctb(r.ly) : nb(r.ly)}</td>
-      <td class="${r.growthPct === null ? '' : briefCls(r.growthPct)}">${r.growthPct === null ? '—' : (r.growthPct >= 0 ? '+' : '') + r.growthPct.toFixed(1) + '%'}</td>
+      <td>${r.growthPct === null ? '—' : (r.growthPct >= 0 ? '+' : '') + r.growthPct.toFixed(1) + '%'}</td>
     </tr>`).join('');
 
   const spRow = (sp, i) => `<tr><td style="text-align:center">${i + 1}</td><td>${sp.name || sp.id || '—'}</td><td>${nb(sp.real)}</td><td>${sp.budget > 0 ? nb(sp.budget) : '—'}</td><td>${sp.budget > 0 ? pctb(sp.pct) : '—'}</td></tr>`;
-  const spTopHtml = d.spTop5.length ? d.spTop5.map(spRow).join('') : `<tr><td colspan="5" style="text-align:center;color:#9e9e9e">Tidak ada data</td></tr>`;
-  const spBottomHtml = d.spBottom5.length ? d.spBottom5.map(spRow).join('') : `<tr><td colspan="5" style="text-align:center;color:#9e9e9e">Tidak ada data</td></tr>`;
+  const spTopHtml = d.spTop5.length ? d.spTop5.map(spRow).join('') : `<tr><td colspan="5" style="text-align:center">Tidak ada data</td></tr>`;
+  const spBottomHtml = d.spBottom5.length ? d.spBottom5.map(spRow).join('') : `<tr><td colspan="5" style="text-align:center">Tidak ada data</td></tr>`;
 
-  const budgetTomorrowHtml = d.budgetTomorrowRows.length
-    ? d.budgetTomorrowRows.map(r => `<tr><td>${r.cat}</td><td>${nb(r.budget)}</td></tr>`).join('')
-      + `<tr class="brief-total"><td>TOTAL</td><td>${nb(d.budgetTomorrowTotal)}</td></tr>`
-    : `<tr><td colspan="2" style="text-align:center;color:#9e9e9e">Data BUDGET_CATEGORY untuk tanggal besok (${d.tomorrowStr}) belum tersedia/diimport</td></tr>`;
+  const budgetHeaderHtml = '<th>Kategori</th><th>Budget Harian</th>';
+  const budgetRowFn = r => `<tr><td>${r.cat}</td><td>${nb(r.budget)}</td></tr>`;
+  const budgetTwoColHtml = twoColTableHtml(budgetHeaderHtml, d.budgetTomorrowRows, budgetRowFn, `Data BUDGET_CATEGORY untuk tanggal besok (${d.tomorrowStr}) belum tersedia/diimport`);
 
   const html = `
     <div class="brief-page">
@@ -3735,18 +3744,14 @@ function renderBriefingPrint(d) {
       </div>
 
       <div class="brief-section-title">1. Realisasi Harian — Kategori</div>
-      <table class="brief-table">
-        <thead><tr><th>Kategori</th><th>Budget Harian</th><th>Realisasi</th><th>% Real</th><th>Selisih</th></tr></thead>
-        <tbody>${catRowsHtml || `<tr><td colspan="5" style="text-align:center;color:#9e9e9e">Tidak ada data</td></tr>`}
-        <tr class="brief-total"><td>TOTAL</td><td>${nb(d.catTotal.budget)}</td><td>${nb(d.catTotal.real)}</td><td>${pctb(d.catTotal.pct)}</td><td class="${briefCls(d.catTotal.selisih)}">${d.catTotal.selisih >= 0 ? '▲' : '▼'} ${nb(Math.abs(d.catTotal.selisih))}</td></tr>
-        </tbody>
-      </table>
+      ${catTwoColHtml}
+      <table class="brief-table"><tbody><tr class="brief-total"><td>TOTAL</td><td>${nb(d.catTotal.budget)}</td><td>${nb(d.catTotal.real)}</td><td>${pctb(d.catTotal.pct)}</td><td>${d.catTotal.selisih >= 0 ? '▲' : '▼'} ${nb(Math.abs(d.catTotal.selisih))}</td></tr></tbody></table>
 
       <div class="brief-section-title">Realisasi Harian — Zonasi</div>
       <table class="brief-table">
         <thead><tr><th>Zona</th><th>Budget Harian</th><th>Realisasi</th><th>% Real</th><th>Selisih</th></tr></thead>
         <tbody>${zonaRowsHtml}
-        <tr class="brief-total"><td>TOTAL</td><td>${nb(d.zonaTotal.budget)}</td><td>${nb(d.zonaTotal.real)}</td><td>${pctb(d.zonaTotal.pct)}</td><td class="${briefCls(d.zonaTotal.selisih)}">${d.zonaTotal.selisih >= 0 ? '▲' : '▼'} ${nb(Math.abs(d.zonaTotal.selisih))}</td></tr>
+        <tr class="brief-total"><td>TOTAL</td><td>${nb(d.zonaTotal.budget)}</td><td>${nb(d.zonaTotal.real)}</td><td>${pctb(d.zonaTotal.pct)}</td><td>${d.zonaTotal.selisih >= 0 ? '▲' : '▼'} ${nb(Math.abs(d.zonaTotal.selisih))}</td></tr>
         </tbody>
       </table>
 
@@ -3759,14 +3764,14 @@ function renderBriefingPrint(d) {
       <div class="brief-section-title">3. Pencapaian Salesperson Harian</div>
       <div class="brief-two-col">
         <div>
-          <div style="font-weight:700;font-size:10.5px;margin-bottom:4px;color:#2E7D32;">🏆 5 Pencapaian Tertinggi</div>
+          <div style="font-weight:700;font-size:9px;margin-bottom:2px;">🏆 5 Pencapaian Tertinggi</div>
           <table class="brief-table">
             <thead><tr><th>#</th><th>Salesperson</th><th>Real</th><th>Budget</th><th>%</th></tr></thead>
             <tbody>${spTopHtml}</tbody>
           </table>
         </div>
         <div>
-          <div style="font-weight:700;font-size:10.5px;margin-bottom:4px;color:#C62828;">⚠️ 5 Pencapaian Terendah</div>
+          <div style="font-weight:700;font-size:9px;margin-bottom:2px;">⚠️ 5 Pencapaian Terendah</div>
           <table class="brief-table">
             <thead><tr><th>#</th><th>Salesperson</th><th>Real</th><th>Budget</th><th>%</th></tr></thead>
             <tbody>${spBottomHtml}</tbody>
@@ -3776,10 +3781,8 @@ function renderBriefingPrint(d) {
       ${d.spUsesBudgetRanking ? '' : '<p class="brief-note">* Ranking sebagian/seluruhnya memakai nilai Realisasi karena data Budget Salesperson (BUDGET_SALPER) untuk tanggal ini belum lengkap.</p>'}
 
       <div class="brief-section-title">4. Target / Budget Besok (${d.tomorrowLabel})</div>
-      <table class="brief-table">
-        <thead><tr><th>Kategori</th><th>Budget Harian</th></tr></thead>
-        <tbody>${budgetTomorrowHtml}</tbody>
-      </table>
+      ${budgetTwoColHtml}
+      ${d.budgetTomorrowRows.length ? `<table class="brief-table"><tbody><tr class="brief-total"><td>TOTAL</td><td>${nb(d.budgetTomorrowTotal)}</td></tr></tbody></table>` : ''}
 
       <div class="brief-footer">Dashboard Monitoring Omset — MITRA10 TallasaCity Makassar · Dokumen ini dibuat otomatis untuk keperluan briefing internal</div>
     </div>`;
