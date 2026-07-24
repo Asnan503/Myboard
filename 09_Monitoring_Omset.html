@@ -3675,11 +3675,13 @@ function buildBriefingData() {
     const budget = getBudgetSP(sp.id);
     return { ...sp, budget, pct: budget > 0 ? (sp.real / budget * 100) : 0 };
   });
-  const spWithBudget = spData.filter(sp => sp.budget > 0);
-  const spPool = spWithBudget.length >= 5 ? spWithBudget : spData;
-  const spTop5 = [...spPool].sort((a, b) => b.pct - a.pct).slice(0, 5);
-  const spBottom5 = [...spPool].sort((a, b) => a.pct - b.pct).slice(0, 5);
-  const spUsesBudgetRanking = spWithBudget.length >= 5;
+  // Ranking berdasarkan nilai Realisasi (Real) harian — Top 5 = real tertinggi, Bottom 5 = real
+  // terendah. Diambil dari ujung array yang sama (hasil sort satu kali) supaya kedua daftar
+  // tidak pernah tumpang tindih kecuali jumlah salesperson aktif hari itu kurang dari 10.
+  const spSortedByReal = [...spData].sort((a, b) => b.real - a.real);
+  const spTop5 = spSortedByReal.slice(0, 5);
+  const spBottom5 = spSortedByReal.slice(-5).reverse();
+  const spOverlap = spSortedByReal.length > 0 && spSortedByReal.length < 10;
 
   // ── 4. Target/Budget Besok ──
   const toDateObj = new Date(to + 'T00:00:00');
@@ -3700,7 +3702,7 @@ function buildBriefingData() {
     storeName: document.getElementById('expStoreName').value || 'Store Mitra10 Tallasa City Makassar',
     catRows, catTotal, zonaRows, zonaTotal,
     tiebsRows,
-    spTop5, spBottom5, spUsesBudgetRanking,
+    spTop5, spBottom5, spOverlap,
     tomorrowStr, tomorrowLabel, budgetTomorrowObj, budgetTomorrowRows, budgetTomorrowTotal
   };
 }
@@ -3778,7 +3780,7 @@ function renderBriefingPrint(d) {
           </table>
         </div>
       </div>
-      ${d.spUsesBudgetRanking ? '' : '<p class="brief-note">* Ranking sebagian/seluruhnya memakai nilai Realisasi karena data Budget Salesperson (BUDGET_SALPER) untuk tanggal ini belum lengkap.</p>'}
+      ${d.spOverlap ? '<p class="brief-note">* Jumlah salesperson aktif hari ini kurang dari 10, sehingga daftar Tertinggi & Terendah bisa memuat nama yang sama.</p>' : ''}
 
       <div class="brief-section-title">4. Target / Budget Besok (${d.tomorrowLabel})</div>
       ${budgetTwoColHtml}
