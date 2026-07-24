@@ -485,6 +485,50 @@
     .growth-item .kpi-value { font-size: 13px; }
     .growth-duo { gap: 4px; }
   }
+
+  /* BRIEFING BAR (tombol download PDF — berdiri sendiri, di luar grid manapun) */
+  .briefing-bar {
+    background: linear-gradient(135deg, #263238 0%, #37474F 100%);
+    padding: 12px 28px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  }
+  .briefing-bar-label { color: #ECEFF1; font-size: 12px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .btn-briefing {
+    display: flex; align-items: center; gap: 8px;
+    background: #FF7043; color: #fff; border: none; border-radius: 4px;
+    padding: 10px 18px; cursor: pointer; font-size: 13px; font-weight: 700; font-family: inherit;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.25); transition: background .2s ease;
+  }
+  .btn-briefing:hover { background: #F4511E; }
+  .btn-briefing .icon { font-size: 16px; }
+  @media (max-width: 768px) { .briefing-bar { padding: 10px 16px; } .briefing-bar-label { width: 100%; } .btn-briefing { flex: 1 1 auto; justify-content: center; } }
+
+  /* AREA CETAK BRIEFING PDF (A4) — tersembunyi di layar, hanya tampil saat print/save-as-pdf */
+  #briefingPrintArea { display: none; }
+  @media print {
+    body * { visibility: hidden; }
+    #briefingPrintArea, #briefingPrintArea * { visibility: visible; }
+    #briefingPrintArea { display: block; position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 0; }
+    @page { size: A4; margin: 12mm; }
+  }
+  .brief-page { font-family: 'Roboto', Arial, sans-serif; color: #212121; font-size: 11px; }
+  .brief-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #1976D2; padding-bottom: 10px; margin-bottom: 14px; }
+  .brief-header h1 { font-size: 18px; color: #1976D2; margin: 0 0 2px; }
+  .brief-header .sub { font-size: 11px; color: #616161; }
+  .brief-header .meta { text-align: right; font-size: 11px; color: #616161; }
+  .brief-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; background: #1976D2; color: #fff; padding: 6px 10px; margin: 16px 0 8px; border-radius: 3px; }
+  .brief-section-title:first-of-type { margin-top: 0; }
+  .brief-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+  .brief-table th, .brief-table td { border: 1px solid #BDBDBD; padding: 4px 6px; font-size: 10.5px; text-align: right; }
+  .brief-table th { background: #E3F2FD; color: #0D47A1; font-weight: 700; text-align: center; }
+  .brief-table td:first-child, .brief-table th:first-child { text-align: left; }
+  .brief-table tr.brief-total td { background: #ECEFF1; font-weight: 700; }
+  .brief-pos { color: #2E7D32; font-weight: 700; }
+  .brief-neg { color: #C62828; font-weight: 700; }
+  .brief-two-col { display: flex; gap: 14px; }
+  .brief-two-col > div { flex: 1; min-width: 0; }
+  .brief-note { font-size: 10px; color: #757575; font-style: italic; margin: 4px 0 0; }
+  .brief-footer { margin-top: 18px; font-size: 9.5px; color: #9e9e9e; text-align: center; border-top: 1px solid #E0E0E0; padding-top: 8px; }
 </style>
 </head>
 <body>
@@ -502,6 +546,15 @@
     <div class="last-update" id="lastUpdate">Belum ada data diimport</div>
   </div>
 </div>
+
+<div class="briefing-bar">
+  <span class="briefing-bar-label">📋 Laporan Briefing Harian (PDF A4)</span>
+  <button class="btn-briefing" onclick="generateBriefingPDF()" title="Unduh laporan briefing shift/pagi dalam format PDF A4">
+    <span class="icon">🖨️</span> Download Laporan Briefing (PDF)
+  </button>
+</div>
+
+<div id="briefingPrintArea"></div>
 
 <div class="import-bar">
   <span>Import Data:</span>
@@ -656,8 +709,8 @@
           <input type="number" id="expVoucher" placeholder="0" oninput="updateExportPreview()">
         </div>
         <div class="export-field">
-          <label>Omset Full Month LY</label>
-          <input type="number" id="expOmsetFullMonthLY" placeholder="0" oninput="updateExportPreview()">
+          <label>Omset Full Month LY (Auto: Total Real LY)</label>
+          <input type="number" id="expOmsetFullMonthLY" placeholder="0" readonly style="background-color: var(--border-soft);">
         </div>
         <div class="export-field">
           <label>Delivery Charge (Total Rp)</label>
@@ -877,12 +930,12 @@
           — Mitra10 Protection & Salper Bathroom —
         </div>
         <div class="export-field">
-          <label>Budget Salper Sales Bathroom</label>
-          <input type="text" inputmode="numeric" id="expRegSalperBudgetBathroom" placeholder="0" oninput="formatThousandInput(this); updateExportPreviewRegion();">
+          <label>Budget Salper Sales Bathroom (Auto: Budget Category Bathroom)</label>
+          <input type="text" inputmode="numeric" id="expRegSalperBudgetBathroom" placeholder="0" readonly style="background-color: var(--border-soft);">
         </div>
         <div class="export-field">
-          <label>Sales Bathroom LY</label>
-          <input type="text" inputmode="numeric" id="expRegSalesBathroomLY" placeholder="0" oninput="formatThousandInput(this); updateExportPreviewRegion();">
+          <label>Sales Bathroom LY (Auto: Amount Exclude Sales)</label>
+          <input type="text" inputmode="numeric" id="expRegSalesBathroomLY" placeholder="0" readonly style="background-color: var(--border-soft);">
         </div>
         <div class="export-field" style="display:none">
           <label>Status Sumber Data (auto)</label>
@@ -1728,6 +1781,27 @@ function renderAll() {
     const monthStartLY = '2025' + to.slice(4, 8) + '01';
     const mtdSalesLY = state.sales_ly.filter(r => r.date >= monthStartLY && r.date <= toLY).reduce((s, r) => s + r.amount, 0);
     document.getElementById('expMTDLY').value = Math.round(mtdSalesLY);
+
+    // Omset Full Month LY (Auto): total kolom "Real LY" di BUDGET_CATEGORY untuk satu bulan penuh
+    const monthStartFM = to.slice(0, 7) + '-01';
+    const toDateFM = new Date(to + 'T00:00:00');
+    const monthEndFM = new Date(toDateFM.getFullYear(), toDateFM.getMonth() + 1, 0);
+    const monthEndFMStr = `${monthEndFM.getFullYear()}-${String(monthEndFM.getMonth() + 1).padStart(2, '0')}-${String(monthEndFM.getDate()).padStart(2, '0')}`;
+    const fullMonthLY = getBudgetCategoryLYRange(monthStartFM, monthEndFMStr).realLY;
+    document.getElementById('expOmsetFullMonthLY').value = Math.round(fullMonthLY);
+
+    // Budget Salper Sales Bathroom (Auto): kolom kategori "BATHROOM" di BUDGET_CATEGORY untuk tanggal laporan
+    const bathroomCatEntry = state.budgetCat[to] && state.budgetCat[to]._categories
+      ? Object.entries(state.budgetCat[to]._categories).find(([cat]) => cat.toUpperCase().trim() === 'BATHROOM')
+      : null;
+    const bathroomBudgetVal = bathroomCatEntry ? (bathroomCatEntry[1].daily || 0) : 0;
+    document.getElementById('expRegSalperBudgetBathroom').value = Math.round(bathroomBudgetVal).toLocaleString('id-ID');
+
+    // Sales Bathroom LY (Auto): kolom "Amount Exclude Sales" dari DATA_SALES_2025 (LY), kategori BATHROOM, tanggal setara tahun lalu
+    const salesBathroomLYVal = state.sales_ly.filter(r => r.date === toLY && (r.category || '').toUpperCase() === 'BATHROOM').reduce((s, r) => s + r.amount, 0);
+    document.getElementById('expRegSalesBathroomLY').value = Math.round(salesBathroomLYVal).toLocaleString('id-ID');
+
+    updateExportPreviewRegion();
   }
 
   document.getElementById('filterInfo').textContent = sales.length.toLocaleString('id') + ' baris transaksi';
@@ -3192,6 +3266,10 @@ function getRegionData() {
   const budgetProtection = budgetObj._protectionTarget || 0;
   const budgetProtectionMTD = budgetObj._protectionTargetMtd || 0;
   const actualProtection = Math.abs(state.sales.filter(r => r.date === to && (r.masterBrand || '').toUpperCase() === 'BCA').reduce((s, r) => s + Math.abs(r.qty || 0), 0));
+  // Kolom "MTD" pada baris Mitra10 Protection = total Protection AKTUAL dari awal bulan s/d tanggal laporan
+  // (bukan angka budget/target MTD dari file BUDGET_CATEGORY)
+  const monthStartProtection = to.slice(0, 7) + '-01';
+  const actualProtectionMTD = Math.abs(state.sales.filter(r => r.date >= monthStartProtection && r.date <= to && (r.masterBrand || '').toUpperCase() === 'BCA').reduce((s, r) => s + Math.abs(r.qty || 0), 0));
   const salperIds = new Set(state.sales.filter(r => r.date === to && r.salespersonId && String(r.salespersonId).toLowerCase() !== 'null').map(r => r.salespersonId));
   const allSalper = salperIds.size;
   const catBySalper = {};
@@ -3213,7 +3291,7 @@ function getRegionData() {
     target, actual, ly, trafficAct, trafficLY, invAct, invLY,
     dsl, stockClassA, stockClassATotal, salesClassATotal,
     actualProject, budgetMember, memberRegist, newMemberTransaksi, salesNewMember, avgWaitTime, totalDR, gt10NoTinting,
-    budgetProtection, budgetProtectionMTD, actualProtection, allSalper, salperMultiKategori, salesBathroom, budgetSalperBathroom, salesBathroomLY,
+    budgetProtection, budgetProtectionMTD, actualProtection, actualProtectionMTD, allSalper, salperMultiKategori, salesBathroom, budgetSalperBathroom, salesBathroomLY,
     dataOk, stockOk, budgetOk
   };
 }
@@ -3461,10 +3539,11 @@ function buildRegionWorkbook(d) {
   setc(ws, 'A31', d.storeCode, RG.storeName);
   setc(ws, 'B31', d.budgetProtection, RG.numWrap);
   setc(ws, 'C31', d.actualProtection, RG.num);
-  setc(ws, 'D31', d.budgetProtectionMTD, RG.numWrap);
+  setc(ws, 'D31', d.actualProtectionMTD, RG.numWrap);
   setc(ws, 'E31', d.budgetProtection ? d.actualProtection / d.budgetProtection : 0, RG.num, 'C31/B31');
   ws['E31'].s = Object.assign({}, RG.num, { numFmt: '0%' });
-  setc(ws, 'F31', 0, RG.num, 'D31/$D$28'); ws['F31'].s = Object.assign({}, RG.num, { numFmt: '0%' });
+  setc(ws, 'F31', d.budgetProtectionMTD ? d.actualProtectionMTD / d.budgetProtectionMTD : 0, RG.num);
+  ws['F31'].s = Object.assign({}, RG.num, { numFmt: '0%' });
   setc(ws, 'H31', d.storeCode, RG.storeName);
   setc(ws, 'I31', d.allSalper, RG.num);
   setc(ws, 'J31', d.salperMultiKategori, RG.num);
@@ -3478,9 +3557,9 @@ function buildRegionWorkbook(d) {
   setc(ws, 'A32', 'TOTAL', RG.totalTxt);
   setc(ws, 'B32', d.budgetProtection, RG.total, 'SUM(B31)');
   setc(ws, 'C32', d.actualProtection, RG.total, 'SUM(C31)');
-  setc(ws, 'D32', d.budgetProtectionMTD, RG.total, 'SUM(D31)');
+  setc(ws, 'D32', d.actualProtectionMTD, RG.total, 'SUM(D31)');
   setc(ws, 'E32', d.budgetProtection ? d.actualProtection / d.budgetProtection : 0, RG.totalPct, 'C32/B32');
-  setc(ws, 'F32', 0, RG.totalPct, 'AVERAGE(F31)');
+  setc(ws, 'F32', d.budgetProtectionMTD ? d.actualProtectionMTD / d.budgetProtectionMTD : 0, RG.totalPct);
   setc(ws, 'I32', d.allSalper, RG.total, 'SUM(I31)');
   setc(ws, 'J32', d.salperMultiKategori, RG.total, 'SUM(J31)');
   setc(ws, 'K32', d.allSalper ? d.salperMultiKategori / d.allSalper : 0, RG.totalPct, 'J32/I32');
@@ -3512,6 +3591,208 @@ function generateRegionExcel() {
   const fname = `DAILY_REPORT_CLOSING_${d.regionName.replace(/\s+/g, '_')}_${d.tanggal}.xlsx`;
   XLSX.writeFile(wb, fname, { cellStyles: true });
   showToast('✅ Laporan Region (Excel) berhasil diunduh');
+}
+
+// ──────────────────────────────────────────
+// LAPORAN BRIEFING HARIAN (PDF A4) — untuk briefing akhir shift / pagi hari.
+// Dihitung ulang langsung dari state (bukan dari tabel yang sedang tampil di layar)
+// supaya selalu berbasis data HARIAN (tanggal = dateTo), terlepas dari filter tanggal
+// (range) yang sedang aktif di dashboard.
+// ──────────────────────────────────────────
+function nb(v) { if (v === null || v === undefined || isNaN(v)) return '—'; return Math.round(v).toLocaleString('id-ID'); }
+function pctb(v) { if (v === null || v === undefined || !isFinite(v)) return '—'; return v.toFixed(1) + '%'; }
+function briefCls(v) { return (v >= 0) ? 'brief-pos' : 'brief-neg'; }
+
+function buildBriefingData() {
+  const to = document.getElementById('dateTo').value;
+  if (!to) return null;
+
+  const salesDaily = state.sales.filter(r => r.date === to);
+  const dataOk = state.sales.length > 0;
+
+  // ── 1. Realisasi Kategori & Zonasi (HARIAN) ──
+  const byCat = {};
+  salesDaily.forEach(r => { if (r.category) byCat[r.category] = (byCat[r.category] || 0) + r.amount; });
+  const catBudgets = getCatBudgets(to, to); // rentang 1 hari → daily
+  const allCats = Array.from(new Set([...Object.keys(byCat), ...Object.keys(catBudgets)])).sort();
+  const catRows = allCats.map(cat => {
+    const real = byCat[cat] || 0;
+    const budget = (catBudgets[cat] && catBudgets[cat].daily) || 0;
+    return { cat, budget, real, pct: budget > 0 ? (real / budget * 100) : 0, selisih: real - budget };
+  }).sort((a, b) => b.pct - a.pct);
+  const catTotal = catRows.reduce((a, r) => ({ budget: a.budget + r.budget, real: a.real + r.real }), { budget: 0, real: 0 });
+  catTotal.pct = catTotal.budget > 0 ? (catTotal.real / catTotal.budget * 100) : 0;
+  catTotal.selisih = catTotal.real - catTotal.budget;
+
+  const zonaRows = ZONA_DEFS.map(z => {
+    let real = 0, budget = 0;
+    catRows.forEach(r => { if (z.keywords.some(k => (r.cat || '').toUpperCase().includes(k))) { real += r.real; budget += r.budget; } });
+    return { zona: z.zona, budget, real, pct: budget > 0 ? (real / budget * 100) : 0, selisih: real - budget };
+  });
+  const zonaTotal = zonaRows.reduce((a, r) => ({ budget: a.budget + r.budget, real: a.real + r.real }), { budget: 0, real: 0 });
+  zonaTotal.pct = zonaTotal.budget > 0 ? (zonaTotal.real / zonaTotal.budget * 100) : 0;
+  zonaTotal.selisih = zonaTotal.real - zonaTotal.budget;
+
+  // ── 2. TIEBS Harian (Traffic, Invoice, Efft. Traffic, Basket Size — TY vs LY + Growth) ──
+  const invDaily = new Set(salesDaily.map(r => r.receiptNo)).size;
+  const totalDaily = salesDaily.reduce((s, r) => s + r.amount, 0);
+  const avgDaily = invDaily > 0 ? totalDaily / invDaily : 0;
+  const lyDaily = getBudgetCategoryLYRange(to, to);
+  const ffcInput = parseInt(document.getElementById('expFFC').value) || 0;
+  const ffcDailyTY = ffcInput > 0 ? ffcInput : null;
+  const effDailyTY = (ffcDailyTY && invDaily > 0) ? (invDaily / ffcDailyTY * 100) : null;
+  const growth = (ty, ly) => (ty === null || ty === undefined || !(ly > 0)) ? null : (ty - ly) / ly * 100;
+
+  const tiebsRows = [
+    { label: 'Traffic (FFC)', ty: ffcDailyTY, ly: lyDaily.ffcLY || 0, isPct: false },
+    { label: 'Invoice', ty: invDaily, ly: lyDaily.invoiceLY || 0, isPct: false },
+    { label: 'Efft. Traffic', ty: effDailyTY, ly: lyDaily.effTrafficLY || 0, isPct: true },
+    { label: 'Basket Size', ty: avgDaily, ly: lyDaily.bszLY || 0, isPct: false }
+  ].map(r => ({ ...r, growthPct: growth(r.ty, r.ly) }));
+
+  // ── 3. Top 5 & Bottom 5 Salesperson (Pencapaian % Budget — HARIAN) ──
+  const bySP = {};
+  salesDaily.forEach(r => {
+    const key = r.salespersonId || r.salespersonName; if (!key) return;
+    if (!bySP[key]) bySP[key] = { id: r.salespersonId, name: r.salespersonName, real: 0 };
+    bySP[key].real += r.amount;
+  });
+  const getBudgetSP = (id) => {
+    const entry = state.budgetSP[id]; if (!entry) return 0;
+    if (entry.budgets[to]) return parseFloat(entry.budgets[to]) || 0;
+    const keys = Object.keys(entry.budgets).sort(); const match = keys.filter(k => k <= to).pop();
+    return match ? parseFloat(entry.budgets[match]) : parseFloat(Object.values(entry.budgets)[0] || 0);
+  };
+  const spData = Object.values(bySP).filter(sp => sp.real > 0).map(sp => {
+    const budget = getBudgetSP(sp.id);
+    return { ...sp, budget, pct: budget > 0 ? (sp.real / budget * 100) : 0 };
+  });
+  const spWithBudget = spData.filter(sp => sp.budget > 0);
+  const spPool = spWithBudget.length >= 5 ? spWithBudget : spData;
+  const spTop5 = [...spPool].sort((a, b) => b.pct - a.pct).slice(0, 5);
+  const spBottom5 = [...spPool].sort((a, b) => a.pct - b.pct).slice(0, 5);
+  const spUsesBudgetRanking = spWithBudget.length >= 5;
+
+  // ── 4. Target/Budget Besok ──
+  const toDateObj = new Date(to + 'T00:00:00');
+  const tomorrowObj = new Date(toDateObj.getTime() + 86400000);
+  const tomorrowStr = `${tomorrowObj.getFullYear()}-${String(tomorrowObj.getMonth() + 1).padStart(2, '0')}-${String(tomorrowObj.getDate()).padStart(2, '0')}`;
+  const tomorrowLabel = tomorrowObj.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+  const budgetTomorrowObj = state.budgetCat[tomorrowStr] || null;
+  const budgetTomorrowRows = budgetTomorrowObj && budgetTomorrowObj._categories
+    ? Object.entries(budgetTomorrowObj._categories).map(([cat, c]) => ({ cat, budget: c.daily || 0 })).sort((a, b) => b.budget - a.budget)
+    : [];
+  const budgetTomorrowTotal = budgetTomorrowObj ? (budgetTomorrowObj._total || 0) : 0;
+
+  const toDateLabel = toDateObj.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+  const jam = document.getElementById('expJam').value || '—';
+
+  return {
+    dataOk, to, toDateLabel, jam,
+    storeName: document.getElementById('expStoreName').value || 'Store Mitra10 Tallasa City Makassar',
+    catRows, catTotal, zonaRows, zonaTotal,
+    tiebsRows,
+    spTop5, spBottom5, spUsesBudgetRanking,
+    tomorrowStr, tomorrowLabel, budgetTomorrowObj, budgetTomorrowRows, budgetTomorrowTotal
+  };
+}
+
+function renderBriefingPrint(d) {
+  const catRowsHtml = d.catRows.map(r => `
+    <tr><td>${r.cat}</td><td>${nb(r.budget)}</td><td>${nb(r.real)}</td><td>${pctb(r.pct)}</td><td class="${briefCls(r.selisih)}">${r.selisih >= 0 ? '▲' : '▼'} ${nb(Math.abs(r.selisih))}</td></tr>`).join('');
+  const zonaRowsHtml = d.zonaRows.map(r => `
+    <tr><td>${r.zona}</td><td>${nb(r.budget)}</td><td>${nb(r.real)}</td><td>${pctb(r.pct)}</td><td class="${briefCls(r.selisih)}">${r.selisih >= 0 ? '▲' : '▼'} ${nb(Math.abs(r.selisih))}</td></tr>`).join('');
+
+  const tiebsRowsHtml = d.tiebsRows.map(r => `
+    <tr>
+      <td>${r.label}</td>
+      <td>${r.isPct ? pctb(r.ty) : nb(r.ty)}</td>
+      <td>${r.isPct ? pctb(r.ly) : nb(r.ly)}</td>
+      <td class="${r.growthPct === null ? '' : briefCls(r.growthPct)}">${r.growthPct === null ? '—' : (r.growthPct >= 0 ? '+' : '') + r.growthPct.toFixed(1) + '%'}</td>
+    </tr>`).join('');
+
+  const spRow = (sp, i) => `<tr><td style="text-align:center">${i + 1}</td><td>${sp.name || sp.id || '—'}</td><td>${nb(sp.real)}</td><td>${sp.budget > 0 ? nb(sp.budget) : '—'}</td><td>${sp.budget > 0 ? pctb(sp.pct) : '—'}</td></tr>`;
+  const spTopHtml = d.spTop5.length ? d.spTop5.map(spRow).join('') : `<tr><td colspan="5" style="text-align:center;color:#9e9e9e">Tidak ada data</td></tr>`;
+  const spBottomHtml = d.spBottom5.length ? d.spBottom5.map(spRow).join('') : `<tr><td colspan="5" style="text-align:center;color:#9e9e9e">Tidak ada data</td></tr>`;
+
+  const budgetTomorrowHtml = d.budgetTomorrowRows.length
+    ? d.budgetTomorrowRows.map(r => `<tr><td>${r.cat}</td><td>${nb(r.budget)}</td></tr>`).join('')
+      + `<tr class="brief-total"><td>TOTAL</td><td>${nb(d.budgetTomorrowTotal)}</td></tr>`
+    : `<tr><td colspan="2" style="text-align:center;color:#9e9e9e">Data BUDGET_CATEGORY untuk tanggal besok (${d.tomorrowStr}) belum tersedia/diimport</td></tr>`;
+
+  const html = `
+    <div class="brief-page">
+      <div class="brief-header">
+        <div>
+          <h1>Laporan Briefing Harian</h1>
+          <div class="sub">${d.storeName} — Briefing Akhir Shift / Pagi Hari</div>
+        </div>
+        <div class="meta">
+          Tanggal Laporan: <strong>${d.toDateLabel}</strong><br>
+          s/d Jam: <strong>${d.jam}</strong><br>
+          Dicetak: ${new Date().toLocaleString('id-ID')}
+        </div>
+      </div>
+
+      <div class="brief-section-title">1. Realisasi Harian — Kategori</div>
+      <table class="brief-table">
+        <thead><tr><th>Kategori</th><th>Budget Harian</th><th>Realisasi</th><th>% Real</th><th>Selisih</th></tr></thead>
+        <tbody>${catRowsHtml || `<tr><td colspan="5" style="text-align:center;color:#9e9e9e">Tidak ada data</td></tr>`}
+        <tr class="brief-total"><td>TOTAL</td><td>${nb(d.catTotal.budget)}</td><td>${nb(d.catTotal.real)}</td><td>${pctb(d.catTotal.pct)}</td><td class="${briefCls(d.catTotal.selisih)}">${d.catTotal.selisih >= 0 ? '▲' : '▼'} ${nb(Math.abs(d.catTotal.selisih))}</td></tr>
+        </tbody>
+      </table>
+
+      <div class="brief-section-title">Realisasi Harian — Zonasi</div>
+      <table class="brief-table">
+        <thead><tr><th>Zona</th><th>Budget Harian</th><th>Realisasi</th><th>% Real</th><th>Selisih</th></tr></thead>
+        <tbody>${zonaRowsHtml}
+        <tr class="brief-total"><td>TOTAL</td><td>${nb(d.zonaTotal.budget)}</td><td>${nb(d.zonaTotal.real)}</td><td>${pctb(d.zonaTotal.pct)}</td><td class="${briefCls(d.zonaTotal.selisih)}">${d.zonaTotal.selisih >= 0 ? '▲' : '▼'} ${nb(Math.abs(d.zonaTotal.selisih))}</td></tr>
+        </tbody>
+      </table>
+
+      <div class="brief-section-title">2. TIEBS — Traffic, Invoice, Efft. Traffic, Basket Size (TY vs LY, Harian)</div>
+      <table class="brief-table">
+        <thead><tr><th>Indikator</th><th>Tahun Ini (TY)</th><th>Tahun Lalu (LY)</th><th>Growth</th></tr></thead>
+        <tbody>${tiebsRowsHtml}</tbody>
+      </table>
+
+      <div class="brief-section-title">3. Pencapaian Salesperson Harian</div>
+      <div class="brief-two-col">
+        <div>
+          <div style="font-weight:700;font-size:10.5px;margin-bottom:4px;color:#2E7D32;">🏆 5 Pencapaian Tertinggi</div>
+          <table class="brief-table">
+            <thead><tr><th>#</th><th>Salesperson</th><th>Real</th><th>Budget</th><th>%</th></tr></thead>
+            <tbody>${spTopHtml}</tbody>
+          </table>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:10.5px;margin-bottom:4px;color:#C62828;">⚠️ 5 Pencapaian Terendah</div>
+          <table class="brief-table">
+            <thead><tr><th>#</th><th>Salesperson</th><th>Real</th><th>Budget</th><th>%</th></tr></thead>
+            <tbody>${spBottomHtml}</tbody>
+          </table>
+        </div>
+      </div>
+      ${d.spUsesBudgetRanking ? '' : '<p class="brief-note">* Ranking sebagian/seluruhnya memakai nilai Realisasi karena data Budget Salesperson (BUDGET_SALPER) untuk tanggal ini belum lengkap.</p>'}
+
+      <div class="brief-section-title">4. Target / Budget Besok (${d.tomorrowLabel})</div>
+      <table class="brief-table">
+        <thead><tr><th>Kategori</th><th>Budget Harian</th></tr></thead>
+        <tbody>${budgetTomorrowHtml}</tbody>
+      </table>
+
+      <div class="brief-footer">Dashboard Monitoring Omset — MITRA10 TallasaCity Makassar · Dokumen ini dibuat otomatis untuk keperluan briefing internal</div>
+    </div>`;
+
+  document.getElementById('briefingPrintArea').innerHTML = html;
+}
+
+function generateBriefingPDF() {
+  const d = buildBriefingData();
+  if (!d || !d.dataOk) { showToast('Data belum lengkap — pastikan filter tanggal & data sales sudah dimuat', true); return; }
+  renderBriefingPrint(d);
+  showToast('⏳ Menyiapkan laporan briefing... pilih "Save as PDF" pada dialog cetak');
+  setTimeout(() => window.print(), 200);
 }
 
 // ──────────────────────────────────────────
