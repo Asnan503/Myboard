@@ -124,7 +124,7 @@
   }
 
   @media (prefers-reduced-motion: reduce){
-    .grid-bg, .orb, .scanline{animation:none;}
+    .grid-bg, .orb, .scanline, .wave{animation:none;}
   }
 
   .panel{
@@ -205,6 +205,33 @@
     letter-spacing:0.05em;
   }
 
+  .footer-line .credit{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    margin-top:10px;
+    font-size:13px;
+    color:var(--muted);
+    letter-spacing:0.03em;
+  }
+
+  .wave{
+    display:inline-block;
+    font-size:16px;
+    transform-origin:70% 70%;
+    animation:wave 2.2s ease-in-out infinite;
+  }
+
+  @keyframes wave{
+    0%,60%,100%{transform:rotate(0deg);}
+    10%{transform:rotate(14deg);}
+    20%{transform:rotate(-8deg);}
+    30%{transform:rotate(14deg);}
+    40%{transform:rotate(-4deg);}
+    50%{transform:rotate(10deg);}
+  }
+
   @media (prefers-reduced-motion: reduce){
     .tag .dot{animation:none;}
   }
@@ -231,14 +258,14 @@
     <h1>Website Sedang<br><span class="accent">Dalam Perbaikan</span></h1>
 
     <p class="sub">
-      Kami sedang melakukan pembaruan sistem untuk meningkatkan performa layanan.
+      Report ini akan dialihkan ke divisi lain yang lebih membutuhkan.
     </p>
 
     <div class="divider"></div>
 
     <p class="footer-line">
-      Report ini akan dialihkan ke divisi lain yang lebih membutuhkan.
       <span class="thanks">Terima kasih.</span>
+      <span class="credit">by Support Back TLC <span class="wave">👋</span></span>
     </p>
   </main>
 
