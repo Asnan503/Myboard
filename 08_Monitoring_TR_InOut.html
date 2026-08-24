@@ -295,6 +295,7 @@
                                     <th>Item No</th>
                                     <th>Nama Item</th>
                                     <th>Qty</th>
+                                    <th>Comment</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -727,6 +728,7 @@
                     <td>${getV(it, ['Item No', 'Item No '])}</td>
                     <td>${it['Item Name'] || '-'}</td>
                     <td style="font-weight:bold;">${it['Quantity'] || 0}</td>
+                    <td>${getV(it, ['Comment', 'Comments', 'Remark', 'Remarks', 'Note', 'Notes']) || '-'}</td>
                 </tr>`;
             });
         }
@@ -813,7 +815,7 @@
             try {
                 const doc = makePdfBase('portrait');
                 pdfHeader(doc, 'Daftar Item Kontainer', 'Container: ' + contLabel + '   |   Manifest: ' + manLabel + '   |   Tujuan: ' + destLabel);
-                const head = [['No','Category Name','Transfer Order No','TO Number','Item No','Nama Item','Qty']];
+                const head = [['No','Category Name','Transfer Order No','TO Number','Item No','Nama Item','Qty','Comment']];
                 const body = [];
                 rows.forEach(tr => {
                     const cells = tr.querySelectorAll('td');
@@ -830,12 +832,13 @@
                     rowPageBreak: 'avoid',
                     columnStyles: {
                         0: { cellWidth: 7,  halign: 'center' },
-                        1: { cellWidth: 28 },
-                        2: { cellWidth: 26 },
-                        3: { cellWidth: 32 },
-                        4: { cellWidth: 20 },
+                        1: { cellWidth: 24 },
+                        2: { cellWidth: 22 },
+                        3: { cellWidth: 26 },
+                        4: { cellWidth: 17 },
                         5: { cellWidth: 'auto' },
-                        6: { cellWidth: 10, halign: 'center', fontStyle: 'bold' }
+                        6: { cellWidth: 9, halign: 'center', fontStyle: 'bold' },
+                        7: { cellWidth: 24 }
                     },
                     margin: { top: 22, left: 6, right: 6, bottom: 10 }
                 });
