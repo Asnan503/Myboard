@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kontrol Stock Terjual TLC</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f5f7; --panel:#ffffff; --border:#e2e4e9; --text:#1c1f26; --muted:#6b7280;
+    --green:#16a34a; --greenBg:#e9f9ef;
+    --amber:#b45309; --amberBg:#fef3e0;
+    --red:#dc2626; --redBg:#fdecec;
+    --gray:#4b5563; --grayBg:#eef0f3;
+    --accent:#111827;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);}
+  header.app-header{background:var(--accent);color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+  header.app-header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.3px;}
+  header.app-header .sub{font-size:12px;color:#c7cad1;}
+  main{padding:18px 22px 60px;max-width:1500px;margin:0 auto;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+  .panel h2{font-size:14px;margin:0 0 12px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;}
+  .import-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;}
+  .import-card{border:1px dashed var(--border);border-radius:8px;padding:12px;background:#fafbfc;}
+  .import-card label.title{display:block;font-weight:600;font-size:13px;margin-bottom:4px;}
+  .import-card .desc{font-size:11.5px;color:var(--muted);margin-bottom:8px;line-height:1.4;}
+  .import-card input[type=file]{width:100%;font-size:12px;}
+  .import-status{margin-top:8px;font-size:12px;color:var(--muted);}
+  .import-status.ok{color:var(--green);font-weight:600;}
+  .btn{cursor:pointer;border:none;border-radius:7px;padding:9px 16px;font-size:13px;font-weight:600;background:var(--accent);color:#fff;}
+  .btn.secondary{background:#fff;color:var(--accent);border:1px solid var(--border);}
+  .btn.small{padding:6px 12px;font-size:12px;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+  .kpi{border-radius:9px;padding:12px 14px;border:1px solid var(--border);}
+  .kpi .val{font-size:24px;font-weight:800;}
+  .kpi .lbl{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .kpi.green{background:var(--greenBg);} .kpi.green .val{color:var(--green);}
+  .kpi.amber{background:var(--amberBg);} .kpi.amber .val{color:var(--amber);}
+  .kpi.red{background:var(--redBg);} .kpi.red .val{color:var(--red);}
+  .kpi.gray{background:var(--grayBg);} .kpi.gray .val{color:var(--gray);}
+  .tabs{display:flex;gap:6px;margin-bottom:10px;}
+  .tab-btn{padding:9px 16px;font-size:13px;font-weight:600;border-radius:7px 7px 0 0;border:1px solid var(--border);border-bottom:none;background:#eef0f3;color:var(--muted);cursor:pointer;}
+  .tab-btn.active{background:var(--panel);color:var(--accent);}
+  .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:end;}
+  .filters .fld{display:flex;flex-direction:column;gap:4px;}
+  .filters label{font-size:11px;color:var(--muted);font-weight:600;}
+  .filters input,.filters select{padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;min-width:150px;}
+  table{border-collapse:collapse;width:100%;font-size:12px;}
+  thead th{position:sticky;top:0;background:#f1f2f5;text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);white-space:nowrap;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
+  tbody td{padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  tbody tr:hover{background:#fafbfc;}
+  .table-wrap{overflow:auto;max-height:640px;border:1px solid var(--border);border-radius:8px;}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+  .badge.ready{background:var(--greenBg);color:var(--green);}
+  .badge.cukup{background:var(--amberBg);color:var(--amber);}
+  .badge.penting{background:var(--redBg);color:var(--red);}
+  .note{font-size:11px;color:var(--muted);}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;margin-top:10px;color:var(--muted);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .dot.g{background:var(--green);} .dot.a{background:var(--amber);} .dot.r{background:var(--red);}
+  .empty{padding:40px;text-align:center;color:var(--muted);font-size:13px;}
+  footer{text-align:center;padding:20px;color:var(--muted);font-size:12px;}
+  .rowcount{font-size:12px;color:var(--muted);}
+  .flag{color:var(--red);font-weight:700;}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div>
+    <h1>Kontrol Stock Terjual TLC</h1>
+    <div class="sub">Kontrol kesiapan pengiriman barang terjual (Outstanding Nota Penjualan) vs Stock &amp; Barang Masuk</div>
+  </div>
+  <div class="sub" id="lastProcessed">Belum ada data diproses</div>
+</header>
+
+<main>
+
+  <div class="panel">
+    <h2>1. Import Data (XLSX)</h2>
+    <div class="import-grid">
+      <div class="import-card">
+        <label class="title">Stock Qty Report</label>
+        <div class="desc">Stock semua item di toko (kolom Item No &amp; Stock Qty).</div>
+        <input type="file" id="fileStock" accept=".xlsx,.xls">
+        <div class="import-status" id="statusStock">Belum diimport</div>
+      </div>
+      <div class="import-card">
+        <label class="title">Report Outstanding Nota Penjualan</label>
+        <div class="desc">Transaksi penjualan yang belum dikirim/diambil customer.</div>
+        <input type="file" id="fileNP" accept=".xlsx,.xls">
+        <div class="import-status" id="statusNP">Belum diimport</div>
+      </div>
+      <div class="import-card">
+        <label class="title">Outstanding Transfer Out</label>
+        <div class="desc">Item yang akan masuk ke toko sebagai tambahan stock dari gudang DC.</div>
+        <input type="file" id="fileTO" accept=".xlsx,.xls">
+        <div class="import-status" id="statusTO">Belum diimport</div>
+      </div>
+      <div class="import-card">
+        <label class="title">Outstanding PO</label>
+        <div class="desc">Item yang akan masuk ke toko dari Supplier (PO belum diterima).</div>
+        <input type="file" id="filePO" accept=".csv,.xlsx,.xls">
+        <div class="import-status" id="statusPO">Belum diimport</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="btn" id="btnProcess" disabled>Proses &amp; Hitung Kontrol Stock</button>
+      <button class="btn secondary small" id="btnClear">Hapus Semua Data</button>
+      <span class="note" id="processNote"></span>
+    </div>
+  </div>
+
+  <div class="panel" id="resultsPanel" style="display:none;">
+    <h2>2. Ringkasan</h2>
+    <div class="kpi-grid" id="kpiGrid"></div>
+    <div class="legend">
+      <span><span class="dot g"></span> Siap Kirim — stock cukup (belum terpotong minus)</span>
+      <span><span class="dot a"></span> Cukup dengan Barang Masuk — tertutup oleh Outstanding Transfer Out / Outstanding PO</span>
+      <span><span class="dot r"></span> Perhatian Penting — kurang stock &amp; tidak ada/tidak cukup barang masuk</span>
+    </div>
+  </div>
+
+  <div class="panel" id="tablePanel" style="display:none;">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="item">Ringkasan per Item</button>
+      <button class="tab-btn" data-tab="np">Detail per Nota Penjualan</button>
+    </div>
+
+    <div class="filters">
+      <div class="fld">
+        <label>Cari (Item No / Nama / NP No / Customer)</label>
+        <input type="text" id="fSearch" placeholder="ketik untuk mencari...">
+      </div>
+      <div class="fld">
+        <label>Status</label>
+        <select id="fStatus">
+          <option value="">Semua Status</option>
+          <option value="ready">Siap Kirim</option>
+          <option value="cukup">Cukup dengan Barang Masuk</option>
+          <option value="penting">Perhatian Penting</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label>Category</label>
+        <select id="fCategory"><option value="">Semua Category</option></select>
+      </div>
+      <div class="fld" id="fldDateFrom">
+        <label>Planning Delivery Date Dari</label>
+        <input type="date" id="fDateFrom">
+      </div>
+      <div class="fld" id="fldDateTo">
+        <label>Planning Delivery Date Sampai</label>
+        <input type="date" id="fDateTo">
+      </div>
+      <div class="fld">
+        <label>&nbsp;</label>
+        <button class="btn secondary small" id="btnResetFilter">Reset Filter</button>
+      </div>
+      <div class="fld" style="margin-left:auto;">
+        <label>&nbsp;</label>
+        <div class="toolbar" style="margin:0;">
+          <button class="btn small" id="btnCSV">Download CSV</button>
+          <button class="btn small" id="btnPDF">Download PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="rowcount" id="rowCount"></div>
+    <div class="table-wrap" id="tableWrap"><div class="empty">Belum ada data. Silakan import ketiga file lalu klik "Proses &amp; Hitung Kontrol Stock".</div></div>
+  </div>
+
+</main>
+
+<footer id="footerText"></footer>
+
+<script>
+/* ================= STATE ================= */
+let stockData = [];   // {itemNo,itemName,category,stockQty,baseUOM}
+let npData = [];      // {npNo,npType,releasedDate,planningDate,customerName,category,itemNo,itemDesc,baseUOM,outstandingQty,comment}
+let toData = [];      // {itemNo,itemName,qty,toDate,postingDate,fromName,comment}
+let poData = [];       // {itemNo,itemDesc,poNumber,poDate,qty,supplierName,statusPO}
+
+let itemSummary = [];   // computed per item
+let npDetail = [];      // computed per NP line (with status)
+let activeTab = 'item';
+
+const STATUS_RANK = {penting:0, cukup:1, ready:2};
+const STATUS_LABEL = {ready:'Siap Kirim', cukup:'Cukup dengan Barang Masuk', penting:'Perhatian Penting'};
+
+/* ================= HELPERS ================= */
+function norm(s){ return (s==null?'':String(s)).trim(); }
+function normLower(s){ return norm(s).toLowerCase(); }
+function toNum(v){ const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+
+function findHeaderRow(rows, requiredExact, maxScan){
+  maxScan = maxScan || 15;
+  for(let i=0;i<Math.min(rows.length,maxScan);i++){
+    const row = (rows[i]||[]).map(c=>normLower(c));
+    let hit = 0;
+    for(const req of requiredExact){
+      if(row.some(c=>c===req || c.startsWith(req))) hit++;
+    }
+    if(hit >= requiredExact.length) return i;
+  }
+  return -1;
+}
+function colIndex(headerRow, matcher){
+  for(let i=0;i<headerRow.length;i++){
+    const c = normLower(headerRow[i]);
+    if(matcher(c)) return i;
+  }
+  return -1;
+}
+function excelDateToJS(v){
+  // NOTE: file dibaca TANPA cellDates (lihat readSheetRows) karena SheetJS's
+  // cellDates conversion punya floating-point rounding bug yang bisa menggeser
+  // tanggal mundur 1 hari. Di sini kita parse serial number Excel secara manual
+  // dengan pembulatan supaya tanggal selalu tepat sesuai file sumber.
+  if(v instanceof Date) return v;
+  if(typeof v === 'number'){
+    const d = XLSX.SSF.parse_date_code(Math.round(v));
+    if(d) return new Date(d.y, d.m-1, d.d);
+  }
+  if(typeof v === 'string' && v.trim()){
+    const d = new Date(v);
+    if(!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+function fmtDate(d){
+  if(!d) return '';
+  const dt = (d instanceof Date) ? d : excelDateToJS(d);
+  if(!dt || isNaN(dt.getTime())) return '';
+  const dd = String(dt.getDate()).padStart(2,'0');
+  const mm = String(dt.getMonth()+1).padStart(2,'0');
+  const yy = dt.getFullYear();
+  return `${dd}-${mm}-${yy}`;
+}
+function fmtNum(n){
+  return (Math.round(n*100)/100).toLocaleString('id-ID');
+}
+
+/* ================= FILE PARSING ================= */
+function readSheetRows(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      try{
+        // cellDates SENGAJA tidak diaktifkan: SheetJS punya floating-point rounding
+        // bug pada konversi cellDates yang bisa menggeser tanggal mundur 1 hari.
+        // Serial number tanggal dibaca mentah (raw:true) lalu diparse manual di excelDateToJS().
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:false});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+        resolve(rows);
+      }catch(err){ reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+async function handleStockFile(file){
+  const rows = await readSheetRows(file);
+  const hIdx = findHeaderRow(rows, ['item no','stock qty']);
+  if(hIdx === -1){ alert('Header Stock Qty Report tidak ditemukan. Pastikan file sesuai format.'); return; }
+  const header = rows[hIdx];
+  const cItemNo = colIndex(header, c=>c==='item no');
+  const cItemName = colIndex(header, c=>c==='item name');
+  const cStock = colIndex(header, c=>c==='stock qty');
+  const cCategory = colIndex(header, c=>c==='category');
+  const cUOM = colIndex(header, c=>c==='base uom');
+  const out = [];
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r = rows[i]; if(!r || !norm(r[cItemNo])) continue;
+    out.push({
+      itemNo: norm(r[cItemNo]),
+      itemName: norm(r[cItemName]),
+      category: cCategory>-1 ? norm(r[cCategory]) : '',
+      stockQty: toNum(r[cStock]),
+      baseUOM: cUOM>-1 ? norm(r[cUOM]) : ''
+    });
+  }
+  stockData = out;
+  document.getElementById('statusStock').textContent = `✔ ${file.name} — ${out.length} item dimuat`;
+  document.getElementById('statusStock').classList.add('ok');
+  saveMeta('stock', file.name, out.length);
+  checkReady();
+}
+
+async function handleNPFile(file){
+  const rows = await readSheetRows(file);
+  const hIdx = findHeaderRow(rows, ['np no','outstanding qty']);
+  if(hIdx === -1){ alert('Header Outstanding Nota Penjualan tidak ditemukan. Pastikan file sesuai format.'); return; }
+  const header = rows[hIdx];
+  const cNpNo = colIndex(header, c=>c.startsWith('np no'));
+  const cNpType = colIndex(header, c=>c==='np type');
+  const cReleased = colIndex(header, c=>c==='released date');
+  const cPlanning = colIndex(header, c=>c.startsWith('planning delivery date'));
+  const cCustomer = colIndex(header, c=>c==='customer name');
+  const cCategory = colIndex(header, c=>c==='category name');
+  const cItemNo = colIndex(header, c=>c.startsWith('item no'));
+  const cItemDesc = colIndex(header, c=>c==='item description');
+  const cUOM = colIndex(header, c=>c==='base uom');
+  const cOutQty = colIndex(header, c=>c.startsWith('outstanding qty'));
+  const cComment = colIndex(header, c=>c==='comment');
+  const out = [];
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r = rows[i]; if(!r || !norm(r[cItemNo])) continue;
+    out.push({
+      npNo: norm(r[cNpNo]),
+      npType: cNpType>-1 ? norm(r[cNpType]) : '',
+      releasedDate: cReleased>-1 ? r[cReleased] : null,
+      planningDate: cPlanning>-1 ? r[cPlanning] : null,
+      customerName: cCustomer>-1 ? norm(r[cCustomer]) : '',
+      category: cCategory>-1 ? norm(r[cCategory]) : '',
+      itemNo: norm(r[cItemNo]),
+      itemDesc: cItemDesc>-1 ? norm(r[cItemDesc]) : '',
+      baseUOM: cUOM>-1 ? norm(r[cUOM]) : '',
+      outstandingQty: toNum(r[cOutQty]),
+      comment: cComment>-1 ? norm(r[cComment]) : ''
+    });
+  }
+  npData = out.filter(r=>r.outstandingQty !== 0);
+  document.getElementById('statusNP').textContent = `✔ ${file.name} — ${npData.length} baris NP dimuat`;
+  document.getElementById('statusNP').classList.add('ok');
+  saveMeta('np', file.name, npData.length);
+  checkReady();
+}
+
+async function handleTOFile(file){
+  const rows = await readSheetRows(file);
+  const hIdx = findHeaderRow(rows, ['item no','quantity']);
+  if(hIdx === -1){ alert('Header Outstanding Transfer Out tidak ditemukan. Pastikan file sesuai format.'); return; }
+  const header = rows[hIdx];
+  const cItemNo = colIndex(header, c=>c.startsWith('item no'));
+  const cItemName = colIndex(header, c=>c==='item name');
+  const cQty = colIndex(header, c=>c==='quantity');
+  const cToDate = colIndex(header, c=>c==='transfer order date');
+  const cPosting = colIndex(header, c=>c==='posting date');
+  const cToNumber = colIndex(header, c=>c==='to number');
+  const cFrom = colIndex(header, c=>c==='transfer from name');
+  const cComment = colIndex(header, c=>c==='comment');
+  const out = [];
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r = rows[i]; if(!r || !norm(r[cItemNo])) continue;
+    out.push({
+      itemNo: norm(r[cItemNo]),
+      itemName: cItemName>-1 ? norm(r[cItemName]) : '',
+      qty: toNum(r[cQty]),
+      toNumber: cToNumber>-1 ? norm(r[cToNumber]) : '',
+      toDate: cToDate>-1 ? r[cToDate] : null,
+      postingDate: cPosting>-1 ? r[cPosting] : null,
+      fromName: cFrom>-1 ? norm(r[cFrom]) : '',
+      comment: cComment>-1 ? norm(r[cComment]) : ''
+    });
+  }
+  toData = out;
+  document.getElementById('statusTO').textContent = `✔ ${file.name} — ${out.length} baris transfer dimuat`;
+  document.getElementById('statusTO').classList.add('ok');
+  saveMeta('to', file.name, out.length);
+  checkReady();
+}
+
+/* ---- Outstanding PO (CSV, delimiter bisa ; atau ,) ---- */
+function parseDelimitedText(text){
+  // deteksi delimiter dari baris pertama yang ada isinya
+  const lines = text.split(/\r\n|\n|\r/);
+  let sample = lines.find(l=>l.trim().length>0) || '';
+  const semi = (sample.match(/;/g)||[]).length;
+  const comma = (sample.match(/,/g)||[]).length;
+  const delim = semi >= comma ? ';' : ',';
+  return lines.filter(l=>l.length>0).map(l=>{
+    // split sederhana dengan dukungan minimal untuk field ber-kutip
+    const out = []; let cur=''; let inQ=false;
+    for(let i=0;i<l.length;i++){
+      const ch = l[i];
+      if(ch === '"'){ inQ = !inQ; continue; }
+      if(ch === delim && !inQ){ out.push(cur); cur=''; continue; }
+      cur += ch;
+    }
+    out.push(cur);
+    return out;
+  });
+}
+function readTextFile(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = e=>resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsText(file, 'utf-8');
+  });
+}
+async function handlePOFile(file){
+  let rows;
+  if(/\.(xlsx|xls)$/i.test(file.name)){
+    rows = await readSheetRows(file);
+  } else {
+    const text = await readTextFile(file);
+    rows = parseDelimitedText(text);
+  }
+  const hIdx = findHeaderRow(rows, ['po number','qty outstanding']);
+  if(hIdx === -1){ alert('Header Outstanding PO tidak ditemukan. Pastikan file sesuai format (harus ada kolom "Po Number" dan "Qty OutStanding").'); return; }
+  const header = rows[hIdx];
+  const cItemNo = colIndex(header, c=>c.startsWith('item no'));
+  const cItemDesc = colIndex(header, c=>c==='description');
+  const cSupplier = colIndex(header, c=>c==='supplier name');
+  const cPoNumber = colIndex(header, c=>c==='po number');
+  const cPoDate = colIndex(header, c=>c==='po date');
+  const cQtyOut = colIndex(header, c=>c==='qty outstanding');
+  const cStatus = colIndex(header, c=>c==='status po');
+  const out = [];
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r = rows[i]; if(!r || !norm(r[cItemNo])) continue;
+    const qty = toNum(r[cQtyOut]);
+    if(qty === 0) continue;
+    out.push({
+      itemNo: norm(r[cItemNo]),
+      itemDesc: cItemDesc>-1 ? norm(r[cItemDesc]) : '',
+      supplierName: cSupplier>-1 ? norm(r[cSupplier]) : '',
+      poNumber: cPoNumber>-1 ? norm(r[cPoNumber]) : '',
+      poDate: cPoDate>-1 ? r[cPoDate] : null,
+      qty,
+      statusPO: cStatus>-1 ? norm(r[cStatus]) : ''
+    });
+  }
+  poData = out;
+  document.getElementById('statusPO').textContent = `✔ ${file.name} — ${out.length} baris PO dimuat`;
+  document.getElementById('statusPO').classList.add('ok');
+  saveMeta('po', file.name, out.length);
+  checkReady();
+}
+
+function checkReady(){
+  document.getElementById('btnProcess').disabled = !(stockData.length && npData.length);
+  const notes = [];
+  if(!toData.length) notes.push('Outstanding Transfer Out');
+  if(!poData.length) notes.push('Outstanding PO');
+  document.getElementById('processNote').textContent = notes.length
+    ? `(${notes.join(' & ')} opsional — jika belum diimport, kekurangan stock otomatis dianggap "Perhatian Penting")`
+    : '';
+}
+
+/* ================= LOCAL STORAGE (metadata only, for convenience) ================= */
+function saveMeta(key, name, count){
+  try{
+    localStorage.setItem('kstlc_'+key+'_meta', JSON.stringify({name,count,ts:new Date().toISOString()}));
+  }catch(e){}
+}
+function loadMeta(){
+  ['stock','np','to','po'].forEach(key=>{
+    try{
+      const m = JSON.parse(localStorage.getItem('kstlc_'+key+'_meta'));
+      if(m){
+        const el = document.getElementById('status'+(key==='stock'?'Stock':key==='np'?'NP':key==='to'?'TO':'PO'));
+        el.textContent = `Terakhir diimport: ${m.name} (${m.count} baris) — ${new Date(m.ts).toLocaleString('id-ID')}. Silakan import ulang file untuk memproses.`;
+      }
+    }catch(e){}
+  });
+}
+
+/* ================= CORE CALCULATION ================= */
+function process(){
+  const stockMap = {};
+  stockData.forEach(s=>{
+    if(!stockMap[s.itemNo]) stockMap[s.itemNo] = {itemNo:s.itemNo, itemName:s.itemName, category:s.category, baseUOM:s.baseUOM, stockQty:0};
+    stockMap[s.itemNo].stockQty += s.stockQty;
+  });
+
+  const toMap = {};       // itemNo -> total qty
+  const toDetailMap = {}; // itemNo -> array of {toNumber, postingDate, qty}
+  toData.forEach(t=>{
+    if(!toMap[t.itemNo]) toMap[t.itemNo] = 0;
+    toMap[t.itemNo] += t.qty;
+    if(!toDetailMap[t.itemNo]) toDetailMap[t.itemNo] = [];
+    toDetailMap[t.itemNo].push({toNumber:t.toNumber, postingDate:t.postingDate, qty:t.qty});
+  });
+  function toInfoText(itemNo){
+    const list = toDetailMap[itemNo];
+    if(!list || !list.length) return '';
+    return list.map(x=>`${x.toNumber || '-'} (${fmtDate(x.postingDate)||'blm ada tgl'}, qty ${fmtNum(x.qty)})`).join('; ');
+  }
+
+  const poMap = {};       // itemNo -> total qty
+  const poDetailMap = {}; // itemNo -> array of {poNumber, poDate, qty}
+  poData.forEach(p=>{
+    if(!poMap[p.itemNo]) poMap[p.itemNo] = 0;
+    poMap[p.itemNo] += p.qty;
+    if(!poDetailMap[p.itemNo]) poDetailMap[p.itemNo] = [];
+    poDetailMap[p.itemNo].push({poNumber:p.poNumber, poDate:p.poDate, qty:p.qty});
+  });
+  function poInfoText(itemNo){
+    const list = poDetailMap[itemNo];
+    if(!list || !list.length) return '';
+    return list.map(x=>`${x.poNumber || '-'} (${fmtDate(x.poDate)||'blm ada tgl'}, qty ${fmtNum(x.qty)})`).join('; ');
+  }
+
+  // group NP lines by item
+  const npByItem = {};
+  npData.forEach(n=>{
+    if(!npByItem[n.itemNo]) npByItem[n.itemNo] = [];
+    npByItem[n.itemNo].push(n);
+  });
+
+  itemSummary = [];
+  npDetail = [];
+
+  const allItemNos = new Set([...Object.keys(stockMap), ...Object.keys(npByItem)]);
+
+  allItemNos.forEach(itemNo=>{
+    const lines = npByItem[itemNo] || [];
+    if(lines.length === 0) return; // only care about items that have outstanding NP
+
+    const stockInfo = stockMap[itemNo];
+    const foundInStock = !!stockInfo;
+    const stockQty = foundInStock ? stockInfo.stockQty : 0;
+    const itemName = (stockInfo && stockInfo.itemName) || lines[0].itemDesc || '';
+    const category = (stockInfo && stockInfo.category) || lines[0].category || '';
+    const baseUOM = (stockInfo && stockInfo.baseUOM) || lines[0].baseUOM || '';
+    const incomingTO = toMap[itemNo] || 0;
+    const incomingPO = poMap[itemNo] || 0;
+    const totalIncoming = incomingTO + incomingPO;
+
+    const totalOutstanding = lines.reduce((a,b)=>a+b.outstandingQty,0);
+    const tier1 = stockQty + totalOutstanding;   // "Stok Akhir" (gross stock, sudah termasuk yg outstanding)
+    const tier2 = tier1 + totalIncoming;         // + barang akan masuk (Transfer Out + PO Supplier)
+
+    // sort lines by planning delivery date ascending (FIFO priority), null date = last
+    const sorted = [...lines].sort((a,b)=>{
+      const da = excelDateToJS(a.planningDate), db = excelDateToJS(b.planningDate);
+      if(!da && !db) return 0;
+      if(!da) return 1;
+      if(!db) return -1;
+      return da - db;
+    });
+
+    let cum = 0;
+    let itemWorstRank = 2; // start as ready
+    sorted.forEach(line=>{
+      const cumAfter = cum + line.outstandingQty;
+      let status;
+      if(cumAfter <= tier1 + 1e-9){
+        status = 'ready';
+      } else if(cumAfter <= tier2 + 1e-9){
+        status = 'cukup';
+      } else {
+        status = 'penting';
+      }
+      cum = cumAfter;
+      if(STATUS_RANK[status] < itemWorstRank) itemWorstRank = STATUS_RANK[status];
+
+      let keterangan = '';
+      if(status === 'ready'){
+        keterangan = 'Stock mencukupi, barang siap dikirim.';
+      } else if(status === 'cukup'){
+        keterangan = 'Stock saat ini belum cukup, namun akan tertutup oleh Outstanding Transfer Out / Outstanding PO yang akan masuk.';
+      } else {
+        keterangan = 'Stock tidak cukup dan tidak/belum tersedia Outstanding Transfer Out maupun Outstanding PO yang cukup untuk menutupi.';
+      }
+      if(!foundInStock) keterangan += ' ⚠ Item tidak ditemukan di Stock Qty Report.';
+
+      npDetail.push({
+        npNo: line.npNo, npType: line.npType, releasedDate: line.releasedDate, planningDate: line.planningDate,
+        customerName: line.customerName, itemNo, itemName, category, outstandingQty: line.outstandingQty,
+        baseUOM, stockQty, incomingTO, toInfo: toInfoText(itemNo), incomingPO, poInfo: poInfoText(itemNo),
+        status, keterangan, comment: line.comment, foundInStock
+      });
+    });
+
+    const worstStatus = Object.keys(STATUS_RANK).find(k=>STATUS_RANK[k]===itemWorstRank);
+    const kekurangan = Math.max(0, totalOutstanding - tier1);
+    const kekuranganSetelahTO = Math.max(0, totalOutstanding - tier2);
+
+    itemSummary.push({
+      itemNo, itemName, category, baseUOM, stockQty, totalOutstanding, tier1, incomingTO, toInfo: toInfoText(itemNo),
+      incomingPO, poInfo: poInfoText(itemNo), totalIncoming, tier2,
+      kekurangan, kekuranganSetelahTO, status: worstStatus, npCount: lines.length, foundInStock
+    });
+  });
+
+  itemSummary.sort((a,b)=> STATUS_RANK[a.status]-STATUS_RANK[b.status] || b.kekuranganSetelahTO-a.kekuranganSetelahTO);
+  npDetail.sort((a,b)=> STATUS_RANK[a.status]-STATUS_RANK[b.status] || (excelDateToJS(a.planningDate)||0)-(excelDateToJS(b.planningDate)||0));
+
+  document.getElementById('lastProcessed').textContent = 'Terakhir diproses: ' + new Date().toLocaleString('id-ID');
+  document.getElementById('resultsPanel').style.display = '';
+  document.getElementById('tablePanel').style.display = '';
+  renderKPI();
+  populateCategoryFilter();
+  renderTable();
+}
+
+/* ================= RENDER ================= */
+function renderKPI(){
+  const totalItem = itemSummary.length;
+  const totalNP = npDetail.length;
+  const cReady = npDetail.filter(r=>r.status==='ready').length;
+  const cCukup = npDetail.filter(r=>r.status==='cukup').length;
+  const cPenting = npDetail.filter(r=>r.status==='penting').length;
+  const qtyPenting = itemSummary.reduce((a,b)=>a+b.kekuranganSetelahTO,0);
+
+  const kpis = [
+    {label:'Total Item Outstanding', val:totalItem, cls:'gray'},
+    {label:'Total Baris Nota Penjualan', val:totalNP, cls:'gray'},
+    {label:'Siap Kirim', val:cReady, cls:'green'},
+    {label:'Cukup dengan Barang Masuk', val:cCukup, cls:'amber'},
+    {label:'Perhatian Penting', val:cPenting, cls:'red'},
+    {label:'Total Qty Kekurangan (Perhatian Penting)', val:fmtNum(qtyPenting), cls:'red'},
+  ];
+  document.getElementById('kpiGrid').innerHTML = kpis.map(k=>`
+    <div class="kpi ${k.cls}"><div class="val">${k.val}</div><div class="lbl">${k.label}</div></div>
+  `).join('');
+}
+
+function populateCategoryFilter(){
+  const cats = [...new Set(itemSummary.map(i=>i.category).filter(Boolean))].sort();
+  const sel = document.getElementById('fCategory');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Semua Category</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  sel.value = current;
+}
+
+function badge(status){
+  return `<span class="badge ${status}">${STATUS_LABEL[status]}</span>`;
+}
+
+function applyFilters(rows, isItemTab){
+  const search = normLower(document.getElementById('fSearch').value);
+  const status = document.getElementById('fStatus').value;
+  const category = document.getElementById('fCategory').value;
+  const dFrom = document.getElementById('fDateFrom').value;
+  const dTo = document.getElementById('fDateTo').value;
+
+  return rows.filter(r=>{
+    if(status && r.status !== status) return false;
+    if(category && r.category !== category) return false;
+    if(search){
+      const hay = isItemTab
+        ? `${r.itemNo} ${r.itemName}`.toLowerCase()
+        : `${r.itemNo} ${r.itemName} ${r.npNo} ${r.customerName}`.toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    if(!isItemTab && (dFrom || dTo)){
+      const d = excelDateToJS(r.planningDate);
+      if(!d) return false;
+      // PENTING: pakai tanggal LOKAL (bukan toISOString/UTC) supaya tidak
+      // bergeser 1 hari untuk timezone yang di depan UTC (mis. WITA +8).
+      const dISO = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      if(dFrom && dISO < dFrom) return false;
+      if(dTo && dISO > dTo) return false;
+    }
+    return true;
+  });
+}
+
+function currentRows(){
+  return activeTab === 'item' ? applyFilters(itemSummary, true) : applyFilters(npDetail, false);
+}
+
+function renderTable(){
+  const wrap = document.getElementById('tableWrap');
+  const rows = currentRows();
+  document.getElementById('rowCount').textContent = `${rows.length} baris ditampilkan`;
+
+  document.getElementById('fldDateFrom').style.display = activeTab==='item' ? 'none' : '';
+  document.getElementById('fldDateTo').style.display = activeTab==='item' ? 'none' : '';
+
+  if(rows.length === 0){
+    wrap.innerHTML = '<div class="empty">Tidak ada data sesuai filter.</div>';
+    return;
+  }
+
+  if(activeTab === 'item'){
+    wrap.innerHTML = `<table><thead><tr>
+      <th>Item No</th><th>Item Name</th><th>Category</th><th>UOM</th>
+      <th>Stock</th><th>Total Outstanding NP</th><th>Stok Akhir</th>
+      <th>Incoming Transfer Out</th><th>No. TO &amp; Posting Date</th>
+      <th>Incoming PO</th><th>No. PO &amp; Tanggal</th>
+      <th>Kekurangan</th><th>Jumlah NP</th><th>Status</th>
+    </tr></thead><tbody>
+      ${rows.map(r=>`<tr>
+        <td>${r.itemNo}</td><td>${r.itemName}</td><td>${r.category}</td><td>${r.baseUOM}</td>
+        <td>${fmtNum(r.stockQty)}</td><td>${fmtNum(r.totalOutstanding)}</td><td>${fmtNum(r.tier1)}</td>
+        <td>${fmtNum(r.incomingTO)}</td><td>${r.toInfo || '-'}</td>
+        <td>${fmtNum(r.incomingPO)}</td><td>${r.poInfo || '-'}</td>
+        <td>${r.kekuranganSetelahTO>0?'<span class="flag">'+fmtNum(r.kekuranganSetelahTO)+'</span>':'0'}</td>
+        <td>${r.npCount}</td><td>${badge(r.status)}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+  } else {
+    wrap.innerHTML = `<table><thead><tr>
+      <th>NP No</th><th>NP Type</th><th>Released Date</th><th>Planning Delivery Date</th><th>Customer</th>
+      <th>Item No</th><th>Item Name</th><th>Category</th><th>Outstanding Qty</th><th>UOM</th>
+      <th>Stock Item</th><th>Incoming TO</th><th>No. TO &amp; Posting Date</th>
+      <th>Incoming PO</th><th>No. PO &amp; Tanggal</th><th>Status</th><th>Keterangan</th>
+    </tr></thead><tbody>
+      ${rows.map(r=>`<tr>
+        <td>${r.npNo}</td><td>${r.npType}</td><td>${fmtDate(r.releasedDate)}</td><td>${fmtDate(r.planningDate)}</td><td>${r.customerName}</td>
+        <td>${r.itemNo}</td><td>${r.itemName}</td><td>${r.category}</td><td>${fmtNum(r.outstandingQty)}</td><td>${r.baseUOM}</td>
+        <td>${fmtNum(r.stockQty)}</td><td>${fmtNum(r.incomingTO)}</td><td>${r.toInfo || '-'}</td>
+        <td>${fmtNum(r.incomingPO)}</td><td>${r.poInfo || '-'}</td><td>${badge(r.status)}</td><td>${r.keterangan}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+  }
+}
+
+/* ================= EXPORT ================= */
+function exportCSV(){
+  const rows = currentRows();
+  if(!rows.length){ alert('Tidak ada data untuk diexport.'); return; }
+  let headers, dataRows;
+  if(activeTab === 'item'){
+    headers = ['Item No','Item Name','Category','UOM','Stock','Total Outstanding NP','Stok Akhir','Incoming Transfer Out','No. TO & Posting Date','Incoming PO','No. PO & Tanggal','Kekurangan','Jumlah NP','Status'];
+    dataRows = rows.map(r=>[r.itemNo,r.itemName,r.category,r.baseUOM,r.stockQty,r.totalOutstanding,r.tier1,r.incomingTO,r.toInfo,r.incomingPO,r.poInfo,r.kekuranganSetelahTO,r.npCount,STATUS_LABEL[r.status]]);
+  } else {
+    headers = ['NP No','NP Type','Released Date','Planning Delivery Date','Customer','Item No','Item Name','Category','Outstanding Qty','UOM','Stock Item','Incoming TO','No. TO & Posting Date','Incoming PO','No. PO & Tanggal','Status','Keterangan'];
+    dataRows = rows.map(r=>[r.npNo,r.npType,fmtDate(r.releasedDate),fmtDate(r.planningDate),r.customerName,r.itemNo,r.itemName,r.category,r.outstandingQty,r.baseUOM,r.stockQty,r.incomingTO,r.toInfo,r.incomingPO,r.poInfo,STATUS_LABEL[r.status],r.keterangan]);
+  }
+  const esc = v => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const csv = [headers.map(esc).join(','), ...dataRows.map(row=>row.map(esc).join(','))].join('\r\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (activeTab==='item' ? 'Ringkasan_Item' : 'Detail_NP') + '_KontrolStockTerjualTLC_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+function exportPDF(){
+  const rows = currentRows();
+  if(!rows.length){ alert('Tidak ada data untuk diexport.'); return; }
+  if(!window.jspdf || !window.jspdf.jsPDF){
+    alert('Library PDF gagal dimuat. Pastikan komputer terhubung internet (library diambil dari CDN saat halaman pertama kali dibuka), lalu refresh halaman dan coba lagi.');
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape', unit:'pt', format:'a4'}); // A4 landscape: 841.89 x 595.28 pt
+  if(typeof doc.autoTable !== 'function'){
+    alert('Plugin tabel PDF gagal dimuat. Pastikan komputer terhubung internet, lalu refresh halaman dan coba lagi.');
+    return;
+  }
+  doc.setFontSize(13);
+  doc.text('Kontrol Stock Terjual TLC', 40, 30);
+  doc.setFontSize(9);
+  doc.text((activeTab==='item' ? 'Ringkasan per Item' : 'Detail per Nota Penjualan') + ' — dicetak ' + new Date().toLocaleString('id-ID') + ' — ' + rows.length + ' baris', 40, 46);
+
+  let head, body;
+  if(activeTab === 'item'){
+    head = [['Item No','Item Name','Category','UOM','Stock','Total Outstanding','Stok Akhir','Incoming TO','No. TO & Posting Date','Incoming PO','No. PO & Tanggal','Kekurangan','Jml NP','Status']];
+    body = rows.map(r=>[r.itemNo,r.itemName,r.category,r.baseUOM,fmtNum(r.stockQty),fmtNum(r.totalOutstanding),fmtNum(r.tier1),fmtNum(r.incomingTO),r.toInfo||'-',fmtNum(r.incomingPO),r.poInfo||'-',fmtNum(r.kekuranganSetelahTO),r.npCount,STATUS_LABEL[r.status]]);
+  } else {
+    head = [['NP No','Released','Planning Date','Customer','Item No','Item Name','Out Qty','UOM','Stock','Incoming TO','No. TO & Posting Date','Incoming PO','No. PO & Tanggal','Status','Keterangan']];
+    body = rows.map(r=>[r.npNo,fmtDate(r.releasedDate),fmtDate(r.planningDate),r.customerName,r.itemNo,r.itemName,fmtNum(r.outstandingQty),r.baseUOM,fmtNum(r.stockQty),fmtNum(r.incomingTO),r.toInfo||'-',fmtNum(r.incomingPO),r.poInfo||'-',STATUS_LABEL[r.status],r.keterangan]);
+  }
+
+  doc.autoTable({
+    head, body, startY: 58, theme:'grid',
+    styles:{fontSize:6.5, cellPadding:2.5, textColor:20, lineColor:200, lineWidth:0.5, overflow:'linebreak'},
+    headStyles:{fillColor:[240,240,240], textColor:20, fontStyle:'bold', fontSize:6.5},
+    alternateRowStyles:{fillColor:[255,255,255]},
+    margin:{left:24,right:24,top:58,bottom:24},
+    tableWidth:'auto',
+    didDrawPage: function(data){
+      doc.setFontSize(7);
+      doc.setTextColor(120);
+      doc.text('Halaman ' + doc.internal.getNumberOfPages(), doc.internal.pageSize.getWidth()-60, doc.internal.pageSize.getHeight()-12);
+    }
+  });
+
+  doc.save((activeTab==='item' ? 'Ringkasan_Item' : 'Detail_NP') + '_KontrolStockTerjualTLC_' + new Date().toISOString().slice(0,10) + '.pdf');
+}
+
+/* ================= EVENTS ================= */
+document.getElementById('fileStock').addEventListener('change', e=>{ if(e.target.files[0]) handleStockFile(e.target.files[0]); });
+document.getElementById('fileNP').addEventListener('change', e=>{ if(e.target.files[0]) handleNPFile(e.target.files[0]); });
+document.getElementById('fileTO').addEventListener('change', e=>{ if(e.target.files[0]) handleTOFile(e.target.files[0]); });
+document.getElementById('filePO').addEventListener('change', e=>{ if(e.target.files[0]) handlePOFile(e.target.files[0]); });
+document.getElementById('btnProcess').addEventListener('click', process);
+document.getElementById('btnClear').addEventListener('click', ()=>{
+  if(!confirm('Hapus semua data yang sudah diimport?')) return;
+  stockData=[]; npData=[]; toData=[]; poData=[]; itemSummary=[]; npDetail=[];
+  ['Stock','NP','TO','PO'].forEach(k=>{ const el=document.getElementById('status'+k); el.textContent='Belum diimport'; el.classList.remove('ok'); });
+  ['fileStock','fileNP','fileTO','filePO'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('resultsPanel').style.display='none';
+  document.getElementById('tablePanel').style.display='none';
+  document.getElementById('lastProcessed').textContent='Belum ada data diproses';
+  try{ ['stock','np','to','po'].forEach(k=>localStorage.removeItem('kstlc_'+k+'_meta')); }catch(e){}
+  checkReady();
+});
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    activeTab = btn.dataset.tab;
+    renderTable();
+  });
+});
+['fSearch','fStatus','fCategory','fDateFrom','fDateTo'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', renderTable);
+  document.getElementById(id).addEventListener('change', renderTable);
+});
+document.getElementById('btnResetFilter').addEventListener('click', ()=>{
+  document.getElementById('fSearch').value='';
+  document.getElementById('fStatus').value='';
+  document.getElementById('fCategory').value='';
+  document.getElementById('fDateFrom').value='';
+  document.getElementById('fDateTo').value='';
+  renderTable();
+});
+document.getElementById('btnCSV').addEventListener('click', exportCSV);
+document.getElementById('btnPDF').addEventListener('click', ()=>{
+  try{ exportPDF(); }
+  catch(err){ console.error(err); alert('Gagal membuat PDF: ' + err.message); }
+});
+
+document.getElementById('footerText').textContent = new Date().getFullYear() + ' Powered by Asn';
+loadMeta();
+</script>
+</body>
+</html>

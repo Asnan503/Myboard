@@ -470,7 +470,7 @@
 
 <section class="modules" id="modules">
   <div class="section-head">
-    <span class="eyebrow">Lima Modul</span>
+    <span class="eyebrow">Enam Modul</span>
     <h2>Semua alat administrasi, dalam satu tempat</h2>
     <p>Pilih modul untuk mulai memproses data dan dokumen Anda.</p>
   </div>
@@ -545,12 +545,29 @@
       <span class="go">Buka dashboard <span class="arrow">→</span></span>
     </a>
 
+    <a class="card" style="--card-tint:rgba(192,117,154,0.35);" href="06_Kontrol_Stock_Terjual_TLC.html">
+      <span class="card-num">Modul 06</span>
+      <svg class="card-icon" viewBox="0 0 52 52" fill="none">
+        <rect x="10" y="8" width="32" height="38" rx="4" fill="#F0CBD4"/>
+        <rect x="17" y="4" width="18" height="9" rx="3" fill="#C0759A"/>
+        <rect x="16" y="20" width="20" height="3" rx="1.5" fill="#4A3A52" opacity=".25"/>
+        <rect x="16" y="27" width="14" height="3" rx="1.5" fill="#4A3A52" opacity=".25"/>
+        <path class="icon-anim" style="animation:checkmove 1.8s ease-in-out infinite; stroke-dasharray:40;" d="M17 37l5 5 13-15" stroke="#A6567F" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h3>Controlling OTS NP vs Stock vs OTS TO/PO</h3>
+      <p>Cek dan kontrol stock barang terjual sebelum PDD</p>
+      <span class="go">Buka dashboard <span class="arrow">→</span></span>
+    </a>
+
   </div>
 </section>
 
 <footer>
-  <p>ADMIN SUPPORT 11000 · PROSES DATA &amp; DOKUMEN ADMINISTRASI</p>
+  <p id="footerText">© Powered by Asn</p>
 </footer>
 
+<script>
+  document.getElementById('footerText').textContent = '© ' + new Date().getFullYear() + ' Powered by Asn';
+</script>
 </body>
 </html>
