@@ -31,7 +31,22 @@
     background:var(--paper);
     color:var(--ink);
     -webkit-font-smoothing:antialiased;
-    padding-bottom:90px;
+    padding-bottom:110px;
+  }
+  .site-footer{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:500;
+    background:var(--ink);
+    color:#fff;
+    text-align:center;
+    padding:10px 12px;
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:0.01em;
+    box-shadow:0 -2px 8px rgba(0,0,0,0.12);
   }
   header{
     background:var(--ink);
@@ -1780,7 +1795,15 @@
   if (!autoLoadFromStorage()){
     render();
   }
+
+  var footYearEl = document.getElementById('footYear');
+  if (footYearEl){
+    footYearEl.textContent = new Date().getFullYear();
+  }
 })();
 </script>
+
+<div class="site-footer">© <span id="footYear"></span> Powered by Asn 🩷</div>
+
 </body>
 </html>
